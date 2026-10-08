@@ -8,6 +8,7 @@ description = "A single-file, embedded, inspectable vector database"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
 dynamic = ["version"]
 classifiers = [
     "Programming Language :: Rust",
