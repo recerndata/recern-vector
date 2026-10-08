@@ -471,3 +471,19 @@ fn duplicate_ids_in_a_batch_keep_the_last_record() {
     assert_eq!(c.stats().deleted, 1);
     assert_eq!(c.get("a").unwrap().metadata, Some(json!(2)));
 }
+
+#[test]
+fn cosine_distance_of_a_stored_vector_to_itself_is_not_negative() {
+    let file = TempFile::new("self-distance");
+    let mut db = Database::create(&file.0).unwrap();
+    let c = db
+        .create_collection("c", CollectionConfig::new(3, Metric::Cosine))
+        .unwrap();
+    let v = [0.3, 0.7, 0.2];
+    c.upsert("a", &v, None).unwrap();
+    for options in [SearchOptions::default(), SearchOptions::default().exact()] {
+        let hits = c.search(&v, 1, &options).unwrap();
+        assert_eq!(hits[0].id, "a");
+        assert!(hits[0].distance >= 0.0, "distance {}", hits[0].distance);
+    }
+}

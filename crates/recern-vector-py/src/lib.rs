@@ -2,6 +2,7 @@
 //! re-exported from the `recern_vector` package.
 
 use std::path::PathBuf;
+use std::sync::{PoisonError, RwLock};
 
 use pyo3::buffer::PyBuffer;
 use pyo3::create_exception;
@@ -300,9 +301,30 @@ fn ms(d: std::time::Duration) -> f64 {
 ///
 /// Everything is held in memory; call `save()` (or use the database as a
 /// context manager) to write changes to disk atomically.
-#[pyclass(module = "recern_vector")]
+///
+/// Reads (searches, `get`, `stats`, `save`) share a lock and run in parallel
+/// from several threads; writes wait for them and run alone. The lock is
+/// always taken with the GIL released, and no Python code runs while it is
+/// held, so threads cannot deadlock on it.
+#[pyclass(module = "recern_vector", frozen)]
 struct Database {
-    inner: rv::Database,
+    inner: RwLock<rv::Database>,
+}
+
+impl Database {
+    fn wrap(inner: rv::Database) -> Self {
+        Self {
+            inner: RwLock::new(inner),
+        }
+    }
+
+    fn read<R: Send>(&self, py: Python<'_>, f: impl FnOnce(&rv::Database) -> R + Send) -> R {
+        py.detach(|| f(&self.inner.read().unwrap_or_else(PoisonError::into_inner)))
+    }
+
+    fn write<R: Send>(&self, py: Python<'_>, f: impl FnOnce(&mut rv::Database) -> R + Send) -> R {
+        py.detach(|| f(&mut self.inner.write().unwrap_or_else(PoisonError::into_inner)))
+    }
 }
 
 #[pymethods]
@@ -311,26 +333,26 @@ impl Database {
     #[new]
     fn new(py: Python<'_>, path: PathBuf) -> PyResult<Self> {
         let inner = py.detach(|| rv::Database::open(path)).py_err()?;
-        Ok(Self { inner })
+        Ok(Self::wrap(inner))
     }
 
     /// Creates a new, empty database file. Fails if the file exists.
     #[staticmethod]
     fn create(py: Python<'_>, path: PathBuf) -> PyResult<Self> {
         let inner = py.detach(|| rv::Database::create(path)).py_err()?;
-        Ok(Self { inner })
+        Ok(Self::wrap(inner))
     }
 
     /// Opens the database file, creating it if it does not exist.
     #[staticmethod]
     fn open_or_create(py: Python<'_>, path: PathBuf) -> PyResult<Self> {
         let inner = py.detach(|| rv::Database::open_or_create(path)).py_err()?;
-        Ok(Self { inner })
+        Ok(Self::wrap(inner))
     }
 
     #[getter]
-    fn path(&self) -> PathBuf {
-        self.inner.path().to_path_buf()
+    fn path(&self, py: Python<'_>) -> PathBuf {
+        self.read(py, |db| db.path().to_path_buf())
     }
 
     #[pyo3(signature = (name, dim, metric = "cosine", m = 16, ef_construction = 200, ef_search = 64))]
@@ -350,9 +372,10 @@ impl Database {
             ef_search,
         };
         let config = rv::CollectionConfig::new(dim, metric).with_hnsw(hnsw);
-        slf.borrow_mut()
-            .inner
-            .create_collection(name, config)
+        slf.get()
+            .write(slf.py(), |db| {
+                db.create_collection(name, config).map(|_| ())
+            })
             .py_err()?;
         Ok(Collection {
             db: slf.unbind(),
@@ -361,36 +384,36 @@ impl Database {
     }
 
     fn collection(slf: Bound<'_, Self>, name: &str) -> PyResult<Collection> {
-        slf.borrow().inner.collection(name).py_err()?;
+        slf.get()
+            .read(slf.py(), |db| db.collection(name).map(|_| ()))
+            .py_err()?;
         Ok(Collection {
             db: slf.unbind(),
             name: name.to_owned(),
         })
     }
 
-    fn drop_collection(&mut self, name: &str) -> PyResult<()> {
-        self.inner.drop_collection(name).py_err()
+    fn drop_collection(&self, py: Python<'_>, name: &str) -> PyResult<()> {
+        self.write(py, |db| db.drop_collection(name)).py_err()
     }
 
-    fn collection_names(&self) -> Vec<String> {
-        self.inner
-            .collections()
-            .map(|c| c.name().to_owned())
-            .collect()
+    fn collection_names(&self, py: Python<'_>) -> Vec<String> {
+        self.read(py, |db| {
+            db.collections().map(|c| c.name().to_owned()).collect()
+        })
     }
 
     /// Writes the database to disk atomically.
     fn save(&self, py: Python<'_>) -> PyResult<()> {
-        let inner = &self.inner;
-        py.detach(|| inner.save()).py_err()
+        self.read(py, |db| db.save()).py_err()
     }
 
     fn __getitem__(slf: Bound<'_, Self>, name: &str) -> PyResult<Collection> {
         Self::collection(slf, name)
     }
 
-    fn __contains__(&self, name: &str) -> bool {
-        self.inner.collection(name).is_ok()
+    fn __contains__(&self, py: Python<'_>, name: &str) -> bool {
+        self.read(py, |db| db.collection(name).is_ok())
     }
 
     fn __enter__(slf: Bound<'_, Self>) -> Bound<'_, Self> {
@@ -411,11 +434,11 @@ impl Database {
         Ok(false)
     }
 
-    fn __repr__(&self) -> String {
+    fn __repr__(&self, py: Python<'_>) -> String {
         format!(
             "Database(path={:?}, collections={:?})",
-            self.inner.path().display().to_string(),
-            self.collection_names()
+            self.path(py).display().to_string(),
+            self.collection_names(py)
         )
     }
 }
@@ -423,29 +446,35 @@ impl Database {
 // ----------------------------------------------------------------- collection
 
 /// A handle to a collection inside a `Database`.
-#[pyclass(module = "recern_vector")]
+#[pyclass(module = "recern_vector", frozen)]
 struct Collection {
     db: Py<Database>,
     name: String,
 }
 
 impl Collection {
-    fn with<R>(
+    fn with<R: Send>(
         &self,
         py: Python<'_>,
-        f: impl FnOnce(&rv::Collection) -> PyResult<R>,
+        f: impl FnOnce(&rv::Collection) -> rv::Result<R> + Send,
     ) -> PyResult<R> {
-        let db = self.db.bind(py).borrow();
-        f(db.inner.collection(&self.name).py_err()?)
+        let name = &self.name;
+        self.db
+            .get()
+            .read(py, |db| db.collection(name).and_then(f))
+            .py_err()
     }
 
-    fn with_mut<R>(
+    fn with_mut<R: Send>(
         &self,
         py: Python<'_>,
-        f: impl FnOnce(&mut rv::Collection) -> PyResult<R>,
+        f: impl FnOnce(&mut rv::Collection) -> rv::Result<R> + Send,
     ) -> PyResult<R> {
-        let mut db = self.db.bind(py).borrow_mut();
-        f(db.inner.collection_mut(&self.name).py_err()?)
+        let name = &self.name;
+        self.db
+            .get()
+            .write(py, |db| db.collection_mut(name).and_then(f))
+            .py_err()
     }
 }
 
@@ -477,7 +506,7 @@ impl Collection {
     ) -> PyResult<()> {
         let vector = extract_vector(vector)?;
         let metadata = extract_metadata(metadata)?;
-        self.with_mut(py, |c| c.upsert(id, &vector, metadata).py_err())
+        self.with_mut(py, |c| c.upsert(id, &vector, metadata))
     }
 
     /// Inserts many records and builds their index links in parallel.
@@ -514,11 +543,9 @@ impl Collection {
                 metadatas.len()
             )));
         }
-        let mut db = self.db.bind(py).borrow_mut();
-        let collection = db.inner.collection_mut(&self.name).py_err()?;
         let threads =
             threads.unwrap_or_else(|| std::thread::available_parallelism().map_or(1, |n| n.get()));
-        py.detach(|| {
+        self.with_mut(py, |collection| {
             let records = ids
                 .iter()
                 .enumerate()
@@ -526,7 +553,6 @@ impl Collection {
                 .map(|((row, id), metadata)| (id, &data[row * cols..(row + 1) * cols], metadata));
             collection.upsert_many_with_threads(records, threads)
         })
-        .py_err()
     }
 
     /// Removes a record. Returns whether it existed.
@@ -535,17 +561,15 @@ impl Collection {
     }
 
     fn get(&self, py: Python<'_>, id: &str) -> PyResult<Option<Record>> {
-        self.with(py, |c| {
-            c.get(id)
-                .map(|r| {
-                    Ok(Record {
-                        id: r.id,
-                        vector: r.vector,
-                        metadata: optional_json(py, &r.metadata)?,
-                    })
+        self.with(py, |c| Ok(c.get(id)))?
+            .map(|r| {
+                Ok(Record {
+                    id: r.id,
+                    vector: r.vector,
+                    metadata: optional_json(py, &r.metadata)?,
                 })
-                .transpose()
-        })
+            })
+            .transpose()
     }
 
     /// Returns the `k` nearest records.
@@ -624,17 +648,13 @@ impl Collection {
         ef_values: Vec<usize>,
         seed: u64,
     ) -> PyResult<RecallReport> {
-        let db = self.db.bind(py).borrow();
-        let collection = db.inner.collection(&self.name).py_err()?;
         let options = rv::RecallOptions {
             sample,
             k,
             ef_values,
             seed,
         };
-        let report = py
-            .detach(|| collection.estimate_recall(&options))
-            .py_err()?;
+        let report = self.with(py, |c| c.estimate_recall(&options))?;
         Ok(RecallReport {
             k: report.k,
             sample: report.sample,
@@ -660,9 +680,7 @@ impl Collection {
     /// Rebuilds the collection without deleted records. Returns how many
     /// were removed.
     fn compact(&self, py: Python<'_>) -> PyResult<usize> {
-        let mut db = self.db.bind(py).borrow_mut();
-        let collection = db.inner.collection_mut(&self.name).py_err()?;
-        Ok(py.detach(|| collection.compact()))
+        self.with_mut(py, |c| Ok(c.compact()))
     }
 
     fn __len__(&self, py: Python<'_>) -> PyResult<usize> {
@@ -674,15 +692,13 @@ impl Collection {
     }
 
     fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
-        self.with(py, |c| {
-            Ok(format!(
-                "Collection(name={:?}, dim={}, metric={:?}, len={})",
-                self.name,
-                c.config().dim,
-                c.config().metric.as_str(),
-                c.len()
-            ))
-        })
+        let (dim, metric, len) = self.with(py, |c| {
+            Ok((c.config().dim, c.config().metric.as_str(), c.len()))
+        })?;
+        Ok(format!(
+            "Collection(name={:?}, dim={dim}, metric={metric:?}, len={len})",
+            self.name
+        ))
     }
 }
 
@@ -702,10 +718,7 @@ impl Collection {
             exact,
             filter: extract_filter(filter)?,
         };
-        let db = self.db.bind(py).borrow();
-        let collection = db.inner.collection(&self.name).py_err()?;
-        py.detach(|| collection.explain(&query, k, &options))
-            .py_err()
+        self.with(py, |c| c.explain(&query, k, &options))
     }
 }
 

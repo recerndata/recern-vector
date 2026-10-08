@@ -186,3 +186,35 @@ def test_failed_batch_is_atomic(path):
     with pytest.raises(ValueError, match="zero vector"):
         c.upsert_many(["keep", "new", "bad"], [[0.0, 1.0], [1.0, 1.0], [0.0, 0.0]])
     assert len(c) == 1 and c.get("keep").metadata == {"v": 1}
+
+
+def test_writes_wait_for_searches_in_other_threads(path):
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    rng = np.random.default_rng(3)
+    vectors = rng.standard_normal((5_000, 32)).astype(np.float32)
+    db = rv.Database.create(path)
+    c = db.create_collection("c", dim=32)
+    c.upsert_many([str(i) for i in range(5_000)], vectors)
+
+    errors = []
+
+    def writer():
+        try:
+            for i in range(300):
+                c.upsert(f"w{i}", vectors[i])
+                if i % 50 == 0:
+                    c.delete(str(i))
+        except BaseException as e:  # a panic would surface as BaseException
+            errors.append(e)
+
+    thread = threading.Thread(target=writer)
+    with ThreadPoolExecutor(4) as pool:
+        results = pool.map(lambda q: c.search(q, k=5, ef=128), vectors[:2_000])
+        thread.start()
+        assert all(len(hits) == 5 for hits in results)
+        thread.join()
+
+    assert errors == []
+    assert len(c) == 5_000 + 300 - 6

@@ -666,9 +666,15 @@ impl Collection {
 
     fn hit(&self, candidate: Candidate) -> SearchHit {
         let node = candidate.id as usize;
+        // Rounding can push the cosine distance of identical vectors just
+        // below zero; report it as 0.
+        let distance = match self.config.metric {
+            Metric::Cosine => candidate.dist.max(0.0),
+            _ => candidate.dist,
+        };
         SearchHit {
             id: self.ids[node].clone(),
-            distance: candidate.dist,
+            distance,
             metadata: self.metadata[node].clone(),
         }
     }
