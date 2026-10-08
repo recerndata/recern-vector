@@ -10,7 +10,7 @@ cargo add recern-vector             # Rust library
 cargo install recern-vector-cli     # the recern-vector command
 ```
 
-Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
+Latest release: [v0.0.1](https://github.com/recerndata/recern-vector/releases/tag/v0.0.1) ([PyPI](https://pypi.org/project/recern-vector/), [crates.io](https://crates.io/crates/recern-vector)) · Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
 
 Recern Vector stores vectors, JSON metadata and an HNSW index in one file — no server, no configuration. Its internals are part of the API: every query can explain how it was executed, every collection reports its graph structure and memory, and recall can be measured against exact search at any time.
 
