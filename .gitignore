@@ -1,0 +1,11 @@
+/target
+.venv/
+__pycache__/
+.pytest_cache/
+*.so
+*.rvec
+*.rvec.tmp
+.DS_Store
+/bench-data
+/bench/.venv
+/bench/work

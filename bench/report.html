@@ -1,0 +1,430 @@
+<title>Recern Vector Benchmarks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with full-width figures and tables; Recern's dark brand surface, light variant for light viewers. */
+:root {
+  color-scheme: dark;
+  --bg: #090d16;
+  --surface: #0f1625;
+  --raised: #141e31;
+  --fg: #eef3ff;
+  --muted: #a6b2c8;
+  --soft: #7d8ca5;
+  --line: #c1d5ff22;
+  --grid: #c1d5ff14;
+  --accent: #a3c9ff;
+  --ours: #3987e5;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
+  --sans: "Manrope", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Space Grotesk", "SF Mono", Menlo, monospace;
+  --serif: "Instrument Serif", Georgia, serif;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #fbfcfe; --surface: #f3f6fb; --raised: #e9eef7;
+    --fg: #0d1626; --muted: #4a566c; --soft: #6b778c;
+    --line: #1a2c5226; --grid: #1a2c5214; --accent: #1f5fb8; --ours: #2a78d6;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #fbfcfe; --surface: #f3f6fb; --raised: #e9eef7;
+  --fg: #0d1626; --muted: #4a566c; --soft: #6b778c;
+  --line: #1a2c5226; --grid: #1a2c5214; --accent: #1f5fb8; --ours: #2a78d6;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.7 var(--sans); -webkit-font-smoothing: antialiased; }
+.page { max-width: 1040px; margin-inline: auto; padding-inline: 24px; padding-block: 28px 72px; display: grid; gap: 72px; }
+h1, h2, h3, p, figure, ul, ol { margin: 0; }
+h1, h2, h3 { text-wrap: balance; font-weight: 600; letter-spacing: -0.02em; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+.label { font: 500 11px/1.4 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.prose { max-width: 68ch; display: grid; gap: 16px; color: var(--muted); }
+.prose strong { color: var(--fg); font-weight: 600; }
+code { font: 0.9em var(--mono); color: var(--fg); }
+
+.masthead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.masthead .brand { font: 600 13px/1.4 var(--mono); letter-spacing: 0.22em; text-transform: uppercase; color: var(--fg); }
+
+.hero { display: grid; gap: 22px; }
+.hero h1 { font-size: clamp(2.3rem, 5.4vw, 4rem); line-height: 1.04; max-width: 15ch; }
+.hero h1 em { font-family: var(--serif); font-weight: 400; font-style: italic; color: var(--accent); letter-spacing: -0.01em; }
+.hero .lede { max-width: 62ch; font-size: 1.12rem; color: var(--muted); }
+
+.figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-block: 1px solid var(--line); }
+.figures > div { display: grid; gap: 6px; align-content: start; padding: 22px 20px 24px; border-left: 1px solid var(--line); }
+.figures > div:first-child { border-left: 0; padding-left: 0; }
+.figures .value { font: 500 clamp(2rem, 3.6vw, 2.7rem)/1 var(--mono); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.figures .value small { font-size: 0.5em; color: var(--muted); margin-left: 3px; letter-spacing: 0; }
+.figures p { font-size: 0.86rem; line-height: 1.5; color: var(--muted); }
+
+section { display: grid; gap: 22px; }
+/* Grid items default to min-width: auto; without this the chart's own
+   minimum width would widen the whole page on phones. */
+.page > *, section > * { min-width: 0; }
+section > header { display: grid; gap: 10px; }
+section h2 { font-size: clamp(1.5rem, 2.6vw, 1.9rem); line-height: 1.2; }
+
+.chart-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; }
+.switch { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.switch button { font: 500 13px/1 var(--mono); color: var(--muted); background: transparent; border: 0; border-radius: 6px; padding: 9px 14px; cursor: pointer; }
+.switch button[aria-pressed="true"] { background: var(--raised); color: var(--fg); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0; list-style: none; font-size: 0.84rem; color: var(--muted); }
+.legend li { display: inline-flex; align-items: center; gap: 7px; }
+.legend svg { overflow: visible; }
+.legend b { color: var(--fg); font-weight: 600; }
+
+figure.chart { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 8px 4px; }
+.chart-scroll { overflow-x: auto; }
+.chart svg.plot { display: block; width: 100%; min-width: 600px; height: auto; font-family: var(--mono); }
+.plot .gridline { stroke: var(--grid); stroke-width: 1; }
+.plot .axis-text { fill: var(--soft); font-size: 12px; }
+.plot .axis-title { fill: var(--muted); font-size: 12px; letter-spacing: 0.04em; }
+.plot .direct { fill: var(--fg); font-size: 13px; font-family: var(--sans); font-weight: 600; }
+.plot .leader { stroke: var(--soft); stroke-width: 1; }
+.plot .series-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.plot .mark { stroke: var(--surface); stroke-width: 2; }
+.plot .hit { fill: transparent; cursor: crosshair; }
+figcaption { padding: 10px 12px 12px; font-size: 0.84rem; color: var(--soft); max-width: 90ch; }
+.tooltip { position: absolute; pointer-events: none; min-width: 190px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--raised); box-shadow: 0 12px 32px #0000003d; font-size: 0.8rem; line-height: 1.5; color: var(--muted); }
+.tooltip strong { display: block; color: var(--fg); font-weight: 600; }
+.tooltip dl { display: grid; grid-template-columns: auto auto; gap: 1px 14px; margin: 6px 0 0; font-variant-numeric: tabular-nums; }
+.tooltip dt { color: var(--soft); }
+.tooltip dd { margin: 0; text-align: right; color: var(--fg); font-family: var(--mono); }
+
+.tables { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.table-block { display: grid; gap: 10px; min-width: 0; }
+.table-block h3 { font-size: 1rem; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 10px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+thead th { font: 500 11px/1.4 var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--soft); white-space: nowrap; }
+tbody th { font-weight: 600; color: var(--fg); }
+td { color: var(--fg); }
+.num { text-align: right; }
+td.num { font-family: var(--mono); }
+.sub { display: block; font: 400 11.5px/1.4 var(--sans); color: var(--soft); }
+td .sub { font-family: var(--mono); }
+.none { color: var(--soft); font-family: var(--sans) !important; font-size: 0.8rem; }
+tr.ours th, tr.ours td { background: color-mix(in srgb, var(--ours) 9%, transparent); }
+tr.ours th { box-shadow: inset 2px 0 var(--ours); }
+.note { font-size: 0.84rem; color: var(--soft); max-width: 80ch; }
+
+.findings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+.findings article { display: grid; gap: 10px; align-content: start; padding-top: 16px; border-top: 1px solid var(--line); }
+.findings h3 { font-size: 1.05rem; line-height: 1.35; }
+.findings p { font-size: 0.93rem; color: var(--muted); }
+.findings .delta { font: 500 0.82rem/1.4 var(--mono); color: var(--accent); }
+
+.method { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
+.method dl { margin: 0; display: grid; gap: 14px; }
+.method dt { font: 500 11px/1.4 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--soft); }
+.method dd { margin: 2px 0 0; color: var(--muted); font-size: 0.93rem; }
+.caveats { display: grid; gap: 12px; padding-left: 20px; color: var(--muted); font-size: 0.93rem; }
+.caveats li::marker { color: var(--soft); }
+pre { margin: 0; padding: 16px 18px; overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; font: 13px/1.65 var(--mono); color: var(--fg); }
+
+footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 0.84rem; color: var(--soft); }
+
+@media (max-width: 860px) {
+  .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figures > div:nth-child(3) { border-left: 0; padding-left: 0; }
+  .figures > div:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .tables, .findings, .method { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .page { padding-inline: 16px; gap: 56px; }
+  .figures { grid-template-columns: minmax(0, 1fr); }
+  .figures > div { border-left: 0; padding-left: 0; }
+  .figures > div + div { border-top: 1px solid var(--line); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .switch button { transition: background 0.15s, color 0.15s; }
+}
+</style>
+
+<div class="page">
+  <div class="masthead">
+    <span class="brand">Recern Vector</span>
+    <span class="label">Benchmark report · October 2026</span>
+  </div>
+
+  <header class="hero">
+    <span class="label">Phase 1 prototype · SIFT1M and GloVe-100</span>
+    <h1>Faster than faiss HNSW <em>at equal recall.</em></h1>
+    <p class="lede">Recern Vector is an embedded vector database: one file, no server, and every search can explain how it ran. We measured the Phase 1 prototype on the two standard ANN-Benchmarks datasets against faiss, LanceDB and sqlite-vec.</p>
+  </header>
+
+  <div class="figures" aria-label="Key results">
+    <div><span class="value">1.30<small>×</small></span><p>faiss HNSW throughput at recall ≥ 0.95 on SIFT1M</p></div>
+    <div><span class="value">1.78<small>×</small></span><p>the same comparison on GloVe-100</p></div>
+    <div><span class="value">35<small>s</small></span><p>to index 1,000,000 SIFT vectors on 14 cores</p></div>
+    <div><span class="value">0.11<small>ms</small></span><p>median query latency at recall 0.983 on SIFT1M</p></div>
+  </div>
+
+  <section aria-labelledby="curve-title">
+    <header>
+      <span class="label">Recall and speed</span>
+      <h2 id="curve-title">Queries per second at each recall level</h2>
+      <p class="prose">Every mark is one search setting. Higher and further right is better: more queries per second at higher recall. Lines join the settings that no other setting of the same engine beats on both axes.</p>
+    </header>
+    <div class="chart-bar">
+      <div class="switch" role="group" aria-label="Dataset">
+        <button type="button" id="ds-sift" data-ds="sift" aria-pressed="true">SIFT1M</button>
+        <button type="button" id="ds-glove" data-ds="glove" aria-pressed="false">GloVe-100</button>
+      </div>
+      <ul class="legend" id="legend"></ul>
+    </div>
+    <figure class="chart">
+      <div class="chart-scroll"><svg class="plot" id="plot" viewBox="0 0 900 470" role="img" aria-labelledby="curve-title"></svg></div>
+      <div class="tooltip" id="tooltip" hidden></div>
+      <figcaption id="caption">Recall@10 on the first 1,000 test queries; throughput of one query at a time from Python, on a log scale. The recall axis is stretched toward 1.0 so the high-recall region is readable; exact search sits at the right edge. Settings below recall 0.5 are not shown. The same numbers are in the tables below.</figcaption>
+    </figure>
+  </section>
+
+  <section aria-labelledby="targets-title">
+    <header>
+      <span class="label">Throughput at a recall target</span>
+      <h2 id="targets-title">Fastest setting that reaches each recall level</h2>
+    </header>
+    <div class="tables">
+      <div class="table-block"><h3>SIFT1M · 1M × 128, Euclidean</h3><div class="table-scroll"><table><thead><tr><th scope="col">Engine</th><th scope="col" class="num">recall ≥ 0.90</th><th scope="col" class="num">recall ≥ 0.95</th><th scope="col" class="num">recall ≥ 0.99</th></tr></thead><tbody><tr class="ours"><th scope="row">Recern Vector<span class="sub">HNSW</span></th><td class="num">15,973<span class="sub">0.06&nbsp;ms</span></td><td class="num">9,041<span class="sub">0.11&nbsp;ms</span></td><td class="num">4,409<span class="sub">0.22&nbsp;ms</span></td></tr><tr><th scope="row">faiss<span class="sub">HNSWFlat</span></th><td class="num">13,012<span class="sub">0.08&nbsp;ms</span></td><td class="num">6,961<span class="sub">0.14&nbsp;ms</span></td><td class="num">3,571<span class="sub">0.28&nbsp;ms</span></td></tr><tr><th scope="row">LanceDB<span class="sub">IVF_HNSW_SQ</span></th><td class="num">765<span class="sub">1.28&nbsp;ms</span></td><td class="num">731<span class="sub">1.34&nbsp;ms</span></td><td class="num none">not reached</td></tr><tr><th scope="row">LanceDB<span class="sub">IVF_PQ, tuned</span></th><td class="num">245<span class="sub">4.03&nbsp;ms</span></td><td class="num">245<span class="sub">4.03&nbsp;ms</span></td><td class="num">245<span class="sub">4.03&nbsp;ms</span></td></tr><tr><th scope="row">sqlite-vec<span class="sub">exact scan</span></th><td class="num">12<span class="sub">83.78&nbsp;ms</span></td><td class="num">12<span class="sub">83.78&nbsp;ms</span></td><td class="num">12<span class="sub">83.78&nbsp;ms</span></td></tr></tbody></table></div></div>
+      <div class="table-block"><h3>GloVe-100 · 1.18M × 100, cosine</h3><div class="table-scroll"><table><thead><tr><th scope="col">Engine</th><th scope="col" class="num">recall ≥ 0.90</th><th scope="col" class="num">recall ≥ 0.95</th><th scope="col" class="num">recall ≥ 0.99</th></tr></thead><tbody><tr class="ours"><th scope="row">Recern Vector<span class="sub">HNSW</span></th><td class="num">2,373<span class="sub">0.43&nbsp;ms</span></td><td class="num">635<span class="sub">1.59&nbsp;ms</span></td><td class="num none">not reached</td></tr><tr><th scope="row">faiss<span class="sub">HNSWFlat</span></th><td class="num">1,687<span class="sub">0.60&nbsp;ms</span></td><td class="num">356<span class="sub">2.83&nbsp;ms</span></td><td class="num none">not reached</td></tr><tr><th scope="row">LanceDB<span class="sub">IVF_HNSW_SQ</span></th><td class="num none">not reached</td><td class="num none">not reached</td><td class="num none">not reached</td></tr><tr><th scope="row">LanceDB<span class="sub">IVF_PQ, tuned</span></th><td class="num">271<span class="sub">3.68&nbsp;ms</span></td><td class="num">167<span class="sub">5.93&nbsp;ms</span></td><td class="num">81<span class="sub">12.14&nbsp;ms</span></td></tr><tr><th scope="row">sqlite-vec<span class="sub">exact scan</span></th><td class="num">7<span class="sub">140.43&nbsp;ms</span></td><td class="num">7<span class="sub">140.43&nbsp;ms</span></td><td class="num">7<span class="sub">140.43&nbsp;ms</span></td></tr></tbody></table></div></div>
+    </div>
+    <p class="note">Queries per second, with median latency beneath. LanceDB's default IVF_PQ settings reach at most recall 0.36 on GloVe-100; the tuned configuration uses <code>num_sub_vectors = dim / 4</code>.</p>
+  </section>
+
+  <section aria-labelledby="build-title">
+    <header>
+      <span class="label">Index build and size</span>
+      <h2 id="build-title">Building a million-vector index takes under a minute</h2>
+    </header>
+    <div class="tables">
+      <div class="table-block"><h3>Build time, HNSW m = 16, ef_construction = 200</h3><div class="table-scroll"><table><thead><tr><th scope="col">Dataset</th><th scope="col" class="num">Recern, 1&nbsp;thread</th><th scope="col" class="num">Recern, 14&nbsp;threads</th><th scope="col" class="num">faiss, 1&nbsp;thread</th><th scope="col" class="num">faiss, 14&nbsp;threads</th><th scope="col" class="num">LanceDB IVF_HNSW_SQ</th></tr></thead><tbody><tr><th scope="row">SIFT1M</th><td class="num">345&nbsp;s</td><td class="num">36&nbsp;s</td><td class="num">284&nbsp;s</td><td class="num">32&nbsp;s</td><td class="num">28&nbsp;s</td></tr><tr><th scope="row">GloVe-100</th><td class="num">481&nbsp;s</td><td class="num">47&nbsp;s</td><td class="num">416&nbsp;s</td><td class="num">43&nbsp;s</td><td class="num">44&nbsp;s</td></tr></tbody></table></div></div>
+      <div class="table-block"><h3>Size on disk</h3><div class="table-scroll"><table><thead><tr><th scope="col">Engine</th><th scope="col" class="num">SIFT1M</th><th scope="col" class="num">GloVe-100</th></tr></thead><tbody><tr><th scope="row">Recern Vector<span class="sub">HNSW</span></th><td class="num">631&nbsp;MB</td><td class="num">620&nbsp;MB</td></tr><tr><th scope="row">faiss<span class="sub">HNSWFlat</span></th><td class="num">626&nbsp;MB</td><td class="num">614&nbsp;MB</td></tr><tr><th scope="row">LanceDB<span class="sub">IVF_HNSW_SQ</span></th><td class="num">789&nbsp;MB</td><td class="num">769&nbsp;MB</td></tr><tr><th scope="row">LanceDB<span class="sub">IVF_PQ, tuned</span></th><td class="num">524&nbsp;MB</td><td class="num">487&nbsp;MB</td></tr><tr><th scope="row">sqlite-vec<span class="sub">exact scan</span></th><td class="num">511&nbsp;MB</td><td class="num">479&nbsp;MB</td></tr></tbody></table></div></div>
+    </div>
+    <p class="note">Recern's build scales about ten times on 14 cores and stays within 1.1–1.2× of faiss on the same hardware. LanceDB uses all cores; its HNSW index is partitioned and scalar-quantized, which speeds up the build and caps recall below 0.99.</p>
+  </section>
+
+  <section aria-labelledby="why-title">
+    <header>
+      <span class="label">Engineering notes</span>
+      <h2 id="why-title">What made the difference</h2>
+    </header>
+    <div class="findings">
+      <article>
+        <span class="delta">119 → 60 ns per distance</span>
+        <h3>Prefetching neighbor vectors</h3>
+        <p>A graph search spends most of its time waiting for vectors to arrive from memory. Recern now gathers a node's unvisited neighbors, asks the CPU to start loading every cache line of their vectors, and only then computes distances, so the loads overlap. Median latency at ef = 80 on SIFT1M fell from 206 µs to 110 µs with identical results.</p>
+      </article>
+      <article>
+        <span class="delta">0 unreachable records</span>
+        <h3>A parallel build that keeps every record findable</h3>
+        <p>The build runs on all cores with one lock per graph node, as in hnswlib. Recern's built-in reachability check caught a race in an early version: up to 25 of 20,000 records could not be reached by any search. Inserts no longer descend through nodes another thread is still linking, and a final pass re-links any record the check still finds.</p>
+      </article>
+      <article>
+        <span class="delta">Higher recall at the same ef</span>
+        <h3>Denser neighbor lists</h3>
+        <p>Recern fills each node's bottom-layer list to its 32-link limit with the best candidates the selection heuristic set aside. Each step costs more distance computations, but the search finds more true neighbors. A sparser graph built 37% faster in our tests and was slower at recall above 0.99, so the denser graph stays.</p>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="method-title">
+    <header>
+      <span class="label">Method</span>
+      <h2 id="method-title">How we measured</h2>
+    </header>
+    <div class="method">
+      <dl>
+        <div><dt>Datasets</dt><dd>SIFT1M (1,000,000 × 128, Euclidean) and GloVe-100 (1,183,514 × 100, cosine) from ANN-Benchmarks, scored against their published ground-truth neighbors.</dd></div>
+        <div><dt>Queries</dt><dd>The first 1,000 test queries, top 10 results, recall@10. sqlite-vec was measured on the first 100 because exact scans are slow.</dd></div>
+        <div><dt>Timing</dt><dd>One query at a time from Python 3.13.15, after an untimed warm-up pass over 100 queries. Queries per second is the inverse of mean latency.</dd></div>
+      </dl>
+      <dl>
+        <div><dt>Index settings</dt><dd>HNSW with m = 16 and ef_construction = 200 for Recern, faiss and LanceDB IVF_HNSW_SQ. Search settings swept: ef from 10 to 1,280; nprobes and refine_factor for IVF_PQ.</dd></div>
+        <div><dt>Threads</dt><dd>Recern and faiss search on one thread. LanceDB builds and searches with its default thread pool.</dd></div>
+        <div><dt>Hardware and versions</dt><dd>Apple M3 Max, 36 GB, macOS 27.0.1. Recern Vector 0.1.0, faiss-cpu 1.15.1, LanceDB 0.40.0, sqlite-vec 0.1.9.</dd></div>
+      </dl>
+    </div>
+    <pre>bench/.venv/bin/python bench/ann_bench.py sift
+bench/.venv/bin/python bench/ann_bench.py glove
+bench/.venv/bin/python bench/report.py</pre>
+  </section>
+
+  <section aria-labelledby="caveats-title">
+    <header>
+      <span class="label">Limitations</span>
+      <h2 id="caveats-title">Read these numbers with care</h2>
+    </header>
+    <ul class="caveats">
+      <li>One machine and one run per setting. Build times varied by 10–15% between runs.</li>
+      <li>Queries run one at a time from Python, which suits in-process libraries. LanceDB is designed for other workloads, such as data larger than memory, object storage and batched queries, and about 1 ms of its per-query time here is fixed overhead.</li>
+      <li>sqlite-vec's stable release has no approximate index, so it appears as the exact-search baseline.</li>
+      <li>faiss is the faiss-cpu wheel from PyPI. A build compiled for this CPU may be faster.</li>
+      <li>Recern Vector is a prototype. The whole database is held in memory, saving rewrites the file, and the file format may still change.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>Recern · Database Workspace · recern.net</span>
+    <span>Recern Vector is an exploration within the Recern project.</span>
+  </footer>
+</div>
+
+<script>
+const DATA = {"sift":{"label":"SIFT1M","engines":[{"key":"recern","name":"Recern Vector","index":"HNSW","points":[{"c":"ef=10","r":0.7534,"q":36852.27,"p":0.026},{"c":"ef=20","r":0.8631,"q":26959.4,"p":0.037},{"c":"ef=40","r":0.9432,"q":15973.13,"p":0.064},{"c":"ef=80","r":0.9829,"q":9040.66,"p":0.114},{"c":"ef=160","r":0.9956,"q":4409.35,"p":0.22},{"c":"ef=320","r":0.9986,"q":2679.39,"p":0.384},{"c":"ef=640","r":0.999,"q":1376.82,"p":0.741},{"c":"ef=1280","r":0.9991,"q":757.49,"p":1.342}]},{"key":"faiss-hnsw","name":"faiss","index":"HNSWFlat","points":[{"c":"ef=10","r":0.6987,"q":28791.32,"p":0.034},{"c":"ef=20","r":0.8285,"q":20102.4,"p":0.048},{"c":"ef=40","r":0.9245,"q":13012.32,"p":0.078},{"c":"ef=80","r":0.9756,"q":6960.88,"p":0.145},{"c":"ef=160","r":0.9938,"q":3571.46,"p":0.281},{"c":"ef=320","r":0.9981,"q":1736.78,"p":0.579},{"c":"ef=640","r":0.999,"q":836.02,"p":1.19},{"c":"ef=1280","r":0.9991,"q":401.5,"p":2.522}]},{"key":"lancedb-hnsw","name":"LanceDB","index":"IVF_HNSW_SQ","points":[{"c":"nprobes=20 ef=10","r":0.7193,"q":851.76,"p":1.137},{"c":"nprobes=20 ef=20","r":0.8386,"q":708.22,"p":1.318},{"c":"nprobes=20 ef=40","r":0.9192,"q":765.15,"p":1.285},{"c":"nprobes=20 ef=80","r":0.9615,"q":730.76,"p":1.339},{"c":"nprobes=20 ef=160","r":0.9766,"q":599.56,"p":1.615},{"c":"nprobes=20 ef=320","r":0.9815,"q":637.93,"p":1.523},{"c":"nprobes=50 ef=160","r":0.9766,"q":730.61,"p":1.327},{"c":"nprobes=100 ef=160","r":0.9766,"q":662.25,"p":1.455},{"c":"nprobes=100 ef=320","r":0.9815,"q":618.31,"p":1.598}]},{"key":"lancedb-pq-tuned","name":"LanceDB","index":"IVF_PQ, tuned","points":[{"c":"nprobes=20 refine=1","r":0.714,"q":284.21,"p":3.468},{"c":"nprobes=50 refine=1","r":0.7141,"q":160.73,"p":6.206},{"c":"nprobes=20 refine=10","r":0.9975,"q":244.98,"p":4.026},{"c":"nprobes=50 refine=10","r":0.9984,"q":144.61,"p":6.808},{"c":"nprobes=100 refine=20","r":0.999,"q":82.61,"p":11.855},{"c":"nprobes=100 refine=50","r":0.9991,"q":74.18,"p":13.358},{"c":"nprobes=200 refine=100","r":0.9991,"q":53.3,"p":18.549}]},{"key":"sqlite-vec","name":"sqlite-vec","index":"exact scan","points":[{"c":"exact","r":1.0,"q":11.8,"p":83.785}]}]},"glove":{"label":"GloVe-100","engines":[{"key":"recern","name":"Recern Vector","index":"HNSW","points":[{"c":"ef=10","r":0.5212,"q":36826.41,"p":0.026},{"c":"ef=20","r":0.6412,"q":23421.52,"p":0.041},{"c":"ef=40","r":0.7385,"q":14148.22,"p":0.069},{"c":"ef=80","r":0.8139,"q":7720.7,"p":0.126},{"c":"ef=160","r":0.87,"q":4288.93,"p":0.233},{"c":"ef=320","r":0.9137,"q":2372.89,"p":0.427},{"c":"ef=640","r":0.9458,"q":1243.18,"p":0.816},{"c":"ef=1280","r":0.9699,"q":634.82,"p":1.595}]},{"key":"faiss-hnsw","name":"faiss","index":"HNSWFlat","points":[{"c":"ef=10","r":0.4695,"q":29503.02,"p":0.032},{"c":"ef=20","r":0.6022,"q":18244.97,"p":0.052},{"c":"ef=40","r":0.7063,"q":10796.32,"p":0.088},{"c":"ef=80","r":0.7905,"q":5592.84,"p":0.171},{"c":"ef=160","r":0.8528,"q":3223.33,"p":0.313},{"c":"ef=320","r":0.9009,"q":1686.99,"p":0.601},{"c":"ef=640","r":0.937,"q":817.6,"p":1.24},{"c":"ef=1280","r":0.9625,"q":356.47,"p":2.827}]},{"key":"lancedb-hnsw","name":"LanceDB","index":"IVF_HNSW_SQ","points":[{"c":"nprobes=20 ef=10","r":0.4694,"q":809.38,"p":1.222},{"c":"nprobes=20 ef=20","r":0.5965,"q":706.07,"p":1.334},{"c":"nprobes=20 ef=40","r":0.6992,"q":657.4,"p":1.456},{"c":"nprobes=20 ef=80","r":0.7744,"q":683.64,"p":1.402},{"c":"nprobes=20 ef=160","r":0.8344,"q":610.22,"p":1.545},{"c":"nprobes=20 ef=320","r":0.8803,"q":543.5,"p":1.771},{"c":"nprobes=50 ef=160","r":0.8344,"q":631.65,"p":1.522},{"c":"nprobes=100 ef=160","r":0.8344,"q":637.76,"p":1.508},{"c":"nprobes=100 ef=320","r":0.8803,"q":565.18,"p":1.745}]},{"key":"lancedb-pq-tuned","name":"LanceDB","index":"IVF_PQ, tuned","points":[{"c":"nprobes=20 refine=1","r":0.5848,"q":305.35,"p":3.182},{"c":"nprobes=50 refine=1","r":0.5963,"q":185.72,"p":5.339},{"c":"nprobes=20 refine=10","r":0.9171,"q":271.46,"p":3.677},{"c":"nprobes=50 refine=10","r":0.958,"q":166.57,"p":5.928},{"c":"nprobes=100 refine=20","r":0.9892,"q":93.41,"p":10.546},{"c":"nprobes=100 refine=50","r":0.9971,"q":81.3,"p":12.145},{"c":"nprobes=200 refine=100","r":0.9999,"q":54.52,"p":18.024}]},{"key":"sqlite-vec","name":"sqlite-vec","index":"exact scan","points":[{"c":"exact","r":1.0,"q":7.11,"p":140.43}]}]}};
+const SERIES = {
+  "recern": { color: "--s1", shape: "circle", label: true },
+  "faiss-hnsw": { color: "--s2", shape: "square", label: true },
+  "lancedb-hnsw": { color: "--s3", shape: "triangle" },
+  "lancedb-pq-tuned": { color: "--s4", shape: "diamond" },
+  "sqlite-vec": { color: "--s5", shape: "cross" },
+};
+const W = 900, H = 470, M = { l: 70, r: 150, t: 18, b: 56 };
+// Recall axis stretched toward 1.0: position is -log10(1 - recall), so 0.9,
+// 0.99 and 0.999 sit at equal steps. Exact search (recall 1.0) is drawn at the edge.
+const X0 = 0.5, CAP = 0.9995, Y0 = Math.log10(4), Y1 = Math.log10(60000);
+const nines = r => -Math.log10(Math.max(1 - r, 1 - CAP));
+const x = r => M.l + (nines(r) - nines(X0)) / (nines(CAP) - nines(X0)) * (W - M.l - M.r);
+const y = q => M.t + (1 - (Math.log10(q) - Y0) / (Y1 - Y0)) * (H - M.t - M.b);
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("plot");
+const tooltip = document.getElementById("tooltip");
+
+function el(name, attrs, parent) {
+  const node = document.createElementNS(NS, name);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  if (parent) parent.appendChild(node);
+  return node;
+}
+
+function marker(shape, cx, cy, color, parent, size = 5) {
+  const s = size;
+  if (shape === "circle") return el("circle", { cx, cy, r: s, fill: color, class: "mark" }, parent);
+  if (shape === "square") return el("rect", { x: cx - s, y: cy - s, width: 2 * s, height: 2 * s, rx: 1.5, fill: color, class: "mark" }, parent);
+  if (shape === "triangle") return el("path", { d: `M${cx},${cy - s * 1.2} L${cx + s * 1.15},${cy + s * 0.9} L${cx - s * 1.15},${cy + s * 0.9}Z`, fill: color, class: "mark" }, parent);
+  if (shape === "diamond") return el("path", { d: `M${cx},${cy - s * 1.25} L${cx + s * 1.25},${cy} L${cx},${cy + s * 1.25} L${cx - s * 1.25},${cy}Z`, fill: color, class: "mark" }, parent);
+  const g = el("g", {}, parent);
+  el("path", { d: `M${cx - s},${cy - s} L${cx + s},${cy + s} M${cx + s},${cy - s} L${cx - s},${cy + s}`, stroke: color, "stroke-width": 2.5, "stroke-linecap": "round", fill: "none" }, g);
+  return g;
+}
+
+function frontier(points) {
+  const sorted = [...points].sort((a, b) => b.r - a.r || b.q - a.q);
+  const out = [];
+  let best = -Infinity;
+  for (const p of sorted) if (p.q > best) { out.push(p); best = p.q; }
+  return out.sort((a, b) => a.r - b.r);
+}
+
+function color(key) {
+  return getComputedStyle(document.documentElement).getPropertyValue(SERIES[key].color).trim();
+}
+
+function renderLegend(ds) {
+  const legend = document.getElementById("legend");
+  legend.replaceChildren();
+  for (const e of DATA[ds].engines) {
+    const li = document.createElement("li");
+    const icon = el("svg", { width: 14, height: 14, viewBox: "0 0 14 14", "aria-hidden": "true" });
+    marker(SERIES[e.key].shape, 7, 7, color(e.key), icon, 4.5).setAttribute("class", "");
+    li.appendChild(icon);
+    const name = document.createElement(e.key === "recern" ? "b" : "span");
+    name.textContent = `${e.name} ${e.index}`;
+    li.appendChild(name);
+    legend.appendChild(li);
+  }
+}
+
+function showTip(event, engine, p) {
+  tooltip.innerHTML = "";
+  const title = document.createElement("strong");
+  title.textContent = `${engine.name} · ${engine.index}`;
+  const dl = document.createElement("dl");
+  for (const [k, v] of [["Setting", p.c], ["Recall@10", p.r.toFixed(4)], ["Queries/s", Math.round(p.q).toLocaleString("en-US")], ["Median", `${p.p.toFixed(3)} ms`]]) {
+    const dt = document.createElement("dt"); dt.textContent = k;
+    const dd = document.createElement("dd"); dd.textContent = v;
+    dl.append(dt, dd);
+  }
+  tooltip.append(title, dl);
+  tooltip.hidden = false;
+  const box = tooltip.parentElement.getBoundingClientRect();
+  const tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+  let left = event.clientX - box.left + 14, top = event.clientY - box.top - th - 10;
+  if (left + tw > box.width - 8) left = event.clientX - box.left - tw - 14;
+  if (top < 4) top = event.clientY - box.top + 16;
+  tooltip.style.left = `${Math.max(4, left)}px`;
+  tooltip.style.top = `${top}px`;
+}
+
+function render(ds) {
+  svg.replaceChildren();
+  const plotW = W - M.l - M.r;
+  for (const t of [0.5, 0.8, 0.9, 0.95, 0.99, 0.999]) {
+    el("line", { x1: x(t), x2: x(t), y1: M.t, y2: H - M.b, class: "gridline" }, svg);
+    el("text", { x: x(t), y: H - M.b + 22, "text-anchor": "middle", class: "axis-text" }, svg).textContent = String(t);
+  }
+  for (const [q, label] of [[10, "10"], [100, "100"], [1000, "1k"], [10000, "10k"]]) {
+    el("line", { x1: M.l, x2: M.l + plotW, y1: y(q), y2: y(q), class: "gridline" }, svg);
+    el("text", { x: M.l - 12, y: y(q) + 4, "text-anchor": "end", class: "axis-text" }, svg).textContent = label;
+  }
+  el("text", { x: M.l + plotW / 2, y: H - 12, "text-anchor": "middle", class: "axis-title" }, svg).textContent = "Recall@10, stretched toward 1.0 →";
+  el("text", { x: 18, y: M.t + (H - M.t - M.b) / 2, "text-anchor": "middle", class: "axis-title", transform: `rotate(-90 18 ${M.t + (H - M.t - M.b) / 2})` }, svg).textContent = "Queries per second (log) →";
+
+  const engines = [...DATA[ds].engines].reverse(); // draw ours last, on top
+  const labels = [];
+  for (const engine of engines) {
+    const c = color(engine.key);
+    const visible = engine.points.filter(p => p.r >= X0);
+    const front = frontier(visible);
+    if (front.length > 1) {
+      el("path", { d: front.map((p, i) => `${i ? "L" : "M"}${x(p.r).toFixed(1)},${y(p.q).toFixed(1)}`).join(""), stroke: c, class: "series-line", "stroke-width": engine.key === "recern" ? 2.5 : 2 }, svg);
+    }
+    for (const p of visible) marker(SERIES[engine.key].shape, x(p.r), y(p.q), c, svg);
+    for (const p of visible) {
+      const hit = el("circle", { cx: x(p.r), cy: y(p.q), r: 11, class: "hit" }, svg);
+      hit.addEventListener("pointerenter", e => showTip(e, engine, p));
+      hit.addEventListener("pointermove", e => showTip(e, engine, p));
+      hit.addEventListener("pointerleave", () => { tooltip.hidden = true; });
+    }
+    if (SERIES[engine.key].label && front.length) {
+      const end = front[front.length - 1];
+      labels.push({ text: engine.name, px: x(end.r), py: y(end.q), y: y(end.q) });
+    }
+  }
+  // Label each line beside its last point when there is room before the plot
+  // edge; otherwise in the right margin with a short leader. Labels in the same
+  // column are pushed apart vertically.
+  const edge = W - M.r;
+  for (const l of labels) l.inline = l.px + 14 + 110 < edge;
+  for (const inline of [true, false]) {
+    const column = labels.filter(l => l.inline === inline).sort((a, b) => a.y - b.y);
+    for (let i = 1; i < column.length; i++) column[i].y = Math.max(column[i].y, column[i - 1].y + 18);
+  }
+  for (const l of labels) {
+    const lx = l.inline ? l.px + 12 : edge + 16;
+    if (!l.inline || Math.abs(l.y - l.py) > 2) {
+      el("line", { x1: l.px + 7, y1: l.py, x2: lx - 4, y2: l.y, class: "leader" }, svg);
+    }
+    el("text", { x: lx, y: l.y + 4.5, class: "direct" }, svg).textContent = l.text;
+  }
+  renderLegend(ds);
+  for (const b of document.querySelectorAll(".switch button")) b.setAttribute("aria-pressed", String(b.dataset.ds === ds));
+}
+
+let current = location.hash === "#glove" ? "glove" : "sift";
+for (const b of document.querySelectorAll(".switch button")) {
+  b.addEventListener("click", () => { current = b.dataset.ds; render(current); });
+}
+render(current);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => render(current));
+new MutationObserver(() => render(current)).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+</script>

@@ -1,0 +1,22 @@
+[workspace]
+resolver = "3"
+members = ["crates/recern-vector", "crates/recern-vector-cli", "crates/recern-vector-py"]
+# The Python extension is built with maturin; plain `cargo build/test` skips it.
+default-members = ["crates/recern-vector", "crates/recern-vector-cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/recerndata/recern-vector"
+homepage = "https://recern.net/vector"
+
+[workspace.dependencies]
+recern-vector = { path = "crates/recern-vector" }
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
