@@ -1,5 +1,7 @@
 # Recern Vector
 
+[![PyPI](https://img.shields.io/pypi/v/recern-vector?label=PyPI)](https://pypi.org/project/recern-vector/) [![crates.io](https://img.shields.io/crates/v/recern-vector?label=crates.io)](https://crates.io/crates/recern-vector) [![crates.io CLI](https://img.shields.io/crates/v/recern-vector-cli?label=crates.io%20CLI)](https://crates.io/crates/recern-vector-cli)
+
 **A single-file vector database. Embedded, inspectable, boring in the best way.**
 
 > Status: Phase 1 prototype (0.0.x). The file format and API will change between releases.
