@@ -1,6 +1,14 @@
 # recern-vector (Python)
 
-Python bindings for [Recern Vector](../../README.md), a single-file, embedded, inspectable vector database.
+Python bindings for [Recern Vector](https://github.com/recerndata/recern-vector), a single-file, embedded, inspectable vector database.
+
+> Prototype (0.0.x): the file format and API will change between releases.
+
+```sh
+pip install recern-vector
+```
+
+Wheels cover CPython 3.11+ on Linux (x86_64, aarch64), macOS (Intel, Apple silicon) and Windows (x86_64).
 
 ```python
 import numpy as np
@@ -17,6 +25,8 @@ with rv.Database.open_or_create("docs.rvec") as db:          # saves on clean ex
 ```
 
 `float32` NumPy arrays are read through the buffer protocol without per-element conversion; plain lists and other dtypes also work. `upsert_many` builds index links on all cores (`threads=` to change it) and is atomic: if any vector is invalid, nothing is written.
+
+Benchmarks against faiss, LanceDB and sqlite-vec: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks).
 
 ## Development
 

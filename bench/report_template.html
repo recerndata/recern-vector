@@ -251,7 +251,7 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8p
       <dl>
         <div><dt>Index settings</dt><dd>HNSW with m = 16 and ef_construction = 200 for Recern, faiss and LanceDB IVF_HNSW_SQ. Search settings swept: ef from 10 to 1,280; nprobes and refine_factor for IVF_PQ.</dd></div>
         <div><dt>Threads</dt><dd>Recern and faiss search on one thread. LanceDB builds and searches with its default thread pool.</dd></div>
-        <div><dt>Hardware and versions</dt><dd>{{CPU}}, {{MEMORY}} GB, {{OS}}. Recern Vector 0.1.0, faiss-cpu 1.15.1, LanceDB 0.40.0, sqlite-vec 0.1.9.</dd></div>
+        <div><dt>Hardware and versions</dt><dd>{{CPU}}, {{MEMORY}} GB, {{OS}}. Recern Vector 0.0.1, faiss-cpu 1.15.1, LanceDB 0.40.0, sqlite-vec 0.1.9.</dd></div>
       </dl>
     </div>
     <pre>bench/.venv/bin/python bench/ann_bench.py sift

@@ -2,7 +2,13 @@
 
 **A single-file vector database. Embedded, inspectable, boring in the best way.**
 
-> Status: Phase 1 prototype. The file format and API will change, and there are no packaged releases yet: build from source.
+> Status: Phase 1 prototype (0.0.x). The file format and API will change between releases.
+
+```sh
+pip install recern-vector           # Python
+cargo add recern-vector             # Rust library
+cargo install recern-vector-cli     # the recern-vector command
+```
 
 Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
 

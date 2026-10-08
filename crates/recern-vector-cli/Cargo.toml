@@ -7,6 +7,9 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
+readme = "README.md"
+keywords = ["vector-database", "hnsw", "embeddings", "cli"]
+categories = ["command-line-utilities", "database"]
 
 [[bin]]
 name = "recern-vector"

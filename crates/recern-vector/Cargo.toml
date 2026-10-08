@@ -7,6 +7,9 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
+readme = "../../README.md"
+keywords = ["vector-database", "hnsw", "embeddings", "similarity-search", "ann"]
+categories = ["database-implementations", "algorithms", "science"]
 
 [dependencies]
 serde_json.workspace = true
