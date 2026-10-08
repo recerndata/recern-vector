@@ -1,0 +1,8 @@
+{"id": "apple", "vector": [0.9, 0.1, 0.0, 0.1], "metadata": {"color": "red", "price": 1.2}}
+{"id": "cherry", "vector": [0.8, 0.2, 0.1, 0.0], "metadata": {"color": "red", "price": 4.5}}
+{"id": "strawberry", "vector": [0.7, 0.3, 0.1, 0.1], "metadata": {"color": "red", "price": 3.0}}
+{"id": "banana", "vector": [0.1, 0.9, 0.1, 0.0], "metadata": {"color": "yellow", "price": 0.8}}
+{"id": "lemon", "vector": [0.2, 0.8, 0.0, 0.3], "metadata": {"color": "yellow", "price": 0.6}}
+{"id": "lime", "vector": [0.1, 0.6, 0.0, 0.7], "metadata": {"color": "green", "price": 0.7}}
+{"id": "kiwi", "vector": [0.1, 0.2, 0.2, 0.9], "metadata": {"color": "green", "price": 0.9}}
+{"id": "blueberry", "vector": [0.3, 0.1, 0.9, 0.1], "metadata": {"color": "blue", "price": 5.0}}

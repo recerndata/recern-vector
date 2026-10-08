@@ -25,6 +25,7 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
+      - run: cargo run --release --example quickstart
 
   python:
     runs-on: ubuntu-latest
@@ -42,3 +43,13 @@ jobs:
           pip install "maturin>=1.9,<2" pytest numpy
           maturin develop --release
           pytest
+          python ../../examples/python/quickstart.py
+          python ../../examples/python/inspect_and_tune.py
+
+  cli-example:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release -p recern-vector-cli
+      - run: PATH="$PWD/target/release:$PATH" examples/cli/quickstart.sh
