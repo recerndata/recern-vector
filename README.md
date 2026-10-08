@@ -1,6 +1,6 @@
 # Recern Vector
 
-[![PyPI](https://img.shields.io/pypi/v/recern-vector?label=PyPI)](https://pypi.org/project/recern-vector/) [![crates.io](https://img.shields.io/crates/v/recern-vector?label=crates.io)](https://crates.io/crates/recern-vector) [![crates.io CLI](https://img.shields.io/crates/v/recern-vector-cli?label=crates.io%20CLI)](https://crates.io/crates/recern-vector-cli)
+[![PyPI](https://img.shields.io/pypi/v/recern-vector?label=PyPI)](https://pypi.org/project/recern-vector/) [![crates.io](https://img.shields.io/crates/v/recern-vector?label=crates.io)](https://crates.io/crates/recern-vector) [![crates.io CLI](https://img.shields.io/crates/v/recern-vector-cli?label=crates.io%20CLI)](https://crates.io/crates/recern-vector-cli) [![CI](https://github.com/recerndata/recern-vector/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/recerndata/recern-vector/actions/workflows/ci.yml) [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
 
 **A single-file vector database. Embedded, inspectable, boring in the best way.**
 
