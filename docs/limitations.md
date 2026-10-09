@@ -19,15 +19,17 @@ Next, for **0.1**:
 
 1. A stable, versioned file format with compatibility tests.
 2. Incremental writes (a write-ahead log), so saving costs as much as the change, not the whole database.
-3. Documentation and examples (this site is the start).
 
-After that, depending on what users ask for:
+After that:
 
 - `int8` scalar quantization to cut memory about four times.
-- Smarter planning for filtered searches.
-- Opening Recern Vector files in the [Recern workspace](https://recern.net) to browse collections, inspect the graph and measure recall visually.
+- OR and NOT in filters, and smarter planning for filtered searches.
 - Node.js bindings.
 
 **Not planned:** a server mode, sharding or replication, GPU acceleration, or a hosted service. Recern Vector stays a small embedded library on purpose.
 
 Ideas and use cases are welcome in [GitHub issues](https://github.com/recerndata/recern-vector/issues).
+
+## Recern Workspace
+
+[Recern Workspace](https://recern.net/workspace), the desktop app, already opens `.rvec` files read-only: collections and memory, the HNSW graph layer by layer, and recall against exact search at every `ef`. See its [documentation](https://recern.net/docs/workspace/views).
