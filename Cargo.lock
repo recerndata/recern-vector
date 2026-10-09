@@ -223,14 +223,14 @@ dependencies = [
 
 [[package]]
 name = "recern-vector"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
 name = "recern-vector-cli"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "clap",
  "recern-vector",
@@ -239,7 +239,7 @@ dependencies = [
 
 [[package]]
 name = "recern-vector-py"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "pyo3",
  "recern-vector",

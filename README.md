@@ -12,7 +12,7 @@ cargo add recern-vector             # Rust library
 cargo install recern-vector-cli     # the recern-vector command
 ```
 
-Latest release: [v0.0.1](https://github.com/recerndata/recern-vector/releases/tag/v0.0.1) ([PyPI](https://pypi.org/project/recern-vector/), [crates.io](https://crates.io/crates/recern-vector)) · Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
+Latest release: [v0.0.2](https://github.com/recerndata/recern-vector/releases/tag/v0.0.2) ([PyPI](https://pypi.org/project/recern-vector/), [crates.io](https://crates.io/crates/recern-vector)) · Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
 
 **Documentation:** [recern.net/vector/docs](https://recern.net/vector/docs) (sources in [`docs/`](docs/README.md)) · **Examples:** [`examples/`](examples/README.md) — quickstart, semantic search, RAG retrieval, tuning recall, CLI and Rust
 
