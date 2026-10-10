@@ -20,15 +20,16 @@ DOCS = Path(__file__).resolve().parent
 REPO_URL = "https://github.com/recerndata/recern-vector"
 # Sidebar order. The README is the index page (slug "").
 PAGES = [
-    ("", "README.md", "Documentation for Recern Vector, an embedded single-file vector database for Python, Rust and the command line."),
-    ("getting-started", "getting-started.md", "Install Recern Vector and create a first vector database from Python, Rust or the command line."),
+    ("", "README.md", "Documentation for Recern Vector, an embedded single-file vector database 0.2.0 for Python, Rust, Node.js and the command line."),
+    ("getting-started", "getting-started.md", "Install Recern Vector and create a first vector database from Python, Rust, Node.js or the command line."),
     ("concepts", "concepts.md", "Databases, collections, records, distance metrics, the HNSW index, saving and threads in Recern Vector."),
     ("filters", "filters.md", "Metadata filter syntax in Recern Vector and how filtered vector searches are planned."),
     ("inspection", "inspection.md", "Use explain, stats and estimate_recall to see how Recern Vector searches run and to choose ef."),
     ("python", "python.md", "Reference for the recern_vector Python package: Database, Collection, results and exceptions."),
     ("rust", "rust.md", "A map of the recern-vector Rust crate: Database, Collection, filters and introspection."),
+    ("nodejs", "nodejs.md", "Install native Recern Vector 0.2.0 Node.js builds, use TypeScript definitions and run asynchronous vector searches."),
     ("cli", "cli.md", "The recern-vector command: create databases, insert JSON Lines, query, inspect, measure recall and compact."),
-    ("file-format", "file-format.md", "The layout of a Recern Vector .rvec file, its checksum and atomic saves."),
+    ("file-format", "file-format.md", "Stable .rvec format 2, format-1 compatibility, checksums, WAL recovery and checkpoints."),
     ("limitations", "limitations.md", "Current limits of Recern Vector 0.2.0 and planned improvements."),
 ]
 SLUGS = {file: slug for slug, file, _ in PAGES}

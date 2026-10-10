@@ -20,16 +20,17 @@ Recern Vector is an embedded vector database with a local snapshot and a WAL; th
 
 | Page | What it covers |
 |---|---|
-| [Getting started](getting-started.md) | Install, then a first database from Python, Rust and the CLI |
+| [Getting started](getting-started.md) | Install, then a first database from Python, Rust, Node.js and the CLI |
 | [Concepts](concepts.md) | Databases, collections, records, metrics, the HNSW index, saving, threads |
 | [Filters](filters.md) | Metadata filter syntax and how filtered searches are planned |
 | [Inspecting and tuning](inspection.md) | `explain`, `stats`, `estimate_recall`, choosing `ef`, `compact` |
 | [Python API](python.md) | Every class, method and exception in the `recern_vector` package |
 | [Rust API](rust.md) | The `recern-vector` crate |
+| [Node.js](nodejs.md) | Native builds, TypeScript definitions and asynchronous search |
 | [Command line](cli.md) | The `recern-vector` command |
 | [File format](file-format.md) | What is inside a `.rvec` file |
 | [Limitations and next work](limitations.md) | Current bounds and what comes next |
 
 Runnable examples are in [`examples/`](../examples/README.md). Benchmarks against faiss, LanceDB and sqlite-vec: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks).
 
-See [Node.js](../crates/recern-vector-node/README.md) and the [durability contract](file-format.md).
+See [Node.js](nodejs.md) and the [durability contract](file-format.md).
