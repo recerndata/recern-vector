@@ -10,4 +10,35 @@ Recern Vector 0.2.0 includes a stable versioned format, WAL, int8, logical filte
 - Node.js provides native bindings and an asynchronous search method. Other operations are synchronous; use worker threads for large builds or saves. Source build and CI artifacts are prepared; npm publication is a separate release step.
 - Filesystem durability requires local locks and atomic rename. Network filesystems and external file edits are unsupported.
 
-Next improvements: incremental encoding and a page directory, automatic checkpoint policy, metadata indexes, broader quantization/recall benchmarks, and packaged Node binaries for additional targets. Server mode, sharding and hosted operation remain outside the embedded library's scope.
+Engine improvements remain incremental encoding and a page directory, automatic checkpoint policy, metadata indexes, broader quantization/recall benchmarks, and packaged Node binaries for additional targets. A server would be a separate package around the embedded engine; sharding, replication and hosted operation are not current capabilities.
+
+## Planned API portability and migration
+
+Working planning targets as of 10 October 2026. These features are not implemented in 0.2.0, and the version numbers below are release scopes, not delivery dates.
+
+The goal is to take a prototype built with Recern Vector into production either on an external vector database or on a future Recern server. Applications using the portable API should retain their collection, record and search logic when the backend configuration changes. Data transfer, credentials, capacity planning and backend-specific features still require explicit setup.
+
+| Target | Scope | Release gate |
+|---|---|---|
+| **0.3.0** | Versioned portable API contract; embedded backend; streaming export/import; first external adapter for Qdrant. Start with the Python portable client and share contract fixtures across language bindings. | The same example runs on embedded Recern and a real Qdrant instance. Migration preserves logical IDs and metadata, validates vectors and filters, and resumes safely after interruption. Existing Rust/Python/Node APIs and format-1/2 fixtures continue to pass. |
+| **0.4.0** | Separate, single-node Recern server and a remote backend for the same portable client. Publish a versioned HTTP/OpenAPI contract, authentication, TLS deployment guidance, timeouts and explicit write/read guarantees. Extend portable Rust/Node clients against the shared suite. | The same portable example and contract tests run on embedded Recern, remote Recern and Qdrant. Reconnect, restart recovery and unsupported-capability cases are covered. Writes respect the engine's single-writer boundary. |
+| **0.5.0** | Improve write performance with incremental encoding and a page directory; add an automatic checkpoint policy, current f32/int8 memory and recall benchmarks, and published Node packages for supported platforms. | Measure commit cost and peak memory as databases grow. Exercise crash recovery at WAL/checkpoint boundaries, verify the actual published language packages, and document recall/precision tradeoffs on reproducible datasets. Metadata indexes remain a separate optimization until workloads justify them. |
+| **1.0.0** | Stabilize the supported public API, migration format and compatibility/deprecation policy after both migration paths are proven. | Document the tested client/server/provider version matrix, pass upgrade and migration suites, and publish the operational limits. This milestone does not imply clustering, high availability or every vendor's API. |
+
+Milvus is the next candidate external adapter after Qdrant proves the contract. Its implementation should follow an actual integration need, without making support for many providers a prerequisite for 1.0. A first Recern server is an intermediate step towards enterprise deployment; replication, sharding, tenant isolation, RBAC/SSO and service guarantees require their own scoped work.
+
+### What 0.3.0 must define
+
+- **Portable core:** create/get/list collections; upsert/batch upsert, get/delete records, paginated record iteration and filtered vector search. Keep existing low-level APIs available. File operations such as `save()` and `checkpoint()`, graph inspection, `explain()` and engine tuning remain explicit backend extensions.
+- **Semantics, not just names:** logical string IDs; dimensions and metric validation; metadata value types; missing versus null fields; numeric comparisons, dotted paths, AND/OR/NOT; hit fields, error categories and write acknowledgement/read visibility. Do not silently weaken filters, drop metadata, or claim atomic remote batches without a backend guarantee.
+- **Capabilities:** report the supported portable profile and optional operations. Reject unsupported behavior with a useful error before running or migrating it. A common client is not a promise of wire compatibility with every vendor's native API.
+- **Distances:** retain Recern's smaller-is-closer convention (`1 - cosine`, squared L2, negative dot product) and test each adapter's conversion. ANN results need quality/tolerance checks rather than a promise of identical top-k ordering across engines. Remote timeouts and retries must not masquerade as empty successful results.
+- **Logical ID and metadata mapping:** keep original application IDs and JSON metadata intact through a reversible adapter envelope. Recern accepts arbitrary string IDs, whereas [Qdrant point IDs are unsigned integers or UUIDs](https://qdrant.tech/documentation/manage-data/points/). Test deterministic mapping, collisions, repeated upserts, null/scalar metadata and reserved-field conflicts before calling the adapter compatible.
+- **Migration format:** a versioned manifest plus streamed records, with collection dimensions, metric, normalization/precision information, counts and checksums. Export a consistent source snapshot and rebuild the target index. Include a dry run, resumable batches and post-import checks. This format is separate from `.rvec` and its WAL.
+- **Precision disclosure:** cosine vectors are already normalized in Recern, and int8 storage cannot recover the original f32 embeddings. Migration can transfer stored/dequantized vectors without invoking an embedding model; lossless transfer of pre-quantization originals requires retaining those originals separately. Record this in the manifest and validate recall on representative queries.
+
+### Compatibility evidence
+
+Use shared golden datasets for logical IDs, metadata, all supported filter operators, dimensions, zero/invalid vectors, metric conversion, repeated mutations and error behavior. Run adapter tests against the actual supported backend versions in CI, not just mocked responses. Test the exact-search reference with numeric tolerances where supported, then measure ANN recall separately. Verify record counts, round trips, interrupted migrations and reads after acknowledged writes.
+
+Backend differences are observable: [Milvus documents different score directions for L2 versus cosine/IP](https://milvus.io/docs/metric.md). The portable contract must make these conversions explicit before users can switch backends safely.

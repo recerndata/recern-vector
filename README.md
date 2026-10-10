@@ -131,6 +131,8 @@ What this says about the prototype:
 
 A database now uses a snapshot plus WAL. Call `checkpoint()` before copying a standalone `.rvec`. `save()` makes pending changes durable; it does not checkpoint. See the [format and durability contract](docs/file-format.md) and [current limitations](docs/limitations.md). Historical benchmark results above describe the pre-0.2 f32 engine and have not been rerun for int8.
 
+Planned next: **0.3.0** focuses on a portable API and a verified migration path to Qdrant; **0.4.0** adds a separate Recern server using the same contract; **0.5.0** improves incremental writes, checkpoints, benchmarks and package distribution. These are future targets, not current capabilities. See the [API portability and migration roadmap](docs/limitations.md#planned-api-portability-and-migration), including the gates for 1.0.0.
+
 ## Contributing
 
 Issues and pull requests are welcome. Before sending a change, run:
