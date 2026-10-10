@@ -2,7 +2,7 @@
 
 Python bindings for [Recern Vector](https://github.com/recerndata/recern-vector), a single-file, embedded, inspectable vector database.
 
-> Prototype (0.0.x): the file format and API will change between releases.
+> Version 0.2.0: stable format 2, with compatibility for format-1 databases. Saves commit to WAL; checkpoint before copying a standalone database file.
 
 ```sh
 pip install recern-vector
@@ -36,3 +36,5 @@ source .venv/bin/activate
 maturin develop --release
 pytest
 ```
+
+0.2.0 adds int8 (`create_collection(..., quantization="int8")`), logical `$or`/`$not` filters, durable WAL commits, `checkpoint()` and `Database.open_read_only()`. Checkpoint before copying a standalone `.rvec` file. Original f32 vectors are not retained for int8 collections.

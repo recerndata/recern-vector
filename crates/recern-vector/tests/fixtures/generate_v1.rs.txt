@@ -1,0 +1,13 @@
+//! Fixture producer: run only with the unmodified 0.0.2 / format-1 engine.
+use recern_vector::{CollectionConfig, Database, Metric};
+fn main() -> recern_vector::Result<()> {
+    let mut db = Database::create(std::env::args().nth(1).expect("destination"))?;
+    for metric in [Metric::Cosine, Metric::L2, Metric::Dot] {
+        let c = db.create_collection(metric.as_str(), CollectionConfig::new(3, metric))?;
+        c.upsert("alpha", &[1., 0., 0.], Some(serde_json::json!({"lang":"en", "year":2026})))?;
+        c.upsert("removed", &[0., 1., 0.], None)?;
+        c.upsert("beta", &[0.1, 0., 0.9], Some(serde_json::json!({"nested":{"tag":"β"}})))?;
+        c.delete("removed");
+    }
+    db.save()
+}

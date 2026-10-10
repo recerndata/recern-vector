@@ -1,8 +1,8 @@
 # Recern Vector documentation
 
-Recern Vector is an embedded vector database. A database is a single file; there is no server. You open the file from Python, Rust or the command line, add vectors with JSON metadata, and search them with an HNSW index. Every search can report how it ran, and every collection can report the state of its index and measure its own recall.
+Recern Vector is an embedded vector database with a local snapshot and a WAL; there is no server. You open it from Python, Rust, Node.js or the command line, add vectors with JSON metadata, and search them with an HNSW index. Every search can report how it ran, and every collection can report the state of its index and measure its own recall.
 
-> **Status: prototype (0.0.x).** The API and the file format will change between releases. Version 0.1 is reserved for a stable, versioned file format.
+> **Version 0.2.0.** Stable format 2 with format-1 compatibility; WAL, int8, logical filters and native Node.js bindings.
 
 ## When it fits
 
@@ -14,7 +14,7 @@ Recern Vector is an embedded vector database. A database is a single file; there
 
 - Many processes writing to the same database at once, or a shared database behind a network API. Use a database server.
 - Data much larger than memory. The whole database is loaded on open.
-- You need durable writes after every single change. Today `save()` rewrites the whole file (see [Limitations and roadmap](limitations.md)).
+- You need constant-cost commits regardless of database size. WAL writes changed pages, but `save()` still encodes and compares a full in-memory image (see [Limitations and next work](limitations.md)).
 
 ## Contents
 
@@ -28,6 +28,8 @@ Recern Vector is an embedded vector database. A database is a single file; there
 | [Rust API](rust.md) | The `recern-vector` crate |
 | [Command line](cli.md) | The `recern-vector` command |
 | [File format](file-format.md) | What is inside a `.rvec` file |
-| [Limitations and roadmap](limitations.md) | What the prototype does not do yet, and what comes next |
+| [Limitations and next work](limitations.md) | Current bounds and what comes next |
 
 Runnable examples are in [`examples/`](../examples/README.md). Benchmarks against faiss, LanceDB and sqlite-vec: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks).
+
+See [Node.js](../crates/recern-vector-node/README.md) and the [durability contract](file-format.md).

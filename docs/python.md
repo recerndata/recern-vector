@@ -25,7 +25,10 @@ A database file and its collections. Everything is held in memory; changes reach
 | `name in db` | Whether a collection exists |
 | `db.collection_names()` | Names of all collections |
 | `db.drop_collection(name)` | Delete a collection |
-| `db.save()` | Write the database to disk atomically |
+| `db.save()` | Commit pending changes to the WAL and fsync |
+| `db.checkpoint()` | Merge pending changes and WAL into a portable snapshot |
+| `rv.Database.open_read_only(path)` | Read snapshot + WAL without allowing mutation |
+| `db.read_only` | Whether this handle is read-only |
 | `with db:` | Calls `save()` when the block exits without an exception. On an exception nothing is saved |
 
 ## Collection
@@ -101,3 +104,5 @@ from concurrent.futures import ThreadPoolExecutor
 with ThreadPoolExecutor(8) as pool:
     results = list(pool.map(lambda q: collection.search(q, k=10), queries))
 ```
+
+For int8, pass `quantization="int8"` to `create_collection`. `stats()["quantization"]` reports precision; `get()` returns reconstructed values. Context managers do not save read-only handles. See [file format](file-format.md) before copying or backing up a database.

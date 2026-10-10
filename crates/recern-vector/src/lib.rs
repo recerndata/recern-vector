@@ -1,6 +1,6 @@
 //! Recern Vector — a single-file, embedded, inspectable vector database.
 //!
-//! A database is one file holding any number of collections. Each collection
+//! A snapshot and a WAL hold any number of collections. Each collection
 //! stores vectors of a fixed dimension, optional JSON metadata, and an HNSW
 //! index whose internals can be inspected through [`Collection::stats`],
 //! [`Collection::explain`] and [`Collection::estimate_recall`].
@@ -26,10 +26,11 @@ mod hnsw;
 mod metric;
 mod rng;
 mod storage;
+mod wal;
 
 pub use collection::{
-    Collection, CollectionConfig, CollectionStats, RecallOptions, RecallPoint, RecallReport,
-    Record, SearchHit, SearchOptions, SearchReport, Strategy,
+    Collection, CollectionConfig, CollectionStats, Quantization, RecallOptions, RecallPoint,
+    RecallReport, Record, SearchHit, SearchOptions, SearchReport, Strategy,
 };
 pub use database::Database;
 pub use error::{Error, Result};

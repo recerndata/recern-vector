@@ -9,3 +9,9 @@ __pycache__/
 /bench-data
 /bench/.venv
 /bench/work
+
+*.rvec.wal
+*.rvec.lock
+*.node
+node_modules/
+!crates/recern-vector/tests/fixtures/*.rvec

@@ -29,7 +29,7 @@ PAGES = [
     ("rust", "rust.md", "A map of the recern-vector Rust crate: Database, Collection, filters and introspection."),
     ("cli", "cli.md", "The recern-vector command: create databases, insert JSON Lines, query, inspect, measure recall and compact."),
     ("file-format", "file-format.md", "The layout of a Recern Vector .rvec file, its checksum and atomic saves."),
-    ("limitations", "limitations.md", "What the Recern Vector prototype does not do yet, and the roadmap to 0.1."),
+    ("limitations", "limitations.md", "Current limits of Recern Vector 0.2.0 and planned improvements."),
 ]
 SLUGS = {file: slug for slug, file, _ in PAGES}
 SITE_URL = "https://recern.net"

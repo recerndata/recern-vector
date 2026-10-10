@@ -76,10 +76,10 @@ const LANES: usize = 8;
 #[inline]
 pub(crate) fn dot(a: &[f32], b: &[f32]) -> f32 {
     debug_assert_eq!(a.len(), b.len());
-    let (chunks_a, chunks_b) = (a.chunks_exact(LANES), b.chunks_exact(LANES));
-    let (rest_a, rest_b) = (chunks_a.remainder(), chunks_b.remainder());
+    let (chunks_a, rest_a) = a.as_chunks::<LANES>();
+    let (chunks_b, rest_b) = b.as_chunks::<LANES>();
     let mut acc = [0.0f32; LANES];
-    for (x, y) in chunks_a.zip(chunks_b) {
+    for (x, y) in chunks_a.iter().zip(chunks_b) {
         for i in 0..LANES {
             acc[i] += x[i] * y[i];
         }
@@ -94,10 +94,10 @@ pub(crate) fn dot(a: &[f32], b: &[f32]) -> f32 {
 #[inline]
 pub(crate) fn l2_squared(a: &[f32], b: &[f32]) -> f32 {
     debug_assert_eq!(a.len(), b.len());
-    let (chunks_a, chunks_b) = (a.chunks_exact(LANES), b.chunks_exact(LANES));
-    let (rest_a, rest_b) = (chunks_a.remainder(), chunks_b.remainder());
+    let (chunks_a, rest_a) = a.as_chunks::<LANES>();
+    let (chunks_b, rest_b) = b.as_chunks::<LANES>();
     let mut acc = [0.0f32; LANES];
-    for (x, y) in chunks_a.zip(chunks_b) {
+    for (x, y) in chunks_a.iter().zip(chunks_b) {
         for i in 0..LANES {
             let d = x[i] - y[i];
             acc[i] += d * d;

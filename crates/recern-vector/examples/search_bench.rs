@@ -13,8 +13,10 @@ use recern_vector::{Database, SearchOptions};
 fn read<T: Copy>(path: &str, from: fn([u8; 4]) -> T) -> Vec<T> {
     std::fs::read(path)
         .expect(path)
-        .chunks_exact(4)
-        .map(|b| from(b.try_into().unwrap()))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|b| from(*b))
         .collect()
 }
 
@@ -40,7 +42,10 @@ fn main() {
     for ef in efs {
         let options = SearchOptions::default().ef(ef);
         let (mut times, mut found, mut distances) = (Vec::with_capacity(n), 0, 0);
-        for (q, t) in queries.chunks_exact(dim).zip(truth.chunks_exact(10)) {
+        for (q, t) in queries
+            .chunks_exact(dim)
+            .zip(truth.as_chunks::<10>().0.iter())
+        {
             let start = Instant::now();
             let report = c.explain(q, 10, &options).unwrap();
             times.push(start.elapsed().as_secs_f64() * 1e6);

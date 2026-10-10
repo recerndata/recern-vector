@@ -9,6 +9,7 @@ use serde_json::json;
 fn main() -> recern_vector::Result<()> {
     let path = std::env::temp_dir().join("recern-vector-quickstart.rvec");
     let _ = std::fs::remove_file(&path);
+    let _ = std::fs::remove_file(format!("{}.wal", path.display()));
 
     let mut db = Database::create(&path)?;
     let docs = db.create_collection("docs", CollectionConfig::new(32, Metric::Cosine))?;

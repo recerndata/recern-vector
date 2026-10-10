@@ -5,7 +5,7 @@ use crate::error::{Error, Result};
 /// Metadata predicate applied during search.
 ///
 /// Fields are addressed by dotted paths (`"source.lang"`). A record without
-/// the field never matches.
+/// the field does not match positive predicates; NOT negates that result.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Filter {
     Eq {
@@ -24,6 +24,8 @@ pub enum Filter {
         lte: Option<f64>,
     },
     And(Vec<Filter>),
+    Or(Vec<Filter>),
+    Not(Box<Filter>),
 }
 
 impl Filter {
@@ -54,6 +56,8 @@ impl Filter {
 
     pub fn matches(&self, metadata: Option<&Value>) -> bool {
         match self {
+            Filter::Or(filters) => filters.iter().any(|f| f.matches(metadata)),
+            Filter::Not(filter) => !filter.matches(metadata),
             Filter::And(filters) => filters.iter().all(|f| f.matches(metadata)),
             Filter::Eq { field, value } => lookup(metadata, field).is_some_and(|v| same(v, value)),
             Filter::In { field, values } => {
@@ -84,15 +88,53 @@ impl Filter {
     /// ```
     ///
     /// Top-level keys are combined with AND. Supported operators: `$eq`,
-    /// `$in`, `$gt`, `$gte`, `$lt`, `$lte`.
+    /// `$in`, `$gt`, `$gte`, `$lt`, `$lte`, and logical `$and`, `$or`, `$not`.
     pub fn from_json(value: &Value) -> Result<Self> {
+        Self::parse(value, 0)
+    }
+
+    fn parse(value: &Value, depth: usize) -> Result<Self> {
+        if depth > 64 {
+            return Err(Error::InvalidArgument("filter nesting exceeds 64".into()));
+        }
         let object = value
             .as_object()
             .ok_or_else(|| Error::InvalidArgument("filter must be a JSON object".into()))?;
         let mut parts = Vec::with_capacity(object.len());
         for (field, condition) in object {
+            if field.starts_with('$') {
+                parts.push(match field.as_str() {
+                    "$and" | "$or" => {
+                        let items =
+                            condition
+                                .as_array()
+                                .filter(|a| !a.is_empty())
+                                .ok_or_else(|| {
+                                    Error::InvalidArgument(format!(
+                                        "{field} expects a nonempty array"
+                                    ))
+                                })?;
+                        let filters = items
+                            .iter()
+                            .map(|v| Self::parse(v, depth + 1))
+                            .collect::<Result<Vec<_>>>()?;
+                        if field == "$and" {
+                            Self::And(filters)
+                        } else {
+                            Self::Or(filters)
+                        }
+                    }
+                    "$not" => Self::Not(Box::new(Self::parse(condition, depth + 1)?)),
+                    _ => {
+                        return Err(Error::InvalidArgument(format!(
+                            "unsupported filter operator {field}"
+                        )));
+                    }
+                });
+                continue;
+            }
             match condition {
-                Value::Object(ops) if !ops.is_empty() && ops.keys().all(|k| k.starts_with('$')) => {
+                Value::Object(ops) if !ops.is_empty() && ops.keys().any(|k| k.starts_with('$')) => {
                     parts.push(parse_operators(field, ops)?);
                 }
                 other => parts.push(Filter::eq(field.clone(), other.clone())),

@@ -29,14 +29,18 @@ impl TempFile {
             "recern-vector-test-{}-{name}.rvec",
             std::process::id()
         ));
-        let _ = std::fs::remove_file(&path);
+        for suffix in ["", ".wal", ".lock"] {
+            let _ = std::fs::remove_file(format!("{}{suffix}", path.display()));
+        }
         Self(path)
     }
 }
 
 impl Drop for TempFile {
     fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.0);
+        for suffix in ["", ".wal", ".lock"] {
+            let _ = std::fs::remove_file(format!("{}{suffix}", self.0.display()));
+        }
     }
 }
 
@@ -203,7 +207,8 @@ fn filtered_search_picks_strategy_by_selectivity() {
     let report = c
         .explain(&query, 10, &SearchOptions::default().filter(broad.clone()))
         .unwrap();
-    assert_eq!(report.strategy, Strategy::Hnsw);
+    // Scanning this small matching subset now costs less than widening HNSW.
+    assert_eq!(report.strategy, Strategy::FilteredExact);
     assert_eq!(report.hits.len(), 10);
     assert!(
         report

@@ -14,7 +14,7 @@ import recern_vector as rv
 rng = np.random.default_rng(7)
 path = Path(tempfile.mkdtemp()) / "quickstart.rvec"
 
-# A database is one file. Changes stay in memory until save() or a clean
+# A database has a snapshot and a WAL. Changes stay in memory until save() or a clean
 # exit from the `with` block.
 with rv.Database.open_or_create(path) as db:
     articles = db.create_collection("articles", dim=64, metric="cosine")

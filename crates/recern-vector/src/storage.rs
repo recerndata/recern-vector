@@ -1,34 +1,27 @@
-//! Single-file format, version 1. All integers are little-endian.
-//!
-//! ```text
-//! "RVEC"  format_version:u32  collection_count:u32
-//! per collection:
-//!   name:str  dim:u32  metric:u8  m:u32  ef_construction:u32  ef_search:u32
-//!   rng_state:u64  node_count:u32  entry:u32 (u32::MAX = none)  max_level:u32
-//!   per node:   id:str  deleted:u8  has_metadata:u8 [metadata:str]
-//!               layer_count:u8  per layer: link_count:u32 links:u32*
-//!   vectors:    node_count * dim f32
-//! crc32:u32   (IEEE, over every preceding byte)
-//! ```
-//!
-//! `str` is a `u32` byte length followed by UTF-8 bytes.
+//! Versioned snapshot codec. See docs/file-format.md for the compatibility contract.
 
 use std::collections::BTreeMap;
 
-use crate::collection::{Collection, CollectionConfig};
+use crate::collection::{Collection, CollectionConfig, Quantization};
 use crate::error::{Error, Result};
 use crate::hnsw::{Graph, HnswParams, MAX_LEVEL, Vectors};
 use crate::metric::Metric;
 use crate::rng::SplitMix64;
 
 const MAGIC: &[u8; 4] = b"RVEC";
-pub const FORMAT_VERSION: u32 = 1;
+pub const FORMAT_VERSION: u32 = 2;
 const NO_ENTRY: u32 = u32::MAX;
 
-pub(crate) fn encode(collections: &BTreeMap<String, Collection>) -> Vec<u8> {
+pub(crate) fn encode(
+    collections: &BTreeMap<String, Collection>,
+    identity: u128,
+    sequence: u64,
+) -> Vec<u8> {
     let mut w = Writer::default();
     w.bytes(MAGIC);
     w.u32(FORMAT_VERSION);
+    w.bytes(&identity.to_le_bytes());
+    w.u64(sequence);
     w.u32(collections.len() as u32);
     for collection in collections.values() {
         encode_collection(&mut w, collection);
@@ -43,6 +36,11 @@ fn encode_collection(w: &mut Writer, c: &Collection) {
     w.str(&c.name);
     w.u32(c.config.dim as u32);
     w.u8(c.config.metric.code());
+    w.u8(if c.config.quantization == Quantization::Int8 {
+        1
+    } else {
+        0
+    });
     w.u32(c.config.hnsw.m as u32);
     w.u32(c.config.hnsw.ef_construction as u32);
     w.u32(c.config.hnsw.ef_search as u32);
@@ -50,6 +48,17 @@ fn encode_collection(w: &mut Writer, c: &Collection) {
     w.u32(graph.len() as u32);
     w.u32(graph.entry.unwrap_or(NO_ENTRY));
     w.u32(graph.max_level as u32);
+    for &x in &c.vectors.data {
+        w.bytes(&x.to_le_bytes());
+    }
+    if c.config.quantization == Quantization::Int8 {
+        for &scale in &c.vectors.scales {
+            w.bytes(&scale.to_le_bytes());
+        }
+        for &code in &c.vectors.codes {
+            w.u8(code as u8);
+        }
+    }
     for node in 0..graph.len() {
         w.str(&c.ids[node]);
         w.u8(c.deleted[node] as u8);
@@ -69,9 +78,6 @@ fn encode_collection(w: &mut Writer, c: &Collection) {
             }
         }
     }
-    for &x in &c.vectors.data {
-        w.bytes(&x.to_le_bytes());
-    }
 }
 
 pub(crate) fn decode(bytes: &[u8]) -> Result<BTreeMap<String, Collection>> {
@@ -82,7 +88,7 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<BTreeMap<String, Collection>> {
         return Err(Error::Corrupt("file is truncated".into()));
     }
     let version = u32::from_le_bytes(bytes[4..8].try_into().unwrap());
-    if version != FORMAT_VERSION {
+    if version != 1 && version != FORMAT_VERSION {
         return Err(Error::UnsupportedVersion(version));
     }
     let (body, tail) = bytes.split_at(bytes.len() - 4);
@@ -91,10 +97,13 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<BTreeMap<String, Collection>> {
     }
 
     let mut r = Reader { buf: body, pos: 8 };
+    if version >= 2 {
+        r.take(24)?;
+    }
     let count = r.u32()?;
     let mut collections = BTreeMap::new();
     for _ in 0..count {
-        let collection = decode_collection(&mut r)?;
+        let collection = decode_collection(&mut r, version)?;
         if collections
             .insert(collection.name.clone(), collection)
             .is_some()
@@ -108,16 +117,30 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<BTreeMap<String, Collection>> {
     Ok(collections)
 }
 
-fn decode_collection(r: &mut Reader) -> Result<Collection> {
+fn decode_collection(r: &mut Reader, version: u32) -> Result<Collection> {
     let name = r.str()?;
     let dim = r.u32()? as usize;
     let metric = Metric::from_code(r.u8()?).ok_or_else(|| corrupt(&name, "unknown metric"))?;
+    let quantization = if version == 1 {
+        Quantization::F32
+    } else {
+        match r.u8()? {
+            0 => Quantization::F32,
+            1 => Quantization::Int8,
+            _ => return Err(corrupt(&name, "unknown vector encoding")),
+        }
+    };
     let hnsw = HnswParams {
         m: r.u32()? as usize,
         ef_construction: r.u32()? as usize,
         ef_search: r.u32()? as usize,
     };
-    let config = CollectionConfig { dim, metric, hnsw };
+    let config = CollectionConfig {
+        dim,
+        metric,
+        hnsw,
+        quantization,
+    };
     let rng_state = r.u64()?;
     let nodes = r.u32()? as usize;
     let entry = match r.u32()? {
@@ -130,6 +153,22 @@ fn decode_collection(r: &mut Reader) -> Result<Collection> {
         return Err(corrupt(&name, "invalid graph header"));
     }
 
+    let vector_len = nodes
+        .checked_mul(dim)
+        .ok_or_else(|| corrupt(&name, "vector data too large"))?;
+    let mut vectors = Vectors::with_encoding(dim, quantization, metric);
+    if version >= 2 {
+        match quantization {
+            Quantization::F32 => vectors.data = r.f32s(vector_len)?,
+            Quantization::Int8 => {
+                vectors.scales = r.f32s(nodes)?;
+                if vectors.scales.iter().any(|v| !v.is_finite() || *v <= 0.0) {
+                    return Err(corrupt(&name, "invalid quantization scale"));
+                }
+                vectors.codes = r.take(vector_len)?.iter().map(|&v| v as i8).collect();
+            }
+        }
+    }
     // Every node takes at least 10 bytes, which bounds allocations driven by
     // a corrupt node count.
     let capacity = nodes.min(r.remaining() / 10);
@@ -139,12 +178,17 @@ fn decode_collection(r: &mut Reader) -> Result<Collection> {
     let mut links: Vec<Vec<Vec<u32>>> = Vec::with_capacity(capacity);
     for _ in 0..nodes {
         ids.push(r.str()?);
-        deleted.push(r.u8()? != 0);
+        deleted.push(match r.u8()? {
+            0 => false,
+            1 => true,
+            _ => return Err(corrupt(&name, "invalid deletion flag")),
+        });
         metadata.push(match r.u8()? {
             0 => None,
-            _ => Some(
+            1 => Some(
                 serde_json::from_str(&r.str()?).map_err(|_| corrupt(&name, "invalid metadata"))?,
             ),
+            _ => return Err(corrupt(&name, "invalid metadata flag")),
         });
         let layer_count = r.u8()? as usize;
         if layer_count == 0 || layer_count > max_level + 1 {
@@ -177,10 +221,12 @@ fn decode_collection(r: &mut Reader) -> Result<Collection> {
     if entry.is_some_and(|e| links[e as usize].len() != max_level + 1) {
         return Err(corrupt(&name, "entry point is not on the top layer"));
     }
-    let len = nodes
-        .checked_mul(dim)
-        .ok_or_else(|| corrupt(&name, "vector data too large"))?;
-    let data = r.f32s(len)?;
+    if version == 1 {
+        vectors.data = r.f32s(vector_len)?;
+    }
+    if vectors.data.iter().any(|v| !v.is_finite()) {
+        return Err(corrupt(&name, "non-finite vector"));
+    }
 
     let graph = Graph {
         params: hnsw,
@@ -189,15 +235,7 @@ fn decode_collection(r: &mut Reader) -> Result<Collection> {
         max_level,
         rng: SplitMix64::new(rng_state),
     };
-    Collection::from_parts(
-        name,
-        config,
-        Vectors { dim, data },
-        ids,
-        metadata,
-        deleted,
-        graph,
-    )
+    Collection::from_parts(name, config, vectors, ids, metadata, deleted, graph)
 }
 
 fn corrupt(collection: &str, reason: &str) -> Error {
@@ -264,13 +302,15 @@ impl<'a> Reader<'a> {
                 .ok_or_else(|| Error::Corrupt("overflow".into()))?,
         )?;
         Ok(bytes
-            .chunks_exact(4)
-            .map(|b| f32::from_le_bytes(b.try_into().unwrap()))
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|b| f32::from_le_bytes(*b))
             .collect())
     }
 }
 
-fn crc32(data: &[u8]) -> u32 {
+pub(crate) fn crc32(data: &[u8]) -> u32 {
     const TABLE: [u32; 256] = {
         let mut table = [0u32; 256];
         let mut i = 0;
@@ -295,6 +335,18 @@ fn crc32(data: &[u8]) -> u32 {
         crc = TABLE[((crc ^ byte as u32) & 0xFF) as usize] ^ (crc >> 8);
     }
     !crc
+}
+
+/// Reads only a header previously validated by `decode`.
+pub(crate) fn header(bytes: &[u8]) -> (u128, u64) {
+    if bytes.get(4..8) == Some(&2u32.to_le_bytes()) && bytes.len() >= 36 {
+        (
+            u128::from_le_bytes(bytes[8..24].try_into().unwrap()),
+            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+        )
+    } else {
+        (0, 0)
+    }
 }
 
 #[cfg(test)]

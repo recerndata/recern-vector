@@ -5,7 +5,7 @@ cargo install recern-vector-cli
 recern-vector --help
 ```
 
-Every command takes the database file first. Commands that change the database save it before they exit.
+Every command takes the database file first. Commands that change the database commit to WAL before they exit. Query, inspect and recall use read-only handles.
 
 ## init
 
@@ -18,7 +18,7 @@ Creates an empty database. Fails if the file exists.
 ## create-collection
 
 ```sh
-recern-vector create-collection FILE NAME --dim N [--metric cosine|l2|dot] [--m 16] [--ef-construction 200] [--ef-search 64]
+recern-vector create-collection FILE NAME --dim N [--metric cosine|l2|dot] [--quantization f32|int8] [--m 16] [--ef-construction 200] [--ef-search 64]
 ```
 
 See [Concepts](concepts.md#collections) for the settings.
@@ -95,5 +95,13 @@ recern-vector compact FILE COLLECTION
 ```
 
 Rebuilds the collection without deleted records.
+
+## checkpoint
+
+```sh
+recern-vector checkpoint FILE
+```
+
+Merges committed WAL changes into the snapshot and resets the journal. Stop concurrent writers and checkpoint before copying only the `.rvec` file. Until then, the WAL is part of the database and must be retained.
 
 A runnable walkthrough: [`examples/cli/quickstart.sh`](../examples/cli/quickstart.sh).

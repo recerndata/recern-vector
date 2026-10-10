@@ -39,7 +39,7 @@ stats = collection.stats()
 
 | Key | Meaning |
 |---|---|
-| `name`, `dim`, `metric`, `m`, `ef_construction`, `ef_search` | Collection settings |
+| `name`, `dim`, `metric`, `quantization`, `m`, `ef_construction`, `ef_search` | Collection settings |
 | `live` | Records that searches can return |
 | `deleted` | Deleted or replaced records still in the graph until `compact()` |
 | `nodes_per_layer` | Nodes on each graph layer, bottom first. The bottom layer holds every node |
@@ -81,4 +81,4 @@ Deleting or replacing a record hides it from results at once, but its node stays
 removed = collection.compact()
 ```
 
-Compact after large deletions or many replacements, then `save()`.
+Compact after large deletions or many replacements, then `save()` to commit. Use `checkpoint()` to also reclaim space in the snapshot and reset WAL.

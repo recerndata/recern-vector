@@ -35,3 +35,5 @@ db.save()?;
 `Database` and `Collection` are `Send + Sync`. Searches take `&self` and can run from many threads at once; writes take `&mut self`.
 
 A complete program: [`quickstart.rs`](../crates/recern-vector/examples/quickstart.rs).
+
+Version 0.2.0 adds `Database::open_read_only`, `Database::checkpoint`, `Database::format_version` and `CollectionConfig::with_quantization(Quantization::Int8)`. `save()` commits to WAL; checkpoint before transporting a standalone file. See [file format](file-format.md).

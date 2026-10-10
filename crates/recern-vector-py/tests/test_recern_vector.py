@@ -218,3 +218,29 @@ def test_writes_wait_for_searches_in_other_threads(path):
 
     assert errors == []
     assert len(c) == 5_000 + 300 - 6
+
+
+def test_v2_int8_wal_logical_filters_and_read_only(tmp_path):
+    import recern_vector as rv
+    path = tmp_path / "v2.rvec"
+    db = rv.Database.create(path)
+    c = db.create_collection("q", 3, quantization="int8")
+    c.upsert("a", [1, 0, 0], {"lang": "en"})
+    c.upsert("b", [0, 1, 0], {"lang": "de"})
+    db.save()
+    assert c.stats()["vector_bytes"] == 14
+    assert c.stats()["quantization"] == "int8"
+    assert c.search([1, 0, 0], filter={"$not": {"lang": "en"}})[0].id == "b"
+    with rv.Database.open_read_only(path) as ro:
+        assert ro.read_only
+        assert len(ro["q"]) == 2
+        with pytest.raises(ValueError, match="read-only"):
+            ro.save()
+    stale = rv.Database(path)
+    c.delete("b")
+    db.save()
+    with pytest.raises(ValueError, match="another handle"):
+        stale.save()
+    db.checkpoint()
+    assert len(rv.Database(path)["q"]) == 1
+    assert rv.FORMAT_VERSION == 2

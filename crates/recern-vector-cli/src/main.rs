@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use clap::{Parser, Subcommand};
 use recern_vector::{
     Collection, CollectionConfig, CollectionStats, Database, Filter, HnswParams, Metric,
-    RecallOptions, SearchOptions,
+    Quantization, RecallOptions, SearchOptions,
 };
 use serde_json::Value;
 
@@ -42,6 +42,8 @@ enum Command {
         ef_construction: usize,
         #[arg(long, default_value_t = 64)]
         ef_search: usize,
+        #[arg(long, default_value = "f32", value_parser = ["f32", "int8"])]
+        quantization: String,
     },
     /// Insert or replace records from JSON Lines: {"id": "...", "vector": [...], "metadata": {...}}
     Insert {
@@ -99,6 +101,8 @@ enum Command {
         #[arg(long, value_delimiter = ',', default_value = "16,32,64,128,256")]
         ef: Vec<usize>,
     },
+    /// Merge WAL into a portable, standalone snapshot
+    Checkpoint { file: PathBuf },
     /// Rebuild a collection without deleted records
     Compact { file: PathBuf, collection: String },
 }
@@ -127,6 +131,7 @@ fn run(command: Command) -> CliResult {
             m,
             ef_construction,
             ef_search,
+            quantization,
         } => {
             let mut db = Database::open(&file)?;
             let hnsw = HnswParams {
@@ -134,7 +139,16 @@ fn run(command: Command) -> CliResult {
                 ef_construction,
                 ef_search,
             };
-            db.create_collection(&name, CollectionConfig::new(dim, metric).with_hnsw(hnsw))?;
+            db.create_collection(
+                &name,
+                CollectionConfig::new(dim, metric)
+                    .with_hnsw(hnsw)
+                    .with_quantization(if quantization == "int8" {
+                        Quantization::Int8
+                    } else {
+                        Quantization::F32
+                    }),
+            )?;
             db.save()?;
             println!("created collection {name} ({dim} dims, {metric})");
         }
@@ -166,7 +180,7 @@ fn run(command: Command) -> CliResult {
             filter,
             explain,
         } => {
-            let db = Database::open(&file)?;
+            let db = Database::open_read_only(&file)?;
             let c = db.collection(&collection)?;
             let query = match (vector, like) {
                 (Some(json), _) => serde_json::from_str::<Vec<f32>>(&json)
@@ -207,7 +221,7 @@ fn run(command: Command) -> CliResult {
             }
         }
         Command::Inspect { file, collection } => {
-            let db = Database::open(&file)?;
+            let db = Database::open_read_only(&file)?;
             let size = std::fs::metadata(&file)?.len();
             let names: Vec<&Collection> = match &collection {
                 Some(name) => vec![db.collection(name)?],
@@ -216,7 +230,7 @@ fn run(command: Command) -> CliResult {
             println!(
                 "{} · format v{} · {} collection(s) · {} on disk",
                 file.display(),
-                recern_vector::FORMAT_VERSION,
+                db.format_version(),
                 db.collections().count(),
                 bytes(size as usize)
             );
@@ -232,7 +246,7 @@ fn run(command: Command) -> CliResult {
             k,
             ef,
         } => {
-            let db = Database::open(&file)?;
+            let db = Database::open_read_only(&file)?;
             let c = db.collection(&collection)?;
             let report = c.estimate_recall(&RecallOptions {
                 sample,
@@ -265,6 +279,10 @@ fn run(command: Command) -> CliResult {
                     duration(p.p95)
                 );
             }
+        }
+        Command::Checkpoint { file } => {
+            Database::open(&file)?.checkpoint()?;
+            println!("checkpointed {}", file.display());
         }
         Command::Compact { file, collection } => {
             let mut db = Database::open(&file)?;
@@ -367,6 +385,7 @@ fn print_hits(hits: &[recern_vector::SearchHit]) {
 }
 
 fn print_stats(s: &CollectionStats) {
+    println!("  encoding      {}", s.config.quantization.as_str());
     let total = s.live + s.deleted;
     println!("{}", s.name);
     println!(
@@ -422,7 +441,7 @@ fn count(n: usize) -> String {
     let digits = n.to_string();
     let mut out = String::with_capacity(digits.len() + digits.len() / 3);
     for (i, c) in digits.chars().enumerate() {
-        if i > 0 && (digits.len() - i) % 3 == 0 {
+        if i > 0 && (digits.len() - i).is_multiple_of(3) {
             out.push(',');
         }
         out.push(c);

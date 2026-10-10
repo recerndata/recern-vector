@@ -13,16 +13,31 @@ use crate::rng::SplitMix64;
 pub(crate) const DEFAULT_SEED: u64 = 0x5245_4345_524E_5645;
 const MAX_DIM: usize = 65_536;
 
-/// Filters estimated to match fewer records than this share are answered by
-/// scanning the matching records exactly instead of walking the graph.
-const EXACT_FILTER_SELECTIVITY: f64 = 0.02;
 const SELECTIVITY_SAMPLE: usize = 512;
+
+/// Storage precision. Int8 uses a symmetric scale per vector; original floats
+/// are not retained. Exact searches are exact over the stored approximation.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Quantization {
+    #[default]
+    F32,
+    Int8,
+}
+impl Quantization {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::F32 => "f32",
+            Self::Int8 => "int8",
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CollectionConfig {
     pub dim: usize,
     pub metric: Metric,
     pub hnsw: HnswParams,
+    pub quantization: Quantization,
 }
 
 impl CollectionConfig {
@@ -31,11 +46,17 @@ impl CollectionConfig {
             dim,
             metric,
             hnsw: HnswParams::default(),
+            quantization: Quantization::F32,
         }
     }
 
     pub fn with_hnsw(mut self, hnsw: HnswParams) -> Self {
         self.hnsw = hnsw;
+        self
+    }
+
+    pub fn with_quantization(mut self, quantization: Quantization) -> Self {
+        self.quantization = quantization;
         self
     }
 
@@ -196,7 +217,7 @@ impl Collection {
         Ok(Self {
             name: name.to_owned(),
             config,
-            vectors: Vectors::new(config.dim),
+            vectors: Vectors::with_encoding(config.dim, config.quantization, config.metric),
             ids: Vec::new(),
             metadata: Vec::new(),
             deleted: Vec::new(),
@@ -371,9 +392,19 @@ impl Collection {
         let query = self.prepare(query)?;
         let filter = options.filter.as_ref();
         let selectivity = filter.map(|f| self.estimate_selectivity(f));
+        let base_ef = options.ef.unwrap_or(self.config.hnsw.ef_search).max(k);
+        let adaptive_ef = selectivity.map_or(base_ef, |s| {
+            ((base_ef as f64 / s.max(1.0 / self.len().max(1) as f64)).ceil() as usize)
+                .min(self.len())
+                .max(k)
+        });
+        let exact_cost = selectivity.map(|s| {
+            self.graph.len() as f64 / self.config.dim.max(1) as f64 + self.len() as f64 * s
+        });
+        let graph_cost = adaptive_ef as f64 * self.config.hnsw.m as f64 * 0.5;
         let strategy = if options.exact {
             Strategy::Exact
-        } else if selectivity.is_some_and(|s| s < EXACT_FILTER_SELECTIVITY) {
+        } else if exact_cost.is_some_and(|cost| cost <= graph_cost) {
             Strategy::FilteredExact
         } else {
             Strategy::Hnsw
@@ -386,7 +417,7 @@ impl Collection {
         let mut counters = Counters::default();
         let (found, ef) = match strategy {
             Strategy::Hnsw => {
-                let ef = options.ef.unwrap_or(self.config.hnsw.ef_search).max(k);
+                let ef = adaptive_ef;
                 let found = self.graph.search(
                     &query,
                     k,
@@ -452,7 +483,7 @@ impl Collection {
                 layer0_links as f64 / nodes as f64
             },
             unreachable,
-            vector_bytes: self.vectors.data.len() * size_of::<f32>(),
+            vector_bytes: self.vectors.bytes(),
             graph_bytes,
             metadata_bytes,
         }
@@ -493,7 +524,7 @@ impl Collection {
             .map(|&q| {
                 let accept = |n: u32| n != q && !self.deleted[n as usize];
                 let start = Instant::now();
-                let found = self.scan(self.vectors.get(q), k, &accept, &mut Counters::default());
+                let found = self.scan(&self.vectors.get(q), k, &accept, &mut Counters::default());
                 exact_times.push(start.elapsed());
                 found.into_iter().map(|c| c.id).collect()
             })
@@ -507,7 +538,7 @@ impl Collection {
                 let accept = |n: u32| n != q && !self.deleted[n as usize];
                 let start = Instant::now();
                 let found = self.graph.search(
-                    self.vectors.get(q),
+                    &self.vectors.get(q),
                     k,
                     ef.max(k),
                     &self.vectors,
@@ -546,7 +577,7 @@ impl Collection {
         for node in 0..self.graph.len() {
             if !self.deleted[node] {
                 let vector = self.vectors.get(node as u32);
-                fresh.append(self.ids[node].clone(), vector, self.metadata[node].clone());
+                fresh.append(self.ids[node].clone(), &vector, self.metadata[node].clone());
             }
         }
         let live = fresh.ids.len() as u32;
@@ -600,7 +631,7 @@ impl Collection {
                 self.index.remove(id);
             }
         }
-        self.vectors.data.truncate(start * self.config.dim);
+        self.vectors.truncate(start);
         self.ids.truncate(start);
         self.metadata.truncate(start);
         self.deleted.truncate(start);
@@ -619,14 +650,14 @@ impl Collection {
         accept: &dyn Fn(u32) -> bool,
         counters: &mut Counters,
     ) -> Vec<Candidate> {
-        let mut heap = BinaryHeap::with_capacity(k + 1);
+        let mut heap = BinaryHeap::with_capacity(k.min(self.len()) + 1);
         for node in 0..self.graph.len() as u32 {
             if !accept(node) {
                 continue;
             }
             counters.visited += 1;
             counters.distance_computations += 1;
-            let dist = self.config.metric.distance(query, self.vectors.get(node));
+            let dist = self.vectors.distance(query, node, self.config.metric);
             if heap.len() < k {
                 heap.push(Candidate { dist, id: node });
             } else if heap.peek().is_some_and(|w: &Candidate| dist < w.dist) {

@@ -1,0 +1,11 @@
+{
+  "name": "@recern/vector",
+  "version": "0.2.0",
+  "description": "Embedded Recern Vector database, native Node-API bindings",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT OR Apache-2.0",
+  "engines": {"node": ">=22"},
+  "files": ["index.js", "index.d.ts", "*.node", "README.md", "LICENSE-*"],
+  "scripts": {"build": "node build.cjs", "test": "node --test test/*.test.cjs"}
+}

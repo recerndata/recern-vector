@@ -4,7 +4,7 @@
 
 **A single-file vector database. Embedded, inspectable, boring in the best way.**
 
-> Status: Phase 1 prototype (0.0.x). The file format and API will change between releases.
+> Version 0.2.0. Stable file format 2; reads existing format-1 files. WAL, int8, logical filters and native Node.js bindings are included.
 
 ```sh
 pip install recern-vector           # Python
@@ -12,11 +12,11 @@ cargo add recern-vector             # Rust library
 cargo install recern-vector-cli     # the recern-vector command
 ```
 
-Latest release: [v0.0.2](https://github.com/recerndata/recern-vector/releases/tag/v0.0.2) ([PyPI](https://pypi.org/project/recern-vector/), [crates.io](https://crates.io/crates/recern-vector)) · Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
+Release: [v0.2.0](https://github.com/recerndata/recern-vector/releases/tag/v0.2.0) ([PyPI](https://pypi.org/project/recern-vector/), [crates.io](https://crates.io/crates/recern-vector)) · Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
 
 **Documentation:** [recern.net/vector/docs](https://recern.net/vector/docs) (sources in [`docs/`](docs/README.md)) · **Examples:** [`examples/`](examples/README.md) — quickstart, semantic search, RAG retrieval, tuning recall, CLI and Rust
 
-Recern Vector stores vectors, JSON metadata and an HNSW index in one file — no server, no configuration. Its internals are part of the API: every query can explain how it was executed, every collection reports its graph structure and memory, and recall can be measured against exact search at any time.
+Recern Vector stores vectors, JSON metadata and an HNSW index in a local snapshot with a WAL for incremental commits. A checkpoint produces a standalone database file. Its internals are part of the API: every query can explain how it was executed, every collection reports its graph structure and memory, and recall can be measured against exact search at any time.
 
 ## Quick start (CLI)
 
@@ -70,17 +70,19 @@ db.save()?;
 
 ## What is inside
 
-| Part | Prototype implementation |
+| Part | Implementation |
 |---|---|
 | Metrics | cosine (vectors normalized on insert), L2, dot product |
 | Index | HNSW with the neighbor-selection heuristic; exact scan on request |
 | Updates | upsert and delete by string id; deleted nodes stay as graph waypoints until `compact` |
 | Batch build | `upsert_many` links records in parallel with one lock per node (as in hnswlib); nodes still being inserted are never used as descent points, and a final pass re-links any record search could not reach. Batches are atomic; with one thread the graph is identical to sequential upserts |
-| Filters | MongoDB-style: equality, `$in`, `$gt`/`$gte`/`$lt`/`$lte`, dotted paths, AND |
-| Filter planning | estimates selectivity from a sample; very selective filters scan matching records exactly, others filter during graph traversal |
+| Filters | equality, `$in`, `$gt`/`$gte`/`$lt`/`$lte`, dotted paths, `$and`, `$or`, `$not` |
+| Filter planning | sampled selectivity and operation-cost estimates choose exact scan or HNSW with an adaptive candidate budget |
 | Introspection | `stats()` (layers, degree, unreachable records, memory), `explain()`, `estimate_recall()` |
-| Storage | one file: header, collections, CRC32 footer; saved atomically via temp file + fsync + rename |
+| Storage | stable format 2, format-1 compatibility, checksummed page WAL, atomic checkpoints, stale-writer protection |
+| Precision | f32 or per-vector int8 quantization; distance calculations operate directly on stored codes |
 | Python | PyO3 bindings; float32 NumPy arrays are read through the buffer protocol |
+| Node.js | native Node-API bindings, Float32Array input and asynchronous search |
 
 The file layout is documented in [`storage.rs`](crates/recern-vector/src/storage.rs).
 
@@ -119,18 +121,15 @@ What this says about the prototype:
 
 `cargo run --release --example bench -- [records] [dim] [noise]` runs a quick synthetic sanity check without downloading datasets.
 
-## Prototype limitations
+## Version 0.2.0
 
-- The whole database is loaded into memory; `save()` rewrites the entire file (no WAL yet).
-- Single writer; single upserts link sequentially (use `upsert_many` for bulk loads).
-- `f32` only; no quantization yet.
-- No Node.js bindings yet.
+- Versioned format 2, frozen compatibility fixtures and format-1 migration.
+- Checksummed WAL with changed-page writes, crash recovery, checkpoint and stale-writer protection.
+- Optional `Quantization::Int8` / Python `quantization="int8"` per collection.
+- `$and`, `$or`, `$not` filters with cost-based exact/HNSW selection and adaptive candidate budgets.
+- [Native Node.js bindings](crates/recern-vector-node/README.md), including asynchronous search.
 
-## Next steps
-
-1. Tune filter planning: the exact-scan threshold is currently conservative
-2. WAL for incremental writes, `int8` quantization
-3. Flat layer-0 adjacency to cut pointer chasing further
+A database now uses a snapshot plus WAL. Call `checkpoint()` before copying a standalone `.rvec`. `save()` makes pending changes durable; it does not checkpoint. See the [format and durability contract](docs/file-format.md) and [current limitations](docs/limitations.md). Historical benchmark results above describe the pre-0.2 f32 engine and have not been rerun for int8.
 
 ## Contributing
 

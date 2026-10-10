@@ -1,0 +1,16 @@
+[package]
+name = "recern-vector-node"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+[lib]
+crate-type = ["cdylib"]
+[dependencies]
+recern-vector.workspace = true
+serde_json.workspace = true
+napi = { version = "3", default-features = false, features = ["napi8", "serde-json"] }
+napi-derive = "3"
+[build-dependencies]
+napi-build = "2"

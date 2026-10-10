@@ -350,12 +350,29 @@ impl Database {
         Ok(Self::wrap(inner))
     }
 
+    #[staticmethod]
+    fn open_read_only(py: Python<'_>, path: PathBuf) -> PyResult<Self> {
+        py.detach(|| rv::Database::open_read_only(path))
+            .py_err()
+            .map(Self::wrap)
+    }
+
+    fn checkpoint(&self, py: Python<'_>) -> PyResult<()> {
+        self.read(py, |db| db.checkpoint()).py_err()
+    }
+
+    #[getter]
+    fn read_only(&self, py: Python<'_>) -> bool {
+        self.read(py, |db| db.is_read_only())
+    }
+
     #[getter]
     fn path(&self, py: Python<'_>) -> PathBuf {
         self.read(py, |db| db.path().to_path_buf())
     }
 
-    #[pyo3(signature = (name, dim, metric = "cosine", m = 16, ef_construction = 200, ef_search = 64))]
+    #[pyo3(signature = (name, dim, metric = "cosine", m = 16, ef_construction = 200, ef_search = 64, *, quantization = "f32"))]
+    #[allow(clippy::too_many_arguments)]
     fn create_collection(
         slf: Bound<'_, Self>,
         name: &str,
@@ -364,6 +381,7 @@ impl Database {
         m: usize,
         ef_construction: usize,
         ef_search: usize,
+        quantization: &str,
     ) -> PyResult<Collection> {
         let metric: rv::Metric = metric.parse().map_err(PyValueError::new_err)?;
         let hnsw = rv::HnswParams {
@@ -371,7 +389,14 @@ impl Database {
             ef_construction,
             ef_search,
         };
-        let config = rv::CollectionConfig::new(dim, metric).with_hnsw(hnsw);
+        let quantization = match quantization {
+            "f32" => rv::Quantization::F32,
+            "int8" => rv::Quantization::Int8,
+            _ => return Err(PyValueError::new_err("quantization must be f32 or int8")),
+        };
+        let config = rv::CollectionConfig::new(dim, metric)
+            .with_hnsw(hnsw)
+            .with_quantization(quantization);
         slf.get()
             .write(slf.py(), |db| {
                 db.create_collection(name, config).map(|_| ())
@@ -428,7 +453,7 @@ impl Database {
         _exc_value: Option<&Bound<'_, PyAny>>,
         _traceback: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<bool> {
-        if exc_type.is_none_or(|t| t.is_none()) {
+        if exc_type.is_none_or(|t| t.is_none()) && !self.read_only(py) {
             self.save(py)?;
         }
         Ok(false)
@@ -624,6 +649,7 @@ impl Collection {
         dict.set_item("name", s.name)?;
         dict.set_item("dim", s.config.dim)?;
         dict.set_item("metric", s.config.metric.as_str())?;
+        dict.set_item("quantization", s.config.quantization.as_str())?;
         dict.set_item("m", s.config.hnsw.m)?;
         dict.set_item("ef_construction", s.config.hnsw.ef_construction)?;
         dict.set_item("ef_search", s.config.hnsw.ef_search)?;

@@ -2,11 +2,11 @@
 
 ## Database
 
-A database is one file, by convention with the `.rvec` extension. It holds any number of named collections.
+A database has a `.rvec` snapshot and a `.rvec.wal` journal. It holds any number of named collections. A checkpoint produces a standalone snapshot; a `.rvec.lock` sidecar coordinates local readers and writers.
 
 - **Opening loads everything into memory.** Searches never touch the disk.
-- **Changes stay in memory until you save.** `save()` writes the whole database to a temporary file, flushes it to disk and renames it over the original, so the file on disk is always either the old version or the new one, never a mix. In Python, `with rv.Database(...) as db:` saves when the block ends without an exception.
-- **One writer.** Two processes that open the same file and both save will overwrite each other's changes. Share a database between processes only for reading.
+- **Changes stay in memory until you save.** `save()` appends checksummed changed pages to WAL and flushes the commit to disk. In Python, `with rv.Database(...) as db:` saves when the block ends without an exception. `checkpoint()` merges changes into the snapshot and resets WAL; stop concurrent writers and checkpoint before copying a standalone file.
+- **Stale writers are rejected.** Commits use local file locks. If another handle has committed since this handle opened or last saved, its next write fails and it must reopen. There is no merge or multi-writer transaction system. Read-only handles are point-in-time snapshots. See the [durability contract](file-format.md).
 
 ## Collections
 
@@ -16,6 +16,7 @@ A collection is a set of records with a fixed **dimension** and **metric**, plus
 |---|---|---|
 | `dim` | required | Vector length, 1 to 65,536 |
 | `metric` | `cosine` | `cosine`, `l2` or `dot` (see below) |
+| `quantization` | `f32` | `f32` or `int8`; int8 stores per-vector scales and signed codes, without retaining original f32 values |
 | `m` | 16 | Links per node on upper layers of the graph; layer 0 allows `2 * m`. 2 to 256 |
 | `ef_construction` | 200 | Candidate list size while building. Higher builds a better graph, more slowly |
 | `ef_search` | 64 | Default candidate list size while searching. Higher finds more true neighbours, more slowly |
@@ -47,7 +48,7 @@ For cosine, similarity is `1 - distance`.
 Each collection keeps a [hierarchical navigable small world](https://arxiv.org/abs/1603.09320) graph. A search starts at the top layer, descends greedily, and on the bottom layer explores the `ef` closest candidates it has found so far. The `k` best of those are returned.
 
 - **`ef` trades speed for recall.** A larger `ef` visits more nodes and finds more of the true nearest neighbours. It must be at least `k`; a smaller value is raised to `k`. Pass `ef=` per search, or set the collection's `ef_search`. [Inspecting and tuning](inspection.md) shows how to choose it.
-- **Exact search** (`exact=True`) scans every record. It always returns the true nearest neighbours and is the baseline for measuring recall.
+- **Exact search** (`exact=True`) scans every record. It returns the nearest neighbours of the stored vectors and is the baseline for measuring graph recall. For int8 these are quantized approximations; compare with original f32 data separately when measuring quantization error.
 - **Batch inserts** (`upsert_many`) build index links on all CPU cores. A batch is atomic: if any vector is invalid, nothing is written. With `threads=1` the result is identical to inserting records one at a time.
 - **Deletes** remove a record from results immediately, but its node stays in the graph as a waypoint until `compact()` rebuilds the collection. Replacing a record works the same way.
 

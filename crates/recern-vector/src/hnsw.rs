@@ -63,29 +63,111 @@ impl HnswParams {
     }
 }
 
-/// Contiguous vector storage: node `i` occupies `data[i * dim..(i + 1) * dim]`.
+/// Contiguous encoded vectors, without retaining a duplicate f32 copy.
 pub(crate) struct Vectors {
     pub(crate) dim: usize,
     pub(crate) data: Vec<f32>,
+    pub(crate) codes: Vec<i8>,
+    pub(crate) scales: Vec<f32>,
+    pub(crate) encoding: crate::Quantization,
+    metric: Metric,
 }
-
 impl Vectors {
+    #[cfg(test)]
     pub(crate) fn new(dim: usize) -> Self {
+        Self::with_encoding(dim, crate::Quantization::F32, Metric::L2)
+    }
+    pub(crate) fn with_encoding(dim: usize, encoding: crate::Quantization, metric: Metric) -> Self {
         Self {
             dim,
             data: Vec::new(),
+            codes: Vec::new(),
+            scales: Vec::new(),
+            encoding,
+            metric,
         }
     }
-
-    #[inline]
-    pub(crate) fn get(&self, node: u32) -> &[f32] {
-        let start = node as usize * self.dim;
-        &self.data[start..start + self.dim]
+    pub(crate) fn len(&self) -> usize {
+        if self.encoding == crate::Quantization::F32 {
+            self.data.len() / self.dim.max(1)
+        } else {
+            self.scales.len()
+        }
     }
-
+    pub(crate) fn bytes(&self) -> usize {
+        self.data.len() * 4 + self.codes.len() + self.scales.len() * 4
+    }
+    pub(crate) fn truncate(&mut self, nodes: usize) {
+        self.data.truncate(nodes * self.dim);
+        self.codes.truncate(nodes * self.dim);
+        self.scales.truncate(nodes);
+    }
+    #[inline]
+    pub(crate) fn get(&self, node: u32) -> std::borrow::Cow<'_, [f32]> {
+        let start = node as usize * self.dim;
+        if self.encoding == crate::Quantization::F32 {
+            return (&self.data[start..start + self.dim]).into();
+        }
+        self.codes[start..start + self.dim]
+            .iter()
+            .map(|&v| v as f32 * self.scales[node as usize])
+            .collect::<Vec<_>>()
+            .into()
+    }
+    #[inline]
+    pub(crate) fn distance(&self, query: &[f32], node: u32, metric: Metric) -> f32 {
+        if self.encoding == crate::Quantization::F32 {
+            return metric.distance(query, &self.get(node));
+        }
+        let start = node as usize * self.dim;
+        let scale = self.scales[node as usize];
+        let mut sum = 0.0;
+        for (&a, &b) in query.iter().zip(&self.codes[start..start + self.dim]) {
+            let b = b as f32 * scale;
+            sum += if metric == Metric::L2 {
+                (a - b) * (a - b)
+            } else {
+                a * b
+            };
+        }
+        match metric {
+            Metric::L2 => sum,
+            Metric::Cosine => 1.0 - sum,
+            Metric::Dot => -sum,
+        }
+    }
+    pub(crate) fn prefetch(&self, node: u32) {
+        if self.encoding == crate::Quantization::F32 {
+            prefetch(&self.get(node));
+        }
+    }
     pub(crate) fn push(&mut self, vector: &[f32]) {
         debug_assert_eq!(vector.len(), self.dim);
-        self.data.extend_from_slice(vector);
+        if self.encoding == crate::Quantization::F32 {
+            self.data.extend_from_slice(vector);
+            return;
+        }
+        let max = vector.iter().fold(0.0f32, |m, v| m.max(v.abs()));
+        let mut scale = if max == 0.0 {
+            1.0
+        } else {
+            (max / 127.0).max(f32::from_bits(1))
+        };
+        let start = self.codes.len();
+        self.codes.extend(
+            vector
+                .iter()
+                .map(|&v| (v / scale).round().clamp(-127.0, 127.0) as i8),
+        );
+        if self.metric == Metric::Cosine {
+            let norm = self.codes[start..]
+                .iter()
+                .map(|&v| (v as f32).powi(2))
+                .sum::<f32>()
+                .sqrt();
+            scale = 1.0 / norm;
+        }
+        self.scales.push(scale);
     }
 }
 
@@ -490,17 +572,17 @@ impl Graph {
                     let links: &[Vec<Vec<u32>>] = &self.links;
                     let mut counters = Counters::default();
                     let mut ep = Candidate {
-                        dist: metric.distance(query, vectors.get(entry)),
+                        dist: vectors.distance(&query, entry, metric),
                         id: entry,
                     };
                     for layer in (1..=self.max_level).rev() {
-                        ep = greedy(links, query, ep, layer, vectors, metric, &mut counters);
+                        ep = greedy(links, &query, ep, layer, vectors, metric, &mut counters);
                     }
                     let ef = self.params.ef_construction;
                     let accept = |n: u32| n != orphan;
                     search_layer(
                         links,
-                        query,
+                        &query,
                         &[ep],
                         ef,
                         0,
@@ -517,11 +599,9 @@ impl Graph {
                     push_and_prune(list, candidate.id, orphan, max, vectors, metric);
                     linked |= list.contains(&orphan);
                 }
-                if !linked {
-                    if let Some(nearest) = found.first() {
-                        // The heuristic rejected every link; keep one anyway.
-                        self.links[nearest.id as usize][0].push(orphan);
-                    }
+                if !linked && let Some(nearest) = found.first() {
+                    // The heuristic rejected every link; keep one anyway.
+                    self.links[nearest.id as usize][0].push(orphan);
                 }
             }
         });
@@ -546,7 +626,7 @@ impl Graph {
         let links: &[Vec<Vec<u32>>] = &self.links;
         counters.distance_computations += 1;
         let mut ep = Candidate {
-            dist: metric.distance(query, vectors.get(entry)),
+            dist: vectors.distance(query, entry, metric),
             id: entry,
         };
         for layer in (1..=self.max_level).rev() {
@@ -620,18 +700,18 @@ fn link_node<L: Links>(
     let query = vectors.get(node);
     let mut counters = Counters::default();
     let mut ep = Candidate {
-        dist: metric.distance(query, vectors.get(entry)),
+        dist: vectors.distance(&query, entry, metric),
         id: entry,
     };
     for layer in (level + 1..=max_level).rev() {
-        ep = greedy(&*links, query, ep, layer, vectors, metric, &mut counters);
+        ep = greedy(&*links, &query, ep, layer, vectors, metric, &mut counters);
     }
 
     let mut entry_points = vec![ep];
     for layer in (0..=level.min(max_level)).rev() {
         let found = search_layer(
             &*links,
-            query,
+            &query,
             &entry_points,
             params.ef_construction,
             layer,
@@ -686,11 +766,11 @@ fn greedy<R: ReadLinks + ?Sized>(
         let current = best.id;
         links.with_neighbors(current, layer, |neighbors| {
             for &neighbor in neighbors {
-                prefetch(vectors.get(neighbor));
+                vectors.prefetch(neighbor);
             }
             for &neighbor in neighbors {
                 counters.distance_computations += 1;
-                let dist = metric.distance(query, vectors.get(neighbor));
+                let dist = vectors.distance(query, neighbor, metric);
                 // A node still being inserted may have empty lower layers;
                 // descending into it would leave the search stranded.
                 if dist < best.dist && links.is_ready(neighbor) {
@@ -720,7 +800,7 @@ fn search_layer<R: ReadLinks + ?Sized>(
     counters: &mut Counters,
     visited: &mut Visited,
 ) -> Vec<Candidate> {
-    visited.reset(vectors.data.len() / vectors.dim.max(1));
+    visited.reset(vectors.len());
     let mut candidates = BinaryHeap::new();
     let mut results: BinaryHeap<Candidate> = BinaryHeap::new();
 
@@ -754,12 +834,12 @@ fn search_layer<R: ReadLinks + ?Sized>(
             }
         });
         for &neighbor in &fresh {
-            prefetch(vectors.get(neighbor));
+            vectors.prefetch(neighbor);
         }
         for &neighbor in &fresh {
             counters.visited += 1;
             counters.distance_computations += 1;
-            let dist = metric.distance(query, vectors.get(neighbor));
+            let dist = vectors.distance(query, neighbor, metric);
             let worst = results.peek().map_or(f32::INFINITY, |w| w.dist);
             if results.len() < ef || dist < worst {
                 let candidate = Candidate { dist, id: neighbor };
@@ -799,7 +879,7 @@ fn select_neighbors(
         let vector = vectors.get(candidate.id);
         let diverse = selected
             .iter()
-            .all(|s| metric.distance(vector, vectors.get(s.id)) > candidate.dist);
+            .all(|s| vectors.distance(&vector, s.id, metric) > candidate.dist);
         if diverse {
             selected.push(candidate);
         } else {
@@ -836,7 +916,7 @@ fn prune(list: &mut Vec<u32>, node: u32, max: usize, vectors: &Vectors, metric: 
     let mut candidates: Vec<Candidate> = list
         .iter()
         .map(|&n| Candidate {
-            dist: metric.distance(base, vectors.get(n)),
+            dist: vectors.distance(&base, n, metric),
             id: n,
         })
         .collect();

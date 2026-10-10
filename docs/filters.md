@@ -37,8 +37,8 @@ Any other operator is an error.
 
 Before searching, Recern Vector estimates the filter's **selectivity**: the share of records that match, measured on a random sample of up to 512 live records.
 
-- **Selective filters (under about 2% of records)** are answered by scanning the matching records exactly (`strategy="filtered_exact"`). With few matches this is both faster than walking the graph and exact.
-- **Other filters** are applied while walking the HNSW graph (`strategy="hnsw"`): the search visits nodes as usual and keeps only matching records, until it has `k` of them.
+- The planner estimates matching distance work plus metadata scan work, and compares it with an HNSW traversal budget. Small/selective subsets use `filtered_exact`; the decision depends on count, dimension, k, ef and selectivity.
+- Other filters run inside HNSW. The candidate budget grows inversely with estimated selectivity, bounded by collection size. `explain().ef` reports the actual budget. These estimates do not guarantee latency or recall.
 
 `explain()` shows which strategy ran, the estimated selectivity and how many nodes were visited:
 
@@ -76,3 +76,7 @@ let f = Filter::And(vec![
 ```
 
 `Filter::Range { field, gt, gte, lt, lte }` gives exclusive bounds as well.
+
+## Logical operators in 0.2.0
+
+`{"$or": [{"lang": "en"}, {"score": {"$gte": 10}}], "$not": {"hidden": true}}` combines OR and NOT with the implicit AND between keys. `$and`/`$or` require nonempty arrays of filter objects; `$not` requires one filter object. Unknown logical operators and more than 64 nested levels are rejected. NOT negates the whole predicate, so `$not: {"field": value}` matches a missing field as well. Positive predicates still do not match missing fields. These are Recern semantics, not full MongoDB compatibility.
