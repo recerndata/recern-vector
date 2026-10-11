@@ -5,6 +5,8 @@ Each example runs on its own and prints what it does.
 | Example | What it shows | Needs |
 |---|---|---|
 | [`python/quickstart.py`](python/quickstart.py) | Create a database, batch insert with metadata, search, filter, update, delete, save and reopen | `numpy` |
+| [`python/portable.py`](python/portable.py) | Same application logic on embedded Recern and Qdrant | recern-vector >= 0.3.0; Qdrant for the remote variant |
+| [`python/migrate.py`](python/migrate.py) | Snapshot export, checked import, dry-run and interruption recovery | recern-vector >= 0.3.0 |
 | [`python/inspect_and_tune.py`](python/inspect_and_tune.py) | `explain()` for plain and filtered searches, `stats()`, choosing `ef` with `estimate_recall()`, `compact()` | `numpy` |
 | [`python/semantic_search.py`](python/semantic_search.py) | Semantic search over short notes with real text embeddings and a metadata filter | `sentence-transformers` |
 | [`python/rag_retrieval.py`](python/rag_retrieval.py) | The retrieval half of RAG: chunk documents, index them once, fetch context and build a prompt | `sentence-transformers` |
@@ -22,3 +24,20 @@ cargo run --release --example quickstart
 ```
 
 The documentation lives in [`docs/`](../docs/README.md) and at [recern.net/vector/docs](https://recern.net/vector/docs).
+
+For the portable examples, first install `recern-vector >= 0.3.0` (or build the bindings from source). Then:
+
+```sh
+python examples/python/portable.py --path /tmp/portable-demo.rvec
+docker compose -f dev/compose.yml up -d
+export RECERN_QDRANT_API_KEY=recern-vector-tests-local-only
+python examples/python/portable.py --qdrant http://127.0.0.1:6335
+
+python examples/python/migrate.py /tmp/portable-export --source /tmp/portable-demo.rvec
+python examples/python/migrate.py /tmp/portable-export --qdrant http://127.0.0.1:6335 --namespace migrated --dry-run
+python examples/python/migrate.py /tmp/portable-export --qdrant http://127.0.0.1:6335 --namespace migrated
+# After interruption, repeat the last command with --resume.
+docker compose -f dev/compose.yml down
+```
+
+Use fresh paths/namespaces for migration examples; existing destination collections are rejected. Read the [contract](../docs/portable-api.md) and [migration guarantees](../docs/migration.md) before a production cutover.

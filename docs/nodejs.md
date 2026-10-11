@@ -1,18 +1,18 @@
 # Node.js
 
-Recern Vector 0.2.0 includes native Node-API 8 bindings, TypeScript definitions and asynchronous search. Use Node.js 22 or later. The package is not published to npm yet.
+Recern Vector 0.3.0 includes native Node-API 8 bindings, TypeScript definitions and asynchronous search. Use Node.js 22 or later. The package is not published to npm yet.
 
 ## Install a release build
 
-Choose the archive for your operating system and CPU from the [0.2.0 release](https://github.com/recerndata/recern-vector/releases/tag/v0.2.0):
+Choose the archive for your operating system and CPU from the [0.3.0 release](https://github.com/recerndata/recern-vector/releases/tag/v0.3.0):
 
 | Platform | Archive |
 |---|---|
-| Linux x64 | [recern-vector-0.2.0-node-Linux-X64.tar.gz](https://github.com/recerndata/recern-vector/releases/download/v0.2.0/recern-vector-0.2.0-node-Linux-X64.tar.gz) |
-| macOS Apple silicon | [recern-vector-0.2.0-node-macOS-ARM64.tar.gz](https://github.com/recerndata/recern-vector/releases/download/v0.2.0/recern-vector-0.2.0-node-macOS-ARM64.tar.gz) |
-| Windows x64 | [recern-vector-0.2.0-node-Windows-X64.tar.gz](https://github.com/recerndata/recern-vector/releases/download/v0.2.0/recern-vector-0.2.0-node-Windows-X64.tar.gz) |
+| Linux x64 | [recern-vector-0.3.0-node-Linux-X64.tar.gz](https://github.com/recerndata/recern-vector/releases/download/v0.3.0/recern-vector-0.3.0-node-Linux-X64.tar.gz) |
+| macOS Apple silicon | [recern-vector-0.3.0-node-macOS-ARM64.tar.gz](https://github.com/recerndata/recern-vector/releases/download/v0.3.0/recern-vector-0.3.0-node-macOS-ARM64.tar.gz) |
+| Windows x64 | [recern-vector-0.3.0-node-Windows-X64.tar.gz](https://github.com/recerndata/recern-vector/releases/download/v0.3.0/recern-vector-0.3.0-node-Windows-X64.tar.gz) |
 
-Each archive contains a `package` directory with the native binary, loader, types and package metadata. Verify its checksum against the release's [SHA256SUMS](https://github.com/recerndata/recern-vector/releases/download/v0.2.0/SHA256SUMS), extract it, and load the directory with `require('./package')`. These are platform-specific builds, not a universal binary. On other platforms, build from source.
+Each archive contains a `package` directory with the native binary, loader, types and package metadata. Verify its checksum against the release's [SHA256SUMS](https://github.com/recerndata/recern-vector/releases/download/v0.3.0/SHA256SUMS), extract it, and load the directory with `require('./package')`. These are platform-specific builds, not a universal binary. On other platforms, build from source.
 
 ## First database
 
@@ -57,7 +57,7 @@ Metadata must be JSON-compatible. Use strings for integer values outside JavaScr
 With Node.js 22+ and Rust 1.89+:
 
 ```sh
-git clone --branch v0.2.0 https://github.com/recerndata/recern-vector.git
+git clone --branch v0.3.0 https://github.com/recerndata/recern-vector.git
 cd recern-vector/crates/recern-vector-node
 npm run build
 npm test

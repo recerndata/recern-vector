@@ -85,9 +85,38 @@ jobs:
           python -m pip install --no-index --find-links dist recern-vector
           python -m pytest crates/recern-vector-py/tests
 
+  portable-contract:
+    needs: wheels
+    runs-on: ubuntu-latest
+    services:
+      qdrant:
+        image: qdrant/qdrant:v1.19.2
+        ports: [6333:6333]
+        env:
+          QDRANT__TELEMETRY_DISABLED: "true"
+          QDRANT__SERVICE__API_KEY: recern-vector-tests-local-only
+    env:
+      RECERN_TEST_QDRANT_URL: http://127.0.0.1:6333
+      RECERN_TEST_QDRANT_API_KEY: recern-vector-tests-local-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheel-*
+          path: dist
+          merge-multiple: true
+      - name: Verify the installed wheel against authenticated Qdrant
+        run: |
+          python -m pip install pytest numpy
+          python -m pip install --no-index --find-links dist recern-vector
+          python -m pytest crates/recern-vector-py/tests/test_portable.py crates/recern-vector-py/tests/test_portable_transport.py
+
   publish:
     if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
-    needs: [wheels, sdist, test-wheels]
+    needs: [wheels, sdist, test-wheels, portable-contract]
     runs-on: ubuntu-latest
     environment:
       name: pypi

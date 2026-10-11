@@ -2,7 +2,7 @@
 
 Python bindings for [Recern Vector](https://github.com/recerndata/recern-vector), a single-file, embedded, inspectable vector database.
 
-> Version 0.2.0: stable format 2, with compatibility for format-1 databases. Saves commit to WAL; checkpoint before copying a standalone database file.
+> **Version 0.3.0.** Adds a portable Python client and verified migration to Qdrant. Stable format 2 remains compatible with format-1 databases.
 
 ```sh
 pip install recern-vector
@@ -27,6 +27,20 @@ with rv.Database.open_or_create("docs.rvec") as db:          # saves on clean ex
 `float32` NumPy arrays are read through the buffer protocol without per-element conversion; plain lists and other dtypes also work. `upsert_many` builds index links on all cores (`threads=` to change it) and is atomic: if any vector is invalid, nothing is written.
 
 Benchmarks against faiss, LanceDB and sqlite-vec: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks).
+
+## Portable client (0.3.0)
+
+```python
+from recern_vector.portable import Client, Record
+
+client = Client.embedded("prototype.rvec")
+# client = Client.qdrant("https://vectors.example.com", api_key=key)
+docs = client.create_collection("docs", dim=3)
+docs.upsert_many([Record("document:1", [1, 0, 0], {"lang": "en"})])
+print(docs.search([1, 0, 0], filter={"lang": "en"}))
+```
+
+Portable embedded writes save before returning; the native `Database` API retains explicit saves. `export_snapshot`, `inspect_export` and `import_snapshot` support consistent embedded exports, dry-run, interrupted import recovery and record verification on embedded/Qdrant destinations. Qdrant 1.19.2 is tested; remote batches are not declared atomic, and remote snapshot export is unsupported. See the [portable contract](https://github.com/recerndata/recern-vector/blob/main/docs/portable-api.md) and [migration guide](https://github.com/recerndata/recern-vector/blob/main/docs/migration.md).
 
 ## Development
 

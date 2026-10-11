@@ -420,14 +420,14 @@ dependencies = [
 
 [[package]]
 name = "recern-vector"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
 name = "recern-vector-cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "clap",
  "recern-vector",
@@ -436,7 +436,7 @@ dependencies = [
 
 [[package]]
 name = "recern-vector-node"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "napi",
  "napi-build",
@@ -447,7 +447,7 @@ dependencies = [
 
 [[package]]
 name = "recern-vector-py"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "pyo3",
  "recern-vector",

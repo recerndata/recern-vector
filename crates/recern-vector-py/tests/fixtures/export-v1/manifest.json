@@ -1,0 +1,21 @@
+{
+  "format": "recern-vector-export",
+  "version": 1,
+  "profile": "recern-vector/1",
+  "consistent_snapshot": true,
+  "source": "embedded",
+  "created_at": "2026-10-11T00:00:00+00:00",
+  "collections": [
+    {
+      "name": "frozen",
+      "dim": 2,
+      "metric": "cosine",
+      "source_precision": "f32",
+      "vectors": "stored-f32",
+      "normalization": "unit-at-insertion",
+      "records": 2,
+      "file": "0000.jsonl",
+      "sha256": "147befd4cd90c3fe0afb4de6b08d34980ef817dd8c35158cf1b5de9a264c3a1e"
+    }
+  ]
+}

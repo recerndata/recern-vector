@@ -113,6 +113,16 @@ impl Database {
     pub fn is_read_only(&self) -> bool {
         self.read_only
     }
+
+    /// Persistent format-2 database identity. Legacy format-1 files return
+    /// zero until their first save upgrades them; checkpoints keep the ID.
+    pub fn identity(&self) -> u128 {
+        let bytes = self
+            .persistence
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        storage::header(&bytes).0
+    }
     fn writable(&self) -> Result<()> {
         if self.read_only {
             Err(Error::InvalidArgument("database is read-only".into()))

@@ -2,7 +2,7 @@
 
 Recern Vector is an embedded vector database with a local snapshot and a WAL; there is no server. You open it from Python, Rust, Node.js or the command line, add vectors with JSON metadata, and search them with an HNSW index. Every search can report how it ran, and every collection can report the state of its index and measure its own recall.
 
-> **Version 0.2.0.** Stable format 2 with format-1 compatibility; WAL, int8, logical filters and native Node.js bindings.
+> **Version 0.3.0.** Portable Python API and embedded-to-Qdrant migration, with stable format 2, format-1 readers and existing native APIs retained.
 
 ## When it fits
 
@@ -25,6 +25,8 @@ Recern Vector is an embedded vector database with a local snapshot and a WAL; th
 | [Filters](filters.md) | Metadata filter syntax and how filtered searches are planned |
 | [Inspecting and tuning](inspection.md) | `explain`, `stats`, `estimate_recall`, choosing `ef`, `compact` |
 | [Python API](python.md) | Every class, method and exception in the `recern_vector` package |
+| [Portable Python API](portable-api.md) | Profile v1, embedded/Qdrant backends, shared semantics and capabilities |
+| [Export and migration](migration.md) | Consistent snapshots, JSONL manifests, dry-run, resume and verification |
 | [Rust API](rust.md) | The `recern-vector` crate |
 | [Node.js](nodejs.md) | Native builds, TypeScript definitions and asynchronous search |
 | [Command line](cli.md) | The `recern-vector` command |

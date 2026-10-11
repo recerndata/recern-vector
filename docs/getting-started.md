@@ -63,7 +63,7 @@ A complete program: [`quickstart.rs`](../crates/recern-vector/examples/quickstar
 
 ## Node.js
 
-Native builds for Linux x64, macOS arm64 and Windows x64 are attached to the 0.2.0 release. The package is not yet on npm. See [Node.js](nodejs.md) for download links, setup and an asynchronous search example.
+Native builds for Linux x64, macOS arm64 and Windows x64 are attached to the 0.3.0 release. The package is not yet on npm. See [Node.js](nodejs.md) for download links, setup and an asynchronous search example.
 
 ## Command line
 

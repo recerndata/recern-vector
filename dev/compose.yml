@@ -1,0 +1,10 @@
+name: recern-vector-compat
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.19.2
+    ports:
+      - "127.0.0.1:6335:6333"
+    environment:
+      QDRANT__TELEMETRY_DISABLED: "true"
+      # Local test credential only. Never use this key on a public deployment.
+      QDRANT__SERVICE__API_KEY: recern-vector-tests-local-only

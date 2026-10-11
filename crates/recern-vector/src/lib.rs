@@ -30,7 +30,7 @@ mod wal;
 
 pub use collection::{
     Collection, CollectionConfig, CollectionStats, Quantization, RecallOptions, RecallPoint,
-    RecallReport, Record, SearchHit, SearchOptions, SearchReport, Strategy,
+    RecallReport, Record, RecordPage, SearchHit, SearchOptions, SearchReport, Strategy,
 };
 pub use database::Database;
 pub use error::{Error, Result};

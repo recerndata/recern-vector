@@ -4,7 +4,7 @@ const {Database,version,formatVersion}=require('..');
 const f=(a)=>new Float32Array(a);
 test('native database, quantization, filters, WAL, async buffer ownership and checkpoint',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'recern-node-'));try{
-  assert.equal(version(),'0.2.0');assert.equal(formatVersion(),2);
+  assert.equal(version(),require('../package.json').version);assert.equal(formatVersion(),2);
   const path=join(dir,'db.rvec');const db=Database.create(path);const c=db.createCollection('docs',{dim:3,metric:'cosine',quantization:'int8'});
   assert.equal(c.upsertMany([{id:'a',vector:f([1,0,0]),metadata:{lang:'en'}},{id:'b',vector:f([0,1,0]),metadata:{lang:'de'}}]),2);
   assert.equal(c.stats().vectorBytes,14);assert.equal(c.search(f([1,0,0]),1)[0].id,'a');

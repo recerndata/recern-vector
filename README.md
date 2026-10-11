@@ -4,7 +4,7 @@
 
 **A single-file vector database. Embedded, inspectable, boring in the best way.**
 
-> Version 0.2.0. Stable file format 2; reads existing format-1 files. WAL, int8, logical filters and native Node.js bindings are included.
+> **Version 0.3.0:** portable Python API, embedded/Qdrant backends and checked, resumable migration. File format 2 and format-1 compatibility are unchanged.
 
 ```sh
 pip install recern-vector           # Python
@@ -12,7 +12,7 @@ cargo add recern-vector             # Rust library
 cargo install recern-vector-cli     # the recern-vector command
 ```
 
-Release: [v0.2.0](https://github.com/recerndata/recern-vector/releases/tag/v0.2.0) ([PyPI](https://pypi.org/project/recern-vector/), [crates.io](https://crates.io/crates/recern-vector)) · Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
+Release: [v0.3.0](https://github.com/recerndata/recern-vector/releases/tag/v0.3.0) ([PyPI](https://pypi.org/project/recern-vector/), [crates.io](https://crates.io/crates/recern-vector)) · Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
 
 **Documentation:** [recern.net/vector/docs](https://recern.net/vector/docs) (sources in [`docs/`](docs/README.md)) · **Examples:** [`examples/`](examples/README.md) — quickstart, semantic search, RAG retrieval, tuning recall, CLI and Rust
 
@@ -51,6 +51,24 @@ with rv.Database.open_or_create("docs.rvec") as db:          # saves on clean ex
 ```
 
 Build and test from `crates/recern-vector-py` (see its [README](crates/recern-vector-py/README.md)). One `abi3` wheel covers CPython 3.11+. Calls release the GIL during search, batch inserts, recall estimation and saving.
+
+## Portable Python API (0.3.0)
+
+Keep application data operations the same while changing backend configuration:
+
+```python
+from recern_vector.portable import Client, Record
+
+client = Client.embedded("prototype.rvec")
+# client = Client.qdrant("https://vectors.example.com", api_key=key, namespace="app")
+docs = client.create_collection("docs", dim=3)
+docs.upsert_many([Record("doc:1", [0.8, 0.1, 0.2], {"lang": "en"})])
+hits = docs.search([0.8, 0.1, 0.2], filter={"lang": "en"})
+```
+
+The [portable contract](docs/portable-api.md) defines IDs, metadata, filters, distances, errors and backend capabilities. [Export/import](docs/migration.md) transfers a consistent embedded snapshot to new embedded or Qdrant collections, with checksums, dry-run, resumable batches and read-back verification. Qdrant 1.19.2 is the tested external backend; it does not promise atomic remote batches or consistent portable exports.
+
+Install or upgrade with `pip install --upgrade recern-vector` to use the portable API. Runnable examples: [`portable.py`](examples/python/portable.py), [`migrate.py`](examples/python/migrate.py).
 
 ## Rust API
 
@@ -131,7 +149,7 @@ What this says about the prototype:
 
 A database now uses a snapshot plus WAL. Call `checkpoint()` before copying a standalone `.rvec`. `save()` makes pending changes durable; it does not checkpoint. See the [format and durability contract](docs/file-format.md) and [current limitations](docs/limitations.md). Historical benchmark results above describe the pre-0.2 f32 engine and have not been rerun for int8.
 
-Planned next: **0.3.0** focuses on a portable API and a verified migration path to Qdrant; **0.4.0** adds a separate Recern server using the same contract; **0.5.0** improves incremental writes, checkpoints, benchmarks and package distribution. These are future targets, not current capabilities. See the [API portability and migration roadmap](docs/limitations.md#planned-api-portability-and-migration), including the gates for 1.0.0.
+**0.3.0** includes the first Python portable client and embedded-to-Qdrant migration path. **0.4.0** remains planned for a separate Recern server and portable Rust/Node clients; **0.5.0** for incremental writes, checkpoints, benchmarks and package distribution. See the [API portability and migration roadmap](docs/limitations.md#planned-api-portability-and-migration), including the gates for 1.0.0.
 
 ## Contributing
 

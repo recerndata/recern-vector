@@ -367,6 +367,11 @@ impl Database {
     }
 
     #[getter]
+    fn identity(&self, py: Python<'_>) -> String {
+        self.read(py, |db| format!("{:032x}", db.identity()))
+    }
+
+    #[getter]
     fn path(&self, py: Python<'_>) -> PathBuf {
         self.read(py, |db| db.path().to_path_buf())
     }
@@ -520,6 +525,11 @@ impl Collection {
         self.with(py, |c| Ok(c.config().metric.as_str()))
     }
 
+    #[getter]
+    fn quantization(&self, py: Python<'_>) -> PyResult<&'static str> {
+        self.with(py, |c| Ok(c.config().quantization.as_str()))
+    }
+
     /// Inserts a record, replacing any record with the same id.
     #[pyo3(signature = (id, vector, metadata = None))]
     fn upsert(
@@ -595,6 +605,29 @@ impl Collection {
                 })
             })
             .transpose()
+    }
+
+    /// Bounded live-record iteration; do not reuse an offset after mutation.
+    #[pyo3(signature = (offset = 0, limit = 100))]
+    fn records_page(
+        &self,
+        py: Python<'_>,
+        offset: usize,
+        limit: usize,
+    ) -> PyResult<(Vec<Record>, Option<usize>)> {
+        let page = self.with(py, |c| c.records_page(offset, limit))?;
+        let records = page
+            .records
+            .into_iter()
+            .map(|r| {
+                Ok(Record {
+                    id: r.id,
+                    vector: r.vector,
+                    metadata: optional_json(py, &r.metadata)?,
+                })
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+        Ok((records, page.next_offset))
     }
 
     /// Returns the `k` nearest records.

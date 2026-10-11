@@ -10,6 +10,8 @@ import recern_vector as rv
 
 The package ships type hints (`py.typed`). Requires CPython 3.11 or later.
 
+This page describes the native embedded API. Version 0.3.0 also provides a separate [portable Python client](portable-api.md) for embedded Recern and Qdrant, with [export/import](migration.md).
+
 ## Database
 
 A database file and its collections. Everything is held in memory; changes reach the disk on `save()` or at the end of a `with` block.
@@ -20,6 +22,7 @@ A database file and its collections. Everything is held in memory; changes reach
 | `rv.Database.create(path)` | Create a new, empty file. Raises `FileExistsError` if it exists |
 | `rv.Database.open_or_create(path)` | Open the file, or create it if missing |
 | `db.path` | The file path, as a `pathlib.Path` |
+| `db.identity` | Added in 0.3.0: stable format-2 database identity as 32 hex characters; legacy files return zero until migrated by a save |
 | `db.create_collection(name, dim, metric="cosine", m=16, ef_construction=200, ef_search=64)` | Create a collection and return it. Raises `ValueError` if it exists or a setting is invalid. See [Concepts](concepts.md#collections) |
 | `db.collection(name)`, `db[name]` | An existing collection. Raises `KeyError` if missing |
 | `name in db` | Whether a collection exists |
@@ -38,12 +41,14 @@ Returned by `create_collection` and `db[name]`. A collection object is a handle:
 | Member | Description |
 |---|---|
 | `c.name`, `c.dim`, `c.metric` | Settings |
+| `c.quantization` | Added in 0.3.0: `"f32"` or `"int8"`, without computing full index statistics |
 | `len(c)` | Number of live records |
 | `id in c` | Whether a record exists |
 | `c.upsert(id, vector, metadata=None)` | Insert or replace one record |
 | `c.upsert_many(ids, vectors, metadatas=None, *, threads=None)` | Insert or replace many records, building the index on `threads` cores (default: all). Atomic. Returns the number of records written |
 | `c.delete(id)` | Remove a record. Returns whether it existed |
 | `c.get(id)` | The `Record`, or `None` |
+| `c.records_page(offset=0, limit=100)` | Added in 0.3.0: `(list[Record], next_offset)` in insertion order, skipping tombstones; limit 1–10,000; offset is valid only while the collection is unchanged |
 | `c.search(query, k=10, *, ef=None, exact=False, filter=None)` | The `k` nearest records, as a list of `Hit` sorted by distance |
 | `c.explain(query, k=10, *, ef=None, exact=False, filter=None)` | A `SearchReport`: the hits and how the search ran |
 | `c.stats()` | Index structure, reachability and memory, as a `dict`. See [Inspecting and tuning](inspection.md#stats) |
@@ -72,7 +77,7 @@ Metadata is converted to JSON: `dict` (string keys), `list`, `tuple`, `str`, `in
 
 All result objects are read-only.
 
-**`Hit`**: `id: str`, `distance: float`, `metadata: dict | None`. For cosine collections, similarity is `1 - distance`.
+**`Hit`**: `id: str`, `distance: float`, `metadata` (any JSON value). For cosine collections, similarity is `1 - distance`.
 
 **`Record`**: `id: str`, `vector: list[float]` (normalized for cosine collections), `metadata`.
 

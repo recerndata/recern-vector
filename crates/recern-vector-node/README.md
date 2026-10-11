@@ -1,4 +1,6 @@
-# Recern Vector for Node.js — 0.2.0
+# Recern Vector for Node.js — 0.3.0
+
+The native API is retained from 0.2.0. Portable backend clients first land in Python; a portable Node client is planned for 0.4.0. Platform archives are attached to the 0.3.0 GitHub release.
 
 Native Node-API 8 bindings using [napi-rs](https://napi.rs/docs/introduction/getting-started). Build from this repository with Node.js 22+ and Rust 1.89+:
 

@@ -36,4 +36,6 @@ db.save()?;
 
 A complete program: [`quickstart.rs`](../crates/recern-vector/examples/quickstart.rs).
 
+Version 0.3.0 adds `Database::identity()` and `Collection::records_page(offset, limit) -> Result<RecordPage>`. `RecordPage` contains bounded `records` and an optional `next_offset`; it skips tombstones and replacements. Limits are 1–10,000 and offsets are valid only while the collection is unchanged. Use a read-only snapshot for stable iteration. The first portable backend client is [Python](portable-api.md); a portable Rust client is planned for 0.4.0.
+
 Version 0.2.0 adds `Database::open_read_only`, `Database::checkpoint`, `Database::format_version` and `CollectionConfig::with_quantization(Quantization::Int8)`. `save()` commits to WAL; checkpoint before transporting a standalone file. See [file format](file-format.md).

@@ -27,3 +27,4 @@ test = ["pytest>=8", "numpy>=1.26"]
 [tool.maturin]
 python-source = "python"
 module-name = "recern_vector._native"
+exclude = ["**/__pycache__/**", "**/*.pyc"]

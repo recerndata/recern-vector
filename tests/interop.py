@@ -4,9 +4,11 @@ from pathlib import Path
 import os
 import subprocess
 import tempfile
+import tomllib
 import recern_vector as rv
 
 root = Path(__file__).resolve().parents[1]
+expected_version = tomllib.loads((root / 'Cargo.toml').read_text())['workspace']['package']['version']
 cli = root / 'target/release' / ('recern-vector.exe' if os.name == 'nt' else 'recern-vector')
 with tempfile.TemporaryDirectory(prefix='recern-interop-') as directory:
     path = Path(directory) / 'interop.rvec'
@@ -27,5 +29,5 @@ with tempfile.TemporaryDirectory(prefix='recern-interop-') as directory:
     assert rv.Database(path)['q'].get('node').metadata['source'] == 'node'
     subprocess.run([str(cli), 'checkpoint', str(path)], check=True)
     assert len(rv.Database.open_read_only(path)['q']) == 2
-    assert version('recern-vector') == '0.2.0'
-    print('PASS: Python → Node → Rust CLI → Python share int8, WAL and checkpoint (0.2.0)')
+    assert version('recern-vector') == expected_version
+    print(f'PASS: Python → Node → Rust CLI → Python share int8, WAL and checkpoint ({expected_version})')

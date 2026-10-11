@@ -78,6 +78,14 @@ pub struct Record {
     pub metadata: Option<Value>,
 }
 
+/// A bounded page in physical insertion order. Cursors are valid only while
+/// the collection is unchanged; take a read-only snapshot for an export.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RecordPage {
+    pub records: Vec<Record>,
+    pub next_offset: Option<usize>,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct SearchHit {
     pub id: String,
@@ -366,6 +374,37 @@ impl Collection {
             id: id.to_owned(),
             vector: self.vectors.get(node).to_vec(),
             metadata: self.metadata[node as usize].clone(),
+        })
+    }
+
+    /// Reads live records without cloning the entire collection or its index.
+    /// Replaced/deleted records are skipped. At most `limit` records are owned
+    /// by the returned page, regardless of the size of the database.
+    pub fn records_page(&self, offset: usize, limit: usize) -> Result<RecordPage> {
+        if limit == 0 || limit > 10_000 || offset > self.ids.len() {
+            return Err(Error::InvalidArgument(
+                "record page requires a valid offset and a limit from 1 to 10000".into(),
+            ));
+        }
+        let mut records = Vec::with_capacity(limit.min(self.len()));
+        let mut next = offset;
+        while next < self.ids.len() && records.len() < limit {
+            let node = next;
+            next += 1;
+            if !self.deleted[node] {
+                records.push(Record {
+                    id: self.ids[node].clone(),
+                    vector: self.vectors.get(node as u32).to_vec(),
+                    metadata: self.metadata[node].clone(),
+                });
+            }
+        }
+        while next < self.ids.len() && self.deleted[next] {
+            next += 1;
+        }
+        Ok(RecordPage {
+            records,
+            next_offset: (next < self.ids.len()).then_some(next),
         })
     }
 

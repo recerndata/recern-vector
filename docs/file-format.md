@@ -1,6 +1,6 @@
 # File format and durability
 
-Recern Vector 0.2.0 writes **format 2** and reads **formats 1 and 2**. These layouts are stable: incompatible changes require a new format number and a reader/migration path. Newer unsupported versions fail explicitly. Golden binary fixtures created with 0.0.2 and 0.2.0 are checked into `crates/recern-vector/tests/fixtures`; tests never regenerate them.
+Recern Vector 0.2.0 and 0.3.0 write **format 2** and read **formats 1 and 2**. These layouts are stable: incompatible changes require a new format number and a reader/migration path. Newer unsupported versions fail explicitly. Golden binary fixtures created with 0.0.2 and 0.2.0 are checked into `crates/recern-vector/tests/fixtures`; tests never regenerate them. The [portable migration format](migration.md) is a separate manifest/JSONL contract and does not change `.rvec` or its WAL.
 
 A database consists of `name.rvec` (snapshot), `name.rvec.wal` (committed changes since checkpoint) and `name.rvec.lock` (OS advisory coordination, no data). Call `checkpoint()` before copying just the `.rvec` file; stop concurrent writers while taking that copy. Otherwise back up snapshot and WAL together while no writes run. Copying an active snapshot alone can lose committed changes that only exist in WAL.
 
@@ -54,4 +54,4 @@ In-process saves serialize. File locks coordinate snapshots and commits across p
 
 `open_read_only()` acquires a shared lock when present, replays committed WAL and permits no mutations or persistence. It does not create sidecars. The result is a point-in-time in-memory snapshot; reopen to see later commits.
 
-Incremental **disk writes** are implemented. Encoding, comparison and recovery still process a full in-memory image at save/open, and shifting collection boundaries can dirty many pages. Peak memory includes encoded snapshots in addition to the index. WAL has no automatic size limit in 0.2.0; checkpoint periodically. On platforms/filesystems where directory fsync is unavailable, that final directory durability guarantee depends on the OS.
+Incremental **disk writes** are implemented. Encoding, comparison and recovery still process a full in-memory image at save/open, and shifting collection boundaries can dirty many pages. Peak memory includes encoded snapshots in addition to the index. WAL has no automatic size limit in 0.3.0; checkpoint periodically. On platforms/filesystems where directory fsync is unavailable, that final directory durability guarantee depends on the OS.
