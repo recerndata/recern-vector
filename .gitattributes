@@ -1,0 +1,2 @@
+# Migration fixtures contain checksums of exact bytes. Never convert line endings.
+crates/recern-vector-py/tests/fixtures/export-v1/* -text
