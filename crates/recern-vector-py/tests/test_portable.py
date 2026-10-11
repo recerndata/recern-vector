@@ -13,7 +13,7 @@ from recern_vector.portable import (
     PermissionDenied, CorruptData, Unavailable, export_snapshot, import_snapshot, inspect_export,
 )
 
-FIXTURE = json.loads((Path(__file__).resolve().parents[3] / "crates/recern-vector/tests/fixtures/portable-v1.json").read_text())
+FIXTURE = json.loads((Path(__file__).resolve().parents[3] / "crates/recern-vector/tests/fixtures/portable-v1.json").read_text(encoding="utf-8"))
 
 
 @pytest.fixture(params=["embedded", "qdrant"])
@@ -219,9 +219,9 @@ def test_resume_rejects_corrupt_creation_intent_before_writes(tmp_path, monkeypa
     monkeypatch.setattr(client._backend, "create", offline)
     with pytest.raises(Unavailable):
         import_snapshot(archive, client, state_path=state)
-    damaged = json.loads(state.read_text())
+    damaged = json.loads(state.read_text(encoding="utf-8"))
     damaged["collections"]["empty"]["intent"] = "not-a-UUID"
-    state.write_text(json.dumps(damaged))
+    state.write_text(json.dumps(damaged), encoding="utf-8")
     monkeypatch.setattr(client._backend, "create", original)
     with pytest.raises(Conflict):
         import_snapshot(archive, client, state_path=state, resume=True)
@@ -286,7 +286,7 @@ def test_archive_preflight_rejects_damage_before_mutating(tmp_path, damage):
         expected_error = Unsupported
     else:
         entry["sha256"] = "0" * 64
-    (archive / "manifest.json").write_text(json.dumps(manifest))
+    (archive / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     target = Client.embedded(tmp_path / "target.rvec")
     state = tmp_path / "journal.json"
     with pytest.raises(expected_error):
