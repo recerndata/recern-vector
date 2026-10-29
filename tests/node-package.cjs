@@ -10,7 +10,10 @@ try {
   const files=result[0].files?.map(f=>f.path);
   for (const file of ['index.js','index.d.ts','portable/index.js','portable/index.d.ts','recern_vector.node']) if(files) assert.ok(files.includes(file),file);
   const archive=process.argv[2] ? path.resolve(process.argv[2]) : path.join(dir,result[0].filename);
-  execFileSync('tar',['-xzf',archive,'-C',dir]);
+  // A Windows drive letter can look like tar's remote-host archive syntax.
+  // Extract a relative filename from the private staging directory on every OS.
+  fs.copyFileSync(archive,path.join(dir,'archive.tgz'));
+  execFileSync('tar',['-xzf','archive.tgz'],{cwd:dir});
   const manifest=JSON.parse(fs.readFileSync(path.join(dir,'package/package.json'),'utf8'));
   assert.equal(manifest.version,process.env.RECERN_EXPECT_VERSION || '0.4.0');
   for(const file of ['portable/index.js','portable/index.d.ts','recern_vector.node']) assert.ok(fs.existsSync(path.join(dir,'package',file)));
