@@ -9,14 +9,14 @@ Recern Vector 0.3.0 includes a stable versioned format, WAL, int8, logical filte
 - Filter planning is a heuristic using a sampled selectivity and an operation-count estimate. There is no metadata index, string range comparison or array membership operator. HNSW remains approximate.
 - Node.js provides native bindings and an asynchronous search method. Other operations are synchronous; use worker threads for large builds or saves. Source build and CI artifacts are prepared; npm publication is a separate release step.
 - Filesystem durability requires local locks and atomic rename. Network filesystems and external file edits are unsupported.
-- Portable Qdrant batches are not declared atomic. Its pages are not a consistent snapshot during writes, so portable export is currently embedded-only; importing into Qdrant is supported. The adapter owns its collection metadata and point envelopes and does not adopt arbitrary existing Qdrant collections.
+- Portable Qdrant batches are not declared atomic. Its pages are not a consistent snapshot during writes, so portable export is supported only by embedded Recern and the 0.4.0 source HTTP server; importing into Qdrant is supported. The adapter owns its collection metadata and point envelopes and does not adopt arbitrary existing Qdrant collections.
 - Migration requires an immutable archive and exclusive ownership of new destination collections. It has resume and read-back verification, but no live change capture, transactional cutover or automatic remote rollback. Int8 exports contain stored/dequantized vectors, and imports use f32 with possible cosine renormalization.
 
 Engine improvements remain incremental encoding and a page directory, automatic checkpoint policy, metadata indexes, broader quantization/recall benchmarks, and packaged Node binaries for additional targets. The [single-node development server](server.md) is a separate package around the embedded engine; sharding, replication and hosted operation are not current capabilities.
 
 ## Planned API portability and migration
 
-Working targets as of 29 October 2026. Version numbers are release scopes, not delivery dates. Version 0.3.0 is published. The 0.4.0 contract/server source milestone is implemented; remote clients and migration gates remain before its release. Later versions remain planned.
+Working targets as of 29 October 2026. Version numbers are release scopes, not delivery dates. Version 0.3.0 is published. The 0.4.0 server, portable clients and SDK migration source milestone is implemented; final release/artifact and upgrade gates remain before publication. Later versions remain planned.
 
 Development now prioritizes Recern Vector: **0.4.0 → 0.5.0 → 1.0.0**, followed by Recern Workspace **1.0.0** with Microsoft SQL Server and stabilization. Workspace 0.5.0 is the released desktop baseline. This sequence does not require filling every intermediate minor version or expanding the agreed adapter scope.
 
@@ -41,8 +41,11 @@ precision-preserving Python codecs are joined by the separate Rust
 [development server](server.md). Real HTTP tests cover authentication, shared
 filters, generations, bounded requests/responses, snapshot leases, concurrency,
 WAL recovery and restart after acknowledgements. Unit tests also cover commit
-failures and deadline/shutdown boundaries. Remote SDKs, SDK migration/recovery
-and the complete release matrix remain before 0.4.0 publication.
+failures and deadline/shutdown boundaries. [Python remote and portable Rust/Node
+clients](portable-clients.md) now share the three-backend profile; SDK tests cover
+verified migration, restart/reconnect, lost acknowledgements, lease cleanup,
+private-CA TLS and precision-preserving interchange. Final artifact/upgrade
+validation, version changes and publication remain before a 0.4.0 release.
 
 1. **Specify the remote contract.** Map portable profile `recern-vector/1` to versioned HTTP routes and OpenAPI schemas. Define collection identities, cursors, capabilities, filter semantics, distances and error responses. Specify request, batch, response and concurrency limits, timeouts, authentication and TLS deployment requirements. Document whether a timed-out write may have committed and which operations can be replayed safely; do not add blind automatic write retries.
 2. **Implement a separate single-node server.** Wrap the embedded engine with one writer owning the database, bounded request handling and explicit read visibility. Acknowledge writes only after durable persistence. Cover exclusive ownership, startup recovery, graceful shutdown, health/readiness checks and consistent export. Verify authentication failures and avoid exposing keys, vectors or metadata in logs.

@@ -27,6 +27,27 @@ class Client:
         from .qdrant import QdrantBackend
         return cls(QdrantBackend(url, api_key=api_key, timeout=timeout, namespace=namespace, ca_file=ca_file))
 
+    @classmethod
+    def remote(cls, url: str, *, api_key: str, timeout: float = 10.0,
+               ca_file: str | None = None) -> Client:
+        from .remote import RemoteBackend
+        return cls(RemoteBackend(url, api_key=api_key, timeout=timeout, ca_file=ca_file))
+
+    def close(self) -> None:
+        close = getattr(self._backend, "close", None)
+        if close is not None:
+            close()
+
+    def __enter__(self) -> Client:
+        return self
+
+    def __exit__(self, *exc) -> None:
+        try:
+            self.close()
+        except Exception:
+            if exc[0] is None:
+                raise
+
     @property
     def capabilities(self) -> Capabilities:
         return self._backend.capabilities
@@ -44,8 +65,8 @@ class Client:
         spec = CollectionSpec(name, dim, metric, quantization)
         if quantization not in self.capabilities.quantization:
             raise Unsupported(f"{self.capabilities.backend} cannot store {quantization} through profile v1")
-        self._backend.create(spec)
-        return self.collection(name)
+        created_spec, generation = self._backend.create(spec)
+        return Collection(self, created_spec, generation)
 
     def collection(self, name: str) -> Collection:
         validate_text(name, "collection name", 255, nonempty=True)
@@ -65,6 +86,9 @@ class Client:
 class Collection:
     def __init__(self, client: Client, spec: CollectionSpec, identity: str):
         self.client, self.spec, self.identity = client, spec, identity
+        bind = getattr(client._backend, "bind", None)
+        self._backend = client._backend if bind is None else bind(spec.name, spec, identity)
+        self.creation_token = getattr(self._backend, "creation_token", None)
 
     @property
     def name(self) -> str:
@@ -75,22 +99,22 @@ class Collection:
 
     def upsert_many(self, records: Iterable[Record]) -> int:
         records = validated_records(records, self.spec)
-        if not records:
+        if not records and not hasattr(self._backend, "bind"):
             return 0
-        return self.client._backend.upsert(self.name, records)
+        return self._backend.upsert(self.name, records)
 
     def get(self, id: str) -> Record | None:
-        return self.client._backend.get(self.name, validate_text(id))
+        return self._backend.get(self.name, validate_text(id))
 
     def delete(self, id: str) -> bool:
-        return self.client._backend.delete(self.name, validate_text(id))
+        return self._backend.delete(self.name, validate_text(id))
 
     def count(self) -> int:
-        return self.client._backend.count(self.name)
+        return self._backend.count(self.name)
 
     def page(self, *, limit: int = 100, cursor: str | None = None) -> Page:
         integer(limit, "page limit", 1, MAX_BATCH)
-        return self.client._backend.page(self.name, limit, cursor)
+        return self._backend.page(self.name, limit, cursor)
 
     def iter_records(self, *, batch_size: int = 100) -> Iterator[Record]:
         cursor = None
@@ -108,5 +132,5 @@ class Collection:
             raise InvalidArgument("exact must be a boolean")
         query = vector_value(query, self.spec)
         filter = validate_filter(filter)
-        hits = self.client._backend.search(self.name, query, k, filter, exact)
+        hits = self._backend.search(self.name, query, k, filter, exact)
         return sorted(hits, key=lambda h: (h.distance, h.id))

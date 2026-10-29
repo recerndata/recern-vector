@@ -33,8 +33,12 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--path", default="portable-demo.rvec")
     group.add_argument("--qdrant")
+    group.add_argument("--remote", help="Recern HTTP backend (0.4.0 source build)")
     parser.add_argument("--namespace", default="recern_demo")
+    parser.add_argument("--ca", help="Private TLS root certificate")
     args = parser.parse_args()
-    client = (Client.qdrant(args.qdrant, api_key=os.getenv("RECERN_QDRANT_API_KEY"), namespace=args.namespace)
+    client = (Client.remote(args.remote, api_key=os.environ["RECERN_API_KEY"], ca_file=args.ca) if args.remote else
+              Client.qdrant(args.qdrant, api_key=os.getenv("RECERN_QDRANT_API_KEY"), namespace=args.namespace, ca_file=args.ca)
               if args.qdrant else Client.embedded(args.path))
-    run(client)
+    with client:
+        run(client)

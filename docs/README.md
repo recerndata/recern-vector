@@ -1,6 +1,6 @@
 # Recern Vector documentation
 
-The published Recern Vector 0.3.0 is an embedded vector database with a local snapshot and a WAL. You open it from Python, Rust, Node.js or the command line, add vectors with JSON metadata, and search them with an HNSW index. Every search can report how it ran, and every collection can report the state of its index and measure its own recall. A separate [single-node HTTP server](server.md) is available from source as a 0.4.0 development milestone; portable remote clients are the next stage.
+The published Recern Vector 0.3.0 is an embedded vector database with a local snapshot and a WAL. You open it from Python, Rust, Node.js or the command line, add vectors with JSON metadata, and search them with an HNSW index. Every search can report how it ran, and every collection can report the state of its index and measure its own recall. The 0.4.0 source milestone now provides a separate [single-node HTTP server](server.md) and [portable Python, Rust and Node clients](portable-clients.md), including SDK migration and interoperability tests. Published packages remain 0.3.0.
 
 > **Version 0.3.0.** Portable Python API and embedded-to-Qdrant migration, with stable format 2, format-1 readers and existing native APIs retained.
 
@@ -12,7 +12,7 @@ The published Recern Vector 0.3.0 is an embedded vector database with a local sn
 
 ## When it does not
 
-- Many processes writing to the same database at once, or a shared database behind a network API. Use a database server.
+- Many processes writing directly to the same database file. Use a single database owner. The [0.4.0 source server](server.md) serializes HTTP access to its own database; it is not a distributed or highly available service.
 - Data much larger than memory. The whole database is loaded on open.
 - You need constant-cost commits regardless of database size. WAL writes changed pages, but `save()` still encodes and compares a full in-memory image (see [Limitations and next work](limitations.md)).
 
@@ -25,6 +25,7 @@ The published Recern Vector 0.3.0 is an embedded vector database with a local sn
 | [Filters](filters.md) | Metadata filter syntax and how filtered searches are planned |
 | [Inspecting and tuning](inspection.md) | `explain`, `stats`, `estimate_recall`, choosing `ef`, `compact` |
 | [Python API](python.md) | Every class, method and exception in the `recern_vector` package |
+| [Portable clients (0.4.0 source)](portable-clients.md) | Python remote, Rust and Node across embedded Recern, Recern HTTP and Qdrant |
 | [Portable Python API](portable-api.md) | Profile v1, embedded/Qdrant backends, shared semantics and capabilities |
 | [HTTP API contract (0.4.0 draft)](http-api.md) | Versioned OpenAPI, wire values, authentication, durable writes, generations and snapshot leases |
 | [Development server](server.md) | Build and run, source milestone status, limits, single-writer ownership, recovery and TLS proxy guidance |

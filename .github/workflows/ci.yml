@@ -31,6 +31,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: cargo build --locked -p recern-vector-server
+      - run: cargo test --locked -p recern-vector-client
       - name: Install bindings and contract test tools
         shell: bash
         run: |
@@ -67,12 +68,20 @@ jobs:
       RECERN_TEST_QDRANT_URL: http://127.0.0.1:6333
       RECERN_TEST_QDRANT_API_KEY: recern-vector-tests-local-only
       RECERN_QDRANT_API_KEY: recern-vector-tests-local-only
+      RECERN_TEST_SERVER_BIN: ${{ github.workspace }}/target/debug/recern-vector-server
+      RECERN_TEST_CLIENT_BIN: ${{ github.workspace }}/target/debug/examples/portable
+      RECERN_TEST_NODE_PORTABLE: ${{ github.workspace }}/crates/recern-vector-node/portable
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Build server and portable Rust client
+        run: |
+          cargo build --locked -p recern-vector-server
+          cargo test --locked -p recern-vector-client
+          cargo build --locked -p recern-vector-client --example portable
       - name: Build and test the bindings
         working-directory: crates/recern-vector-py
         run: |
@@ -82,7 +91,7 @@ jobs:
           pip install -r ../../api/requirements.txt
           maturin develop --release
           pytest
-          python -m pytest ../../api/tests -q
+          python -m pytest ../../api/tests -q --ignore=../../api/tests/test_sdk_interop.py
           python ../../examples/python/quickstart.py
           python ../../examples/python/inspect_and_tune.py
           python ../../examples/python/portable.py --path "$RUNNER_TEMP/portable.rvec"
@@ -95,7 +104,10 @@ jobs:
           node api/tests/wire-roundtrip.mjs
           cargo build --release -p recern-vector-cli
           npm run build --prefix crates/recern-vector-node
+          npm test --prefix crates/recern-vector-node
           crates/recern-vector-py/.venv/bin/python tests/interop.py
+          crates/recern-vector-py/.venv/bin/python -m pytest api/tests/test_sdk_interop.py -q
+          node tests/node-package.cjs
 
   cli-example:
     runs-on: ubuntu-latest
@@ -110,12 +122,15 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      RECERN_TEST_SERVER_BIN: ${{ github.workspace }}/target/debug/recern-vector-server${{ matrix.os == 'windows-latest' && '.exe' || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: cargo build --locked -p recern-vector-server
       - run: npm run build
         working-directory: crates/recern-vector-node
       - run: npm test
@@ -127,6 +142,7 @@ jobs:
             crates/recern-vector-node/*.node
             crates/recern-vector-node/index.js
             crates/recern-vector-node/index.d.ts
+            crates/recern-vector-node/portable/
             crates/recern-vector-node/package.json
             crates/recern-vector-node/README.md
             crates/recern-vector-node/LICENSE-*

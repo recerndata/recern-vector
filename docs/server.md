@@ -34,7 +34,8 @@ do not appear in command-line arguments or server request logs.
 The parent data directory must exist. A missing database is created; an empty
 native database can be initialized. A nonempty arbitrary native `.rvec` is
 refused instead of silently adopted. Migration from an embedded database is a
-separate data transfer; the portable remote client/import path is the next stage.
+separate data transfer: use the Python remote backend and checked
+[export/import](migration.md), available from this source checkout.
 
 The server accepts **loopback listeners only**, including `127.0.0.1:0` for an
 OS-assigned development port. It does not terminate TLS. Put a verified HTTPS
@@ -51,7 +52,8 @@ curl http://127.0.0.1:7337/health/live
 ```
 
 This Python example uses the standard library and the key file. It is an HTTP
-example, not the future portable `Client.remote()` API:
+example. The [portable clients guide](portable-clients.md) shows the implemented
+`Client.remote()` API:
 
 ```python
 import json
@@ -125,8 +127,8 @@ user mutations share one native WAL commit, so a crash cannot leave a generation
 in a separate, inconsistent metadata sidecar. The catalog also retains cursor
 authentication material. Server-managed files contain these internal records;
 do not inspect/edit them as if they were ordinary native application collections.
-Workspace integration and logical export through the remote SDK remain follow-up
-work. Existing file-format 1/2 and migration-v1 fixtures are unchanged.
+Workspace integration remains follow-up. Logical export through the remote SDK
+is now available. Existing format-1/2 and migration-v1 fixtures are unchanged.
 
 SIGINT and, on Unix, SIGTERM stop new admissions and drain started blocking
 operations before releasing ownership. Native CPU/IO work cannot be forcibly
@@ -205,7 +207,9 @@ test tools. CI runs the server HTTP suite on Linux, macOS and Windows. A workflo
 configuration alone is not proof all platform jobs have passed; consult the
 current commit's checks for that evidence.
 
-Next: the portable Python remote backend, then Rust/Node portable clients;
-embedded-to-server import/export and interruption recovery through those SDKs;
-the complete supported-client/backend matrix and distributable 0.4.0 artifacts.
-The source server milestone does not complete those release gates.
+The [portable Python, Rust and Node clients](portable-clients.md) now run the
+shared profile against embedded Recern, Recern HTTP and Qdrant. Python migration
+tests cover embedded-to-server import/export, lost acknowledgements and resume;
+interoperability tests preserve data across languages and verified private-CA
+TLS. Final release/artifact and upgrade validation remain before publication.
+Source implementations and CI are not a published 0.4.0 distribution.

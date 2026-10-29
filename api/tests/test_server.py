@@ -38,21 +38,22 @@ class Server:
         self.start()
 
     def start(self):
-        self.log = (self.path / "server.log").open("w+", encoding="utf-8")
+        self.log_path = self.path / "server.log"
+        self.log = self.log_path.open("w", encoding="utf-8")
         self.process = subprocess.Popen([str(Path(BIN).resolve()), "--database", str(self.database),
-            "--api-key-file", str(self.key_file), "--listen", "127.0.0.1:0", *self.options],
+            "--api-key-file", str(self.key_file), "--listen", getattr(self, "listen", "127.0.0.1:0"), *self.options],
             stdout=subprocess.DEVNULL, stderr=self.log)
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline:
-            self.log.seek(0)
-            match = re.search(r"listening on (127\.0\.0\.1:\d+)", self.log.read())
+            # Read through another file description. Seeking the same stderr
+            # fd moves the child's write offset and can reorder split writes.
+            match = re.search(r"listening on (127\.0\.0\.1:\d+)\r?\n", self.log_path.read_text(encoding="utf-8"))
             if match:
                 self.url = "http://" + match[1]
                 assert self.call("/health/ready")[0] == 200
                 return
             if self.process.poll() is not None:
-                self.log.seek(0)
-                raise AssertionError("server startup failed: " + self.log.read())
+                raise AssertionError("server startup failed: " + self.log_path.read_text(encoding="utf-8"))
             time.sleep(.02)
         self.stop(kill=True)
         raise AssertionError("server did not start")
@@ -62,8 +63,7 @@ class Server:
             self.process.kill() if kill else self.process.terminate()
             self.process.wait(timeout=10)
         if hasattr(self, "log"):
-            self.log.seek(0)
-            text = self.log.read()
+            text = self.log_path.read_text(encoding="utf-8")
             assert KEY not in text
             assert "merchant/東京" not in text
             assert "sensitive-metadata" not in text

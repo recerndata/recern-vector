@@ -1,5 +1,12 @@
 # Portable export and migration
 
+**0.4.0 source extension:** the same API now imports into Recern HTTP and exports
+from its consistent snapshot leases. Construct the destination/source with
+`Client.remote(url, api_key=key, timeout=10.0, ca_file=...)`; build the Python
+package from this checkout. Python remains the archive migration orchestrator;
+Rust and Node provide the compatible data operations. Published 0.3.0 packages
+do not contain the remote backend. See [portable clients](portable-clients.md).
+
 **Recern Vector 0.3.0** adds a versioned export and resumable import for `recern_vector.portable`. Supported paths are embedded Recern → embedded Recern and embedded Recern → Qdrant. A consistent export from live Qdrant is not implemented: `export_snapshot` raises `Unsupported` before creating files. Use Qdrant's native snapshot tools for its backups.
 
 This is an application data transfer, not a copy of an HNSW index. The destination rebuilds its index from records. Source files are never modified or deleted, and existing destination collections are never merged or replaced.
@@ -44,7 +51,7 @@ If the process dies after the server commits but before progress is saved, resum
 
 The final collection counts must match. A completed journal can be resumed again to recheck every record. `verified=True` means counts, IDs, metadata and stored vectors were checked; it does not mean ANN recall is identical. Vector comparison uses relative tolerance `2e-5` and absolute tolerance `2e-6`, accounting for float32 and cosine normalization. Metadata preserves scalar/array/object form and numeric types; object key order and textual JSON whitespace are not significant.
 
-Do not write to or replace destination collections during migration. The importer detects configuration changes, different database identities, Qdrant generation changes, altered acknowledged records and unexpected counts; it is not a distributed transaction or a general reconciliation engine. Concurrent raw writes can invalidate guarantees. Timeouts may leave a committed batch. There is no automatic remote rollback: inspect the error and keep the archive/journal for safe replay. Removing the journal is not a way to merge an existing destination.
+Do not write to or replace destination collections during migration. The importer detects configuration changes, different database identities, Qdrant/Recern HTTP generation changes, altered acknowledged records and unexpected counts; it is not a distributed transaction or a general reconciliation engine. Concurrent raw writes can invalidate guarantees. Timeouts may leave a committed batch. There is no automatic remote rollback: inspect the error and keep the archive/journal for safe replay. Removing the journal is not a way to merge an existing destination.
 
 Archives must remain immutable during preflight and import. They are validated before any writes and checksummed again while reading; modifying one during import can leave a partially written destination followed by an error. This format is not a signature or an authenticity mechanism. Filesystem errors while creating export/journal files can surface as `OSError`; data/contract errors use the [portable error categories](portable-api.md#errors).
 

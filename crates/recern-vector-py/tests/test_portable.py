@@ -16,10 +16,22 @@ from recern_vector.portable import (
 FIXTURE = json.loads((Path(__file__).resolve().parents[3] / "crates/recern-vector/tests/fixtures/portable-v1.json").read_text(encoding="utf-8"))
 
 
-@pytest.fixture(params=["embedded", "qdrant"])
+@pytest.fixture(params=["embedded", "remote", "qdrant"])
 def client(request, tmp_path):
     if request.param == "embedded":
         yield Client.embedded(tmp_path / "test.rvec")
+    elif request.param == "remote":
+        if not os.getenv("RECERN_TEST_SERVER_BIN"):
+            pytest.skip("set RECERN_TEST_SERVER_BIN for real remote contract tests")
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "api/tests"))
+        from test_server import Server, KEY
+        server = Server(tmp_path / "remote")
+        try:
+            with Client.remote(server.url, api_key=KEY) as client:
+                yield client
+        finally:
+            server.stop()
     else:
         url = os.getenv("RECERN_TEST_QDRANT_URL")
         if not url:
@@ -109,7 +121,7 @@ def test_page_cannot_be_used_on_another_collection(client):
     second = client.create_collection("second", 1, "l2")
     cursor = first.page(limit=2).next_cursor
     assert cursor is not None
-    with pytest.raises(InvalidArgument):
+    with pytest.raises(Conflict if client.capabilities.backend == "recern" else InvalidArgument):
         second.page(cursor=cursor)
 
 
@@ -260,6 +272,8 @@ def test_migration_reopens_client_after_lost_create_reply(client, tmp_path, monk
         import_snapshot(archive, client, state_path=state)
     if client.capabilities.backend == "embedded":
         reopened = Client.embedded(backend.db.path)
+    elif client.capabilities.backend == "recern":
+        reopened = Client.remote(backend.transport.url, api_key=backend.transport.headers["Authorization"][7:])
     else:
         reopened = Client.qdrant(backend.url, namespace=backend.namespace,
                                  api_key=os.getenv("RECERN_TEST_QDRANT_API_KEY"))

@@ -2,12 +2,13 @@
 
 Available from **Recern Vector 0.3.0**. Install with `pip install --upgrade recern-vector`, or build from source as described in the [Python package README](../crates/recern-vector-py/README.md).
 
-`recern_vector.portable` separates application data operations from backend configuration. Profile `recern-vector/1` (`API_VERSION = 1`) supports embedded Recern and Qdrant. The existing native Python, Rust, Node.js and CLI APIs remain available. A Recern server and portable Rust/Node clients are planned for 0.4.0.
+`recern_vector.portable` separates application data operations from backend configuration. The released profile `recern-vector/1` (`API_VERSION = 1`) supports embedded Recern and Qdrant. The existing native APIs remain available. The 0.4.0 source milestone adds `Client.remote` and compatible Rust/Node clients; see the [portable clients guide](portable-clients.md).
 
 The first 0.4.0 milestone defines a [draft HTTP/OpenAPI contract](http-api.md)
 for that server. It includes checked wire examples and private Python codecs.
 The [separate development server](server.md) now implements the HTTP contract
-from source; a remote portable `Client` backend is the next stage.
+from source. The remote backend is now implemented in this checkout; it is not
+in the published 0.3.0 wheel.
 
 ## One application, two backends
 
@@ -38,6 +39,7 @@ All calls are synchronous. Collection creation fails with `AlreadyExists`; obtai
 
 | Operation | Result |
 |---|---|
+| `Client.remote(url, api_key=key, timeout=10.0, ca_file=None)` | **0.4.0 source:** verified Recern HTTP v1 backend; context manager/`close()` releases resources |
 | `Client.embedded(path, read_only=False)` | Opens or creates a database; read-only mode requires an existing file |
 | `Client.qdrant(url, api_key=None, timeout=10.0, namespace="recern", ca_file=None)` | Checks the server version; uses certificate verification and optional custom CA |
 | `client.create_collection(name, dim, metric="cosine", quantization="f32")` | A new `Collection` |

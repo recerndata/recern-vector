@@ -5,7 +5,29 @@
   "main": "index.js",
   "types": "index.d.ts",
   "license": "MIT OR Apache-2.0",
-  "engines": {"node": ">=22"},
-  "files": ["index.js", "index.d.ts", "*.node", "README.md", "LICENSE-*"],
-  "scripts": {"build": "node build.cjs", "test": "node --test test/*.test.cjs"}
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "portable",
+    "*.node",
+    "README.md",
+    "LICENSE-*"
+  ],
+  "scripts": {
+    "build": "node build.cjs",
+    "test": "node --test test/*.test.cjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./portable": {
+      "types": "./portable/index.d.ts",
+      "default": "./portable/index.js"
+    }
+  }
 }

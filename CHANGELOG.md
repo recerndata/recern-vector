@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — 0.4.0 contract and server source milestone
+## Unreleased — 0.4.0 server and portable clients source milestone
 
 - Define draft HTTP API v1 in `api/openapi.json` and `docs/http-api.md`, mapping
   portable profile v1 to versioned operations, authentication, typed errors,
@@ -21,8 +21,17 @@
   caps, torn WAL recovery and restart/lost acknowledgements; inject commit and
   deadline/shutdown boundaries. Configure server HTTP CI on Linux/macOS/Windows.
 - Gate CI and installed-wheel checks on OpenAPI/schema validation and shared
-  portable fixtures. Remote clients, SDK migration validation and release
-  artifacts remain the next implementation stages; this is not a 0.4.0 release.
+  portable fixtures. Release preparation and distribution remain; this is not
+  a published 0.4.0 release.
+- Add the Python `Client.remote` backend, generation-bound handles, verified TLS,
+  total HTTP deadlines, typed errors and explicit snapshot lease cleanup. Extend
+  resumable migration to/from the server, including lost creation acknowledgements.
+- Add a separate portable Rust client and asynchronous Node `./portable` entry
+  point for embedded Recern, Recern HTTP and Qdrant. Share validators/adapters
+  between Rust/Node; preserve uint64 and structural numeric kinds using JSON text.
+- Run the frozen profile across three languages/backends; verify cross-language
+  data, migration, private-CA TLS and packed Node contents. Keep native APIs and
+  format/export compatibility fixtures unchanged.
 
 ## 0.3.0 — 2026-10-11
 

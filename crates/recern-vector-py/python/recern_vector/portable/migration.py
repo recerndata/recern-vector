@@ -69,7 +69,13 @@ def _atomic_json(path, value):
 def export_snapshot(client, destination, *, collections=None, batch_size=100):
     """Write manifest.json last; partial exports are never valid imports."""
     integer(batch_size, "batch_size", 1, MAX_BATCH)
-    snapshot = client.snapshot()  # Refuse non-snapshot backends before creating files.
+    # A remote snapshot is a bounded server lease, including on failures before
+    # destination.mkdir(). Always release it instead of waiting for its TTL.
+    with client.snapshot() as snapshot:
+        return _export_snapshot(snapshot, destination, collections, batch_size)
+
+
+def _export_snapshot(snapshot, destination, collections, batch_size):
     names = snapshot.list_collections() if collections is None else list(collections)
     if len(names) != len(set(names)) or len(names) > 10_000:
         raise InvalidArgument("export requires unique collection names (at most 10000)")
@@ -252,6 +258,9 @@ def import_snapshot(source, client, *, dry_run=False, resume=False, state_path=N
     entries = checked["manifest"]["collections"]
     if getattr(client._backend, "read_only", False):
         raise Unsupported("cannot import into a read-only client")
+    verify_identity = getattr(client._backend, "verify_identity", None)
+    if verify_identity is not None:
+        verify_identity()  # A connected endpoint may have restarted with another database.
     key = hashlib.sha256(client.identity.encode()).hexdigest()[:16]
     state_path = Path(state_path) if state_path is not None else source.with_name(source.name + ".import-" + key + ".json")
     state_path = state_path.resolve()
@@ -321,6 +330,8 @@ def import_snapshot(source, client, *, dry_run=False, resume=False, state_path=N
             if item["phase"] == "pending":
                 if collection.count() or (client.capabilities.backend == "qdrant" and collection.identity != item["intent"]):
                     raise Conflict("destination collection is not this import's empty collection")
+                if client.capabilities.backend == "recern" and collection.creation_token != item["intent"]:
+                    raise Conflict("destination collection was not created by this import")
                 item.update(phase="importing", identity=collection.identity)
                 _atomic_json(state_path, state)
             elif collection.identity != item["identity"]:

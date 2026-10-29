@@ -1,5 +1,9 @@
 # Node.js
 
+For the **0.4.0 source** portable API (embedded Recern, Recern HTTP and Qdrant),
+see [portable clients](portable-clients.md). Published packages remain 0.3.0;
+the native API documented below retains its existing behavior.
+
 Recern Vector 0.3.0 includes native Node-API 8 bindings, TypeScript definitions and asynchronous search. Use Node.js 22 or later. The package is not published to npm yet.
 
 ## Install a release build

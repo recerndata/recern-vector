@@ -1,5 +1,9 @@
 # Rust API
 
+For the **0.4.0 source** portable API (embedded Recern, Recern HTTP and Qdrant),
+see [portable clients](portable-clients.md). Published packages remain 0.3.0;
+the native API documented below retains its existing behavior.
+
 ```sh
 cargo add recern-vector
 ```

@@ -3,6 +3,7 @@ use napi_derive::napi;
 use recern_vector as rv;
 use serde_json::{Value, json};
 use std::sync::{Arc, RwLock};
+mod portable;
 fn error(e: impl std::fmt::Display) -> Error {
     Error::from_reason(e.to_string())
 }

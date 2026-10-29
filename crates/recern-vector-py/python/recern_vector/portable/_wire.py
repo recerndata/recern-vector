@@ -1,4 +1,4 @@
-"""Private HTTP-v1 codecs; no network client or server is implemented here.
+"""Private HTTP-v1 codecs shared by the remote backend and contract tests.
 
 The JSON-text fields preserve int64/uint64 and structural integer/float kinds
 across languages whose built-in JSON parser only exposes IEEE-754 doubles.

@@ -1,4 +1,4 @@
-"""Portable API v1 for embedded Recern and Qdrant.
+"""Portable API v1 for embedded Recern, source-only Recern HTTP and Qdrant.
 
 The low-level recern_vector.Database API keeps its explicit save/checkpoint
 semantics. This client acknowledges embedded writes only after a durable save.

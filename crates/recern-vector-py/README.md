@@ -28,6 +28,15 @@ with rv.Database.open_or_create("docs.rvec") as db:          # saves on clean ex
 
 Benchmarks against faiss, LanceDB and sqlite-vec: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks).
 
+## Remote backend (0.4.0 source)
+
+`Client.remote(url, api_key=key, timeout=10.0, ca_file=None)` is implemented in
+this checkout. Build from source; the published 0.3.0 wheel does not contain it.
+It uses verified TLS, bounded deadlines and generation-bound handles, and
+supports the same Python snapshot export/resumable import workflow against
+the Recern HTTP server. Use context managers to release snapshot leases. See
+[portable clients](../../docs/portable-clients.md) for all three language APIs.
+
 ## Portable client (0.3.0)
 
 ```python
