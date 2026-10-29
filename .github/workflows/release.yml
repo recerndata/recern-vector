@@ -47,20 +47,25 @@ jobs:
           python -m pip install pytest numpy -r api/requirements.txt
           python -m pip install --no-index --find-links dist recern-vector
           python - <<'PY'
-          import http.client,ssl,socket,pytest
+          import http.client,ssl,socket,pytest,os,subprocess
           from pathlib import Path
           print('SSL',ssl.OPENSSL_VERSION,flush=True)
           print('localhost addresses',socket.getaddrinfo('localhost',443),flush=True)
           original=http.client.HTTPSConnection.connect
           def trace(self):
+            print('TRUST STORE', self._context.cert_store_stats(),self._context.get_ca_certs()[:2],flush=True)
             try:return original(self)
             except Exception as e:
               print('TLS CONNECT:',type(e).__name__,str(e),flush=True);raise
           http.client.HTTPSConnection.connect=trace
           target='api/tests/test_sdk_interop.py::test_private_ca_is_verified_by_all_clients'
-          result=pytest.main([target,'-s','-q','--tb=short'])
-          print('LOCALHOST RESULT',result,flush=True)
-          p=Path('api/tests/test_sdk_interop.py');p.write_text(p.read_text().replace('url=f"https://localhost:', 'url=f"https://127.0.0.1:'))
-          result2=pytest.main([target,'-s','-q','--tb=short'])
-          print('IPV4 RESULT',result2,flush=True)
+          temp=Path(os.environ['RUNNER_TEMP'])/'ca-debug'
+          result=pytest.main([target,'-s','-q','--tb=short','--basetemp',str(temp)])
+          print('RESULT',result,flush=True)
+          subprocess.run(['openssl','version','-a'])
+          for folder in temp.glob('test_private_ca_is_verified*'):
+            if folder.name.endswith('current'):continue
+            for name in ['ca.pem','server.pem']:
+              subprocess.run(['openssl','x509','-in',str(folder/name),'-noout','-text'])
+            subprocess.run(['openssl','verify','-CAfile',str(folder/'ca.pem'),str(folder/'server.pem')])
           PY
