@@ -1,6 +1,6 @@
-# Recern Vector for Node.js — 0.3.0
+# Recern Vector for Node.js — 0.4.0
 
-The native API is retained from 0.2.0. The 0.4.0 source milestone now adds an asynchronous `./portable` entry point for embedded Recern, Recern HTTP and Qdrant; see the [portable clients guide](../../docs/portable-clients.md). Platform archives are attached to the 0.3.0 GitHub release.
+The native API is retained. Version 0.4.0 adds an asynchronous `./portable` entry point for embedded Recern, Recern HTTP and Qdrant; see the [portable clients guide](../../docs/portable-clients.md). Platform-specific npm tarballs are attached to the 0.4.0 GitHub release. Install the matching archive with `npm install <archive URL>`; see [release packages](https://recern.net/vector/docs/release).
 
 Native Node-API 8 bindings using [napi-rs](https://napi.rs/docs/introduction/getting-started). Build from this repository with Node.js 22+ and Rust 1.89+:
 
@@ -26,4 +26,4 @@ db.checkpoint(); // makes the .rvec snapshot portable without WAL
 
 `searchAsync` copies the Float32Array before dispatch and holds a shared database lock on a worker. Sync mutations wait for running searches; a dropped collection fails subsequent operations. Read-only handles reject changes. Saves fsync the WAL, and a stale writer must reopen. Other methods block the calling thread: use Node worker threads for large imports or persistence.
 
-`npm run build` creates a native binary for the current host. CI builds/tests Linux, macOS and Windows and uploads target-specific artifacts. This package has not been published to npm; do not distribute one platform's binary as a universal package. Publish platform packages and a platform-selecting loader before a public npm release.
+`npm run build` creates a native binary for the current host. Release builds test Linux x64/ARM64, macOS Intel/Apple silicon and Windows x64 and upload target-specific artifacts. This package has not been published to npm; do not distribute one platform's binary as a universal package. Publish platform packages and a platform-selecting loader before a public npm release.

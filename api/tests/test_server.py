@@ -132,7 +132,7 @@ def test_auth_discovery_and_contract_routes(server):
     info = server.call("/v1/info")[1]
     assert info["profile"] == "recern-vector/1"
     assert info["capabilities"]["atomic_batches"]
-    assert info["server_version"].startswith("0.4.0-dev")
+    assert info["server_version"] == "0.4.0"
     assert server.call("/v1/info?key=ignored", schema=False)[0] == 400
     assert server.call("/missing", schema=False)[0] == 404
     status, _, headers = server.call("/v1/search", method="GET", schema=False)

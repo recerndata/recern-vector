@@ -1,9 +1,12 @@
-# Single-node server (0.4.0 development)
+# Single-node server (0.4.0)
 
-**Source milestone, 29 October 2026.** The separate Rust package
-`recern-vector-server` implements the [HTTP v1 contract](http-api.md).
-Its development version is `0.4.0-dev.1`; the published engine, CLI and Python
-packages remain **0.3.0**. No server binary or 0.4.0 SDK has been released.
+**Recern Vector 0.4.0.** Install `recern-vector-server` from crates.io or
+use a verified native archive from the [0.4.0 release](release.md). Python,
+Rust and Node portable clients use the [HTTP v1 contract](http-api.md).
+
+```sh
+cargo install recern-vector-server --version 0.4.0 --locked
+```
 
 The server provides authenticated collection/record operations, filtered vector
 search, durable write acknowledgements, generation checks and consistent snapshot
@@ -35,7 +38,7 @@ The parent data directory must exist. A missing database is created; an empty
 native database can be initialized. A nonempty arbitrary native `.rvec` is
 refused instead of silently adopted. Migration from an embedded database is a
 separate data transfer: use the Python remote backend and checked
-[export/import](migration.md), available from this source checkout.
+[export/import](migration.md), available from this release.
 
 The server accepts **loopback listeners only**, including `127.0.0.1:0` for an
 OS-assigned development port. It does not terminate TLS. Put a verified HTTPS
@@ -207,9 +210,9 @@ test tools. CI runs the server HTTP suite on Linux, macOS and Windows. A workflo
 configuration alone is not proof all platform jobs have passed; consult the
 current commit's checks for that evidence.
 
-The [portable Python, Rust and Node clients](portable-clients.md) now run the
-shared profile against embedded Recern, Recern HTTP and Qdrant. Python migration
-tests cover embedded-to-server import/export, lost acknowledgements and resume;
-interoperability tests preserve data across languages and verified private-CA
-TLS. Final release/artifact and upgrade validation remain before publication.
-Source implementations and CI are not a published 0.4.0 distribution.
+The [portable Python, Rust and Node clients](portable-clients.md) run the
+shared profile against embedded Recern, Recern HTTP and Qdrant. Release checks
+exercise installed wheels, native CLI/server archives and Node tarballs, private-CA
+TLS, upgrade from 0.3.0, lost acknowledgements and migration recovery.
+
+See the [release and compatibility guide](release.md) for artifacts and limits.

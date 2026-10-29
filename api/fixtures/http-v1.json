@@ -31,7 +31,7 @@
       "response": {
         "api_version": 1,
         "profile": "recern-vector/1",
-        "server_version": "0.4.0-draft.1",
+        "server_version": "0.4.0",
         "database_id": "db_01ab",
         "sequence": "7",
         "capabilities": {

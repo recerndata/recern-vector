@@ -1,15 +1,15 @@
 # Changelog
 
-## Unreleased — 0.4.0 server and portable clients source milestone
+## 0.4.0 — 2026-10-29
 
-- Define draft HTTP API v1 in `api/openapi.json` and `docs/http-api.md`, mapping
+- Release HTTP API v1 in `api/openapi.json` and `docs/http-api.md`, mapping
   portable profile v1 to versioned operations, authentication, typed errors,
   request limits, durable acknowledgements, collection generations and snapshot
   leases. Keep `.rvec` and migration formats unchanged.
 - Add wire request/response fixtures and private Python codecs preserving
   arbitrary IDs, uint64 values and structural integer/float metadata. Reject
   duplicate JSON keys, invalid Unicode, non-finite values and malformed errors.
-- Add a separate Rust `recern-vector-server` package (`0.4.0-dev.1`) with bearer
+- Add a separate Rust `recern-vector-server` package (`0.4.0`) with bearer
   authentication, loopback listeners, bounded HTTP/1.1 requests and workers,
   durable serialized writes, generation checks and snapshot leases. Catalog and
   data changes share one native WAL commit; stale handles cannot access a
@@ -21,8 +21,8 @@
   caps, torn WAL recovery and restart/lost acknowledgements; inject commit and
   deadline/shutdown boundaries. Configure server HTTP CI on Linux/macOS/Windows.
 - Gate CI and installed-wheel checks on OpenAPI/schema validation and shared
-  portable fixtures. Release preparation and distribution remain; this is not
-  a published 0.4.0 release.
+  portable fixtures, packaged crates, installed wheels, sdist builds, release
+  binaries and Node tarballs before publication.
 - Add the Python `Client.remote` backend, generation-bound handles, verified TLS,
   total HTTP deadlines, typed errors and explicit snapshot lease cleanup. Extend
   resumable migration to/from the server, including lost creation acknowledgements.
@@ -32,6 +32,11 @@
 - Run the frozen profile across three languages/backends; verify cross-language
   data, migration, private-CA TLS and packed Node contents. Keep native APIs and
   format/export compatibility fixtures unchanged.
+
+- Publish the Rust engine, CLI, portable client and HTTP server, Python wheels
+  and sdist, and verified native CLI/server and Node archives for Linux x64/ARM64,
+  macOS Intel/Apple silicon and Windows x64. Document upgrade/backup behavior;
+  retain file formats 1/2 and portable migration format 1.
 
 ## 0.3.0 — 2026-10-11
 

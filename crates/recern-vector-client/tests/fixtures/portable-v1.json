@@ -1,0 +1,32 @@
+{
+  "profile": "recern-vector/1",
+  "records": [
+    {"id": "", "vector": [1, 0], "metadata": null},
+    {"id": "doc/東京", "vector": [0.8, 0.6], "metadata": {"tag": "a", "n": 1, "nullable": null, "nested": {"active": true}, "arr": [1, 2], "obj": {"v": 1}, "_recern": {"id": "original"}}},
+    {"id": "18446744073709551615", "vector": [0, 1], "metadata": {"tag": ["a", "b"], "n": 1.0, "nullable": [], "nested": {"active": false}, "arr": [1.0, 2], "obj": {"v": 1.0}, "nested.active": true}},
+    {"id": "c6c97780-86c3-4d47-a0f4-d956ccacb498", "vector": [-1, 0.5], "metadata": {"tag": "b", "n": true, "nullable": "present", "nested": [{"active": true}], "arr": [1, 2], "": {"key": "empty-key"}}},
+    {"id": "line\nbreak\u0000", "vector": [0.25, -1], "metadata": "scalar"}
+  ],
+  "filters": [
+    {"filter": {}, "ids": ["", "doc/東京", "18446744073709551615", "c6c97780-86c3-4d47-a0f4-d956ccacb498", "line\nbreak\u0000"]},
+    {"filter": {"tag": "a"}, "ids": ["doc/東京"]},
+    {"filter": {"tag": {"$in": ["a", "b"]}}, "ids": ["doc/東京", "c6c97780-86c3-4d47-a0f4-d956ccacb498"]},
+    {"filter": {"n": 1.0}, "ids": ["doc/東京", "18446744073709551615"]},
+    {"filter": {"n": true}, "ids": ["c6c97780-86c3-4d47-a0f4-d956ccacb498"]},
+    {"filter": {"n": {"$gt": 0, "$gte": 1, "$lt": 2, "$lte": 1}}, "ids": ["doc/東京", "18446744073709551615"]},
+    {"filter": {"nullable": null}, "ids": ["doc/東京"]},
+    {"filter": {"nullable": []}, "ids": ["18446744073709551615"]},
+    {"filter": {"$not": {"nullable": null}}, "ids": ["", "18446744073709551615", "c6c97780-86c3-4d47-a0f4-d956ccacb498", "line\nbreak\u0000"]},
+    {"filter": {"nested.active": true}, "ids": ["doc/東京"]},
+    {"filter": {"arr": {"$eq": [1, 2]}}, "ids": ["doc/東京", "c6c97780-86c3-4d47-a0f4-d956ccacb498"]},
+    {"filter": {"obj": {"v": 1}}, "ids": ["doc/東京"]},
+    {"filter": {"obj": {"v": 1.0}}, "ids": ["18446744073709551615"]},
+    {"filter": {"$or": [{"tag": "a"}, {"tag": "b"}], "$not": {"n": {"$gte": 1}}}, "ids": ["c6c97780-86c3-4d47-a0f4-d956ccacb498"]},
+    {"filter": {"$and": [{"n": {"$in": [0, 1]}}, {"nested.active": {"$eq": false}}]}, "ids": ["18446744073709551615"]},
+    {"filter": {"tag": {"$in": []}}, "ids": []},
+    {"filter": {"$not": {"tag": {"$in": []}}}, "ids": ["", "doc/東京", "18446744073709551615", "c6c97780-86c3-4d47-a0f4-d956ccacb498", "line\nbreak\u0000"]},
+    {"filter": {".key": "empty-key"}, "ids": ["c6c97780-86c3-4d47-a0f4-d956ccacb498"]},
+    {"filter": {"_recern.id": "original"}, "ids": ["doc/東京"]}
+  ],
+  "invalid_filters": [{"$or": []}, {"$not": []}, {"x": {"$regex": "."}}, {"x": {"$in": 1}}, {"x": {"$gt": true}}, {"$and": [{"x": 1}, null]}]
+}

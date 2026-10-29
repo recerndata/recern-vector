@@ -4,15 +4,17 @@
 
 **A single-file vector database. Embedded, inspectable, boring in the best way.**
 
-> **Version 0.3.0:** portable Python API, embedded/Qdrant backends and checked, resumable migration. File format 2 and format-1 compatibility are unchanged.
+> **Version 0.4.0:** authenticated single-node HTTP server and portable Python, Rust and Node clients for embedded Recern, Recern HTTP and Qdrant. Checked, resumable migration retains file format 2, format-1 readers and export format 1.
 
 ```sh
 pip install recern-vector           # Python
 cargo add recern-vector             # Rust library
 cargo install recern-vector-cli     # the recern-vector command
+cargo add recern-vector-client      # portable Rust API
+cargo install recern-vector-server  # HTTP server
 ```
 
-Release: [v0.3.0](https://github.com/recerndata/recern-vector/releases/tag/v0.3.0) ([PyPI](https://pypi.org/project/recern-vector/), [crates.io](https://crates.io/crates/recern-vector)) · Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
+Release: [v0.4.0](https://github.com/recerndata/recern-vector/releases/tag/v0.4.0) ([PyPI](https://pypi.org/project/recern-vector/), [crates.io](https://crates.io/crates/recern-vector)) · Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
 
 **Documentation:** [recern.net/vector/docs](https://recern.net/vector/docs) (sources in [`docs/`](docs/README.md)) · **Examples:** [`examples/`](examples/README.md) — quickstart, semantic search, RAG retrieval, tuning recall, CLI and Rust
 
@@ -149,20 +151,22 @@ What this says about the prototype:
 
 A database now uses a snapshot plus WAL. Call `checkpoint()` before copying a standalone `.rvec`. `save()` makes pending changes durable; it does not checkpoint. See the [format and durability contract](docs/file-format.md) and [current limitations](docs/limitations.md). Historical benchmark results above describe the pre-0.2 f32 engine and have not been rerun for int8.
 
-**0.3.0** includes the first Python portable client and embedded-to-Qdrant migration path. **0.4.0** is in development: the separate single-node HTTP server is implemented in source, with Python remote and portable Rust/Node clients plus SDK migration tests available from source. **0.5.0** remains planned for incremental writes, checkpoints, benchmarks and package distribution. See the [API portability and migration roadmap](docs/limitations.md#planned-api-portability-and-migration), including the gates for 1.0.0.
+**0.4.0** adds the [HTTP/OpenAPI v1 contract](docs/http-api.md), a separate
+[single-node server](docs/server.md), and [portable Python, Rust and Node clients](docs/portable-clients.md)
+for embedded Recern, Recern HTTP and Qdrant. Migration tests cover interrupted
+imports, lost acknowledgements, restart/reconnect, snapshot leases and cross-language
+precision. Native format-1/2 readers and export format 1 remain compatible.
 
-Current development priority is Vector **0.4.0 → 0.5.0 → 1.0.0**, then Workspace **1.0.0**. The [0.4.0 implementation sequence](docs/limitations.md#next-milestone-040-implementation-order) starts with the remote contract, followed by the server, portable clients and migration/recovery validation.
+The [release guide](docs/release.md) lists the actual packages, native artifacts,
+checksums, tested platforms and upgrade guarantees. Node.js is distributed as
+platform-specific npm tarballs in the GitHub release; public npm distribution
+remains planned for 0.5.0. The HTTP server is single-node and owns its database;
+its RAM and O(database size) save-encoding limits remain.
 
-The first 0.4.0 milestone is the [HTTP API draft](docs/http-api.md), with a
-machine-readable [OpenAPI contract](api/openapi.json), wire examples and codec
-checks. The [development server](docs/server.md) implements that contract in the
-separate `recern-vector-server` package (`0.4.0-dev.1`). It has authenticated,
-bounded operations, durable WAL acknowledgements, collection generations and
-snapshot leases. The [portable clients](docs/portable-clients.md) now connect
-Python, Rust and Node.js to embedded Recern, the HTTP server and Qdrant, with
-verified migration and precision-preserving interchange. Build from source;
-published packages remain 0.3.0. Release preparation and distribution are still
-pending; this milestone is not a 0.4.0 release.
+Next: Vector **0.5.0 → 1.0.0**, then Workspace **1.0.0**. Incremental encoding,
+automatic checkpoints and current f32/int8 benchmarks belong to 0.5.0; API and
+migration/deprecation policy stabilization belong to 1.0.0. See the
+[roadmap](docs/limitations.md#planned-api-portability-and-migration).
 
 ## Contributing
 

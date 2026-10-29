@@ -25,7 +25,7 @@ use std::{
 use tokio::{net::TcpListener, sync::Semaphore, task::JoinSet, time::timeout_at};
 use uuid::Uuid;
 
-pub const OPENAPI: &str = include_str!("../../../api/openapi.json");
+pub const OPENAPI: &str = include_str!("../api/openapi.json");
 const READ_ROUTES: &[&str] = &[
     "/v1/collections/list",
     "/v1/collections/describe",

@@ -1,12 +1,12 @@
 [package]
 name = "recern-vector-client"
-version = "0.4.0-dev.1"
+version.workspace = true
 description = "Portable embedded, Recern HTTP and Qdrant clients"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-publish = false
+homepage.workspace = true
 readme = "README.md"
 
 [dependencies]

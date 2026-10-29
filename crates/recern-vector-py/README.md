@@ -2,7 +2,7 @@
 
 Python bindings for [Recern Vector](https://github.com/recerndata/recern-vector), a single-file, embedded, inspectable vector database.
 
-> **Version 0.3.0.** Adds a portable Python client and verified migration to Qdrant. Stable format 2 remains compatible with format-1 databases.
+> **Version 0.4.0.** Adds the remote backend for Recern HTTP, snapshot leases and verified migration across embedded Recern, Recern HTTP and Qdrant. Stable format 2 and format-1 readers are retained.
 
 ```sh
 pip install recern-vector
@@ -28,10 +28,10 @@ with rv.Database.open_or_create("docs.rvec") as db:          # saves on clean ex
 
 Benchmarks against faiss, LanceDB and sqlite-vec: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks).
 
-## Remote backend (0.4.0 source)
+## Remote backend (0.4.0)
 
-`Client.remote(url, api_key=key, timeout=10.0, ca_file=None)` is implemented in
-this checkout. Build from source; the published 0.3.0 wheel does not contain it.
+`Client.remote(url, api_key=key, timeout=10.0, ca_file=None)` is available in
+0.4.0 wheels and the source distribution.
 It uses verified TLS, bounded deadlines and generation-bound handles, and
 supports the same Python snapshot export/resumable import workflow against
 the Recern HTTP server. Use context managers to release snapshot leases. See

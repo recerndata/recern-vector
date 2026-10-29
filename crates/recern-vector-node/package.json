@@ -1,7 +1,7 @@
 {
   "name": "@recern/vector",
-  "version": "0.3.0",
-  "description": "Embedded Recern Vector database, native Node-API bindings",
+  "version": "0.4.0",
+  "description": "Recern Vector database: native and portable embedded, HTTP and Qdrant APIs",
   "main": "index.js",
   "types": "index.d.ts",
   "license": "MIT OR Apache-2.0",
@@ -29,5 +29,10 @@
       "types": "./portable/index.d.ts",
       "default": "./portable/index.js"
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/recerndata/recern-vector.git",
+    "directory": "crates/recern-vector-node"
   }
 }

@@ -33,7 +33,7 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--path", default="portable-demo.rvec")
     group.add_argument("--qdrant")
-    group.add_argument("--remote", help="Recern HTTP backend (0.4.0 source build)")
+    group.add_argument("--remote", help="Recern HTTP backend (0.4.0)")
     parser.add_argument("--namespace", default="recern_demo")
     parser.add_argument("--ca", help="Private TLS root certificate")
     args = parser.parse_args()

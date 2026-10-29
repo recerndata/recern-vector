@@ -1,9 +1,9 @@
-# Portable clients (0.4.0 development)
+# Portable clients (0.4.0)
 
-**Available from source, 29 October 2026.** Python, Rust and Node.js now expose
+**Recern Vector 0.4.0, 29 October 2026.** Python, Rust and Node.js expose
 profile `recern-vector/1` against embedded Recern, the Recern HTTP v1 server and
-Qdrant 1.19.2. Published engine/Python/CLI packages remain **0.3.0**; this is not
-a 0.4.0 release, a public npm package or a hosted Vector service.
+Qdrant 1.19.2. See [release packages and compatibility](release.md) for installation
+and verified platform archives. Recern does not provide a hosted Vector service.
 
 Changing configuration uses the same application data operations. It does not
 copy existing data. Use Python's checked [export/import](migration.md) to move
@@ -12,8 +12,7 @@ native formats 1/2 and their frozen fixtures are unchanged.
 
 ## Python remote backend
 
-Build the Python package from this checkout with `maturin develop --release`
-in `crates/recern-vector-py`, then use:
+Install `pip install --upgrade recern-vector` (version 0.4.0 or later), then use:
 
 ```python
 import os
@@ -48,9 +47,12 @@ allowed. Closing a client rejects new requests and closes its live connections.
 
 ## Rust
 
-The separate source crate is `crates/recern-vector-client`, version
-`0.4.0-dev.1`, with publishing disabled. It leaves the low-level
+Install the `recern-vector-client` crate, version 0.4.0. It leaves the low-level
 `recern_vector::Database` API unchanged.
+
+```sh
+cargo add recern-vector-client@0.4.0
+```
 
 ```rust,no_run
 use recern_vector_client::{Client, CollectionSpec, HttpOptions, Record};
@@ -88,12 +90,18 @@ cargo run -p recern-vector-client --example portable -- --path demo.rvec
 
 ## Node.js
 
-Build the native package with `npm run build` in `crates/recern-vector-node`.
-The new entry point is `./portable` in a source build and `@recern/vector/portable`
-in a correctly packed installation. No public npm release is implied.
+Install the platform-specific npm tarball from the [0.4.0 GitHub release](release.md).
+For example, on Linux x64 with glibc:
+
+```sh
+npm install https://github.com/recerndata/recern-vector/releases/download/v0.4.0/recern-vector-0.4.0-node-linux-x64.tgz
+```
+
+The native API is `@recern/vector`; the portable entry point is
+`@recern/vector/portable`. Direct public-npm publication is still planned for 0.5.0.
 
 ```js
-const {Client} = require('./crates/recern-vector-node/portable');
+const {Client} = require('@recern/vector/portable');
 const client = await Client.embedded('prototype.rvec');
 // const client = await Client.remote('https://vectors.example.com', {
 //   apiKey: process.env.RECERN_API_KEY, timeoutMs: 10000, caFile: 'private-root.pem'
@@ -160,6 +168,6 @@ Node files. CI runs native/server clients on Linux/macOS/Windows and the full
 Qdrant plus Python/Rust/Node interoperability matrix on Linux. Check the current
 commit's CI results before treating that platform matrix as passed.
 
-Release preparation, distribution/version changes and the final artifact and
-upgrade matrix remain before publishing 0.4.0. This milestone does not include
+The published artifacts and supported upgrade path are documented in the
+[release guide](release.md). Version 0.4.0 does not include
 clustering, a managed service, RBAC or the 0.5.0 incremental-persistence work.

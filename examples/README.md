@@ -5,8 +5,8 @@ Each example runs on its own and prints what it does.
 | Example | What it shows | Needs |
 |---|---|---|
 | [`python/quickstart.py`](python/quickstart.py) | Create a database, batch insert with metadata, search, filter, update, delete, save and reopen | `numpy` |
-| [`python/portable.py`](python/portable.py) | Same data logic on embedded Recern, Qdrant and source-only Recern HTTP (`--remote`) | Published 0.3.0 for file/Qdrant; 0.4.0 source for Recern HTTP |
-| [`portable.rs`](../crates/recern-vector-client/examples/portable.rs) | Portable Rust data logic on all three backends | 0.4.0 source client crate |
+| [`python/portable.py`](python/portable.py) | Same data logic on embedded Recern, Qdrant and Recern HTTP (`--remote`) | Published 0.3.0 for file/Qdrant; 0.4.0 for Recern HTTP |
+| [`portable.rs`](../crates/recern-vector-client/examples/portable.rs) | Portable Rust data logic on all three backends | recern-vector-client 0.4.0 |
 | [`python/migrate.py`](python/migrate.py) | Snapshot export, checked import, dry-run and interruption recovery | recern-vector >= 0.3.0 |
 | [`python/inspect_and_tune.py`](python/inspect_and_tune.py) | `explain()` for plain and filtered searches, `stats()`, choosing `ef` with `estimate_recall()`, `compact()` | `numpy` |
 | [`python/semantic_search.py`](python/semantic_search.py) | Semantic search over short notes with real text embeddings and a metadata filter | `sentence-transformers` |

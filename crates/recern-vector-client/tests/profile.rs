@@ -6,7 +6,7 @@ use std::{
     process::{Child, Command, Stdio},
     time::{Duration, Instant},
 };
-const FIXTURE: &str = include_str!("../../recern-vector/tests/fixtures/portable-v1.json");
+const FIXTURE: &str = include_str!("fixtures/portable-v1.json");
 fn shared(client: Client) {
     let fixture: Value = serde_json::from_str(FIXTURE).unwrap();
     for metric in ["cosine", "l2", "dot"] {

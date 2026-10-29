@@ -1,11 +1,13 @@
 [package]
 name = "recern-vector-server"
-version = "0.4.0-dev.1"
-description = "Single-node HTTP server for Recern Vector (development milestone)"
+version.workspace = true
+description = "Single-node HTTP server for Recern Vector"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-publish = false
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
 
 [dependencies]
 recern-vector.workspace = true

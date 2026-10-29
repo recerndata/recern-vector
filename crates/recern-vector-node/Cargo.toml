@@ -9,7 +9,7 @@ publish = false
 crate-type = ["cdylib"]
 [dependencies]
 recern-vector.workspace = true
-recern-vector-client = { path = "../recern-vector-client" }
+recern-vector-client = { path = "../recern-vector-client", version = "0.4.0" }
 serde_json.workspace = true
 serde = "1"
 napi = { version = "3", default-features = false, features = ["napi8", "serde-json"] }

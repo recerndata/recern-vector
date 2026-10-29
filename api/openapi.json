@@ -3,8 +3,8 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "Recern Vector HTTP API",
-    "version": "0.4.0-draft.1",
-    "description": "Contract-first draft for portable profile recern-vector/1. No server or remote clients ship with 0.3.0. See docs/http-api.md for normative validation, resource, acknowledgement and recovery rules."
+    "version": "0.4.0",
+    "description": "Released Recern Vector 0.4.0 HTTP API v1 for portable profile recern-vector/1. See docs/http-api.md for normative validation, resource, acknowledgement and recovery rules."
   },
   "servers": [
     {
@@ -25,7 +25,7 @@
       "name": "Writes"
     }
   ],
-  "x-contract-status": "draft",
+  "x-contract-status": "released",
   "x-error-status-codes": {
     "400": [
       "InvalidArgument"

@@ -22,6 +22,11 @@ CASES = json.loads((ROOT / "api/fixtures/http-v1.json").read_text(encoding="utf-
 PORTABLE = json.loads((ROOT / "crates/recern-vector/tests/fixtures/portable-v1.json").read_text(encoding="utf-8"))
 
 
+def test_published_crates_bundle_the_canonical_contract_and_frozen_fixture():
+    assert (ROOT / "crates/recern-vector-server/api/openapi.json").read_bytes() == (ROOT / "api/openapi.json").read_bytes()
+    assert (ROOT / "crates/recern-vector-client/tests/fixtures/portable-v1.json").read_bytes() == (ROOT / "crates/recern-vector/tests/fixtures/portable-v1.json").read_bytes()
+
+
 def resolve(value):
     while "$ref" in value:
         assert value["$ref"].startswith("#/")
@@ -135,8 +140,8 @@ def test_unknown_request_fields_and_wrong_structures_are_rejected(case):
 
 
 def test_http_and_portable_limits_error_categories_and_defaults_agree():
-    assert API["x-contract-status"] == "draft"
-    assert API["info"]["version"] == "0.4.0-draft.1"
+    assert API["x-contract-status"] == "released"
+    assert API["info"]["version"] == "0.4.0"
     assert _wire.HTTP_API_VERSION == 1
     assert {int(k): tuple(v) for k, v in API["x-error-status-codes"].items()} == _wire.ERROR_STATUS_CODES
     assert set(API["components"]["schemas"]["Error"]["properties"]["error"]["properties"]["code"]["enum"]) == set(_wire.ERROR_TYPES)

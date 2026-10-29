@@ -1196,14 +1196,14 @@ dependencies = [
 
 [[package]]
 name = "recern-vector"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
 name = "recern-vector-cli"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "clap",
  "recern-vector",
@@ -1212,7 +1212,7 @@ dependencies = [
 
 [[package]]
 name = "recern-vector-client"
-version = "0.4.0-dev.1"
+version = "0.4.0"
 dependencies = [
  "base64 0.22.1",
  "recern-vector",
@@ -1227,7 +1227,7 @@ dependencies = [
 
 [[package]]
 name = "recern-vector-node"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "napi",
  "napi-build",
@@ -1240,7 +1240,7 @@ dependencies = [
 
 [[package]]
 name = "recern-vector-py"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "pyo3",
  "recern-vector",
@@ -1249,7 +1249,7 @@ dependencies = [
 
 [[package]]
 name = "recern-vector-server"
-version = "0.4.0-dev.1"
+version = "0.4.0"
 dependencies = [
  "axum",
  "base64 0.22.1",

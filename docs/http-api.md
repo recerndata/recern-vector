@@ -1,11 +1,8 @@
 # HTTP API v1 contract for 0.4.0
 
-**Draft 1, 29 October 2026.** This is the first implementation milestone for
-Recern Vector 0.4.0. The released engine remains **0.3.0**. The separate
-[development server](server.md), version `0.4.0-dev.1`, now implements this
-contract from source. Python remote and portable Rust/Node clients are now
-implemented against it; see [portable clients](portable-clients.md). Release
-preparation and distribution remain before the full 0.4.0 release.
+**Released with Recern Vector 0.4.0, 29 October 2026.** The separate
+[HTTP server](server.md) and [Python, Rust and Node clients](portable-clients.md)
+implement this versioned contract. Existing native APIs remain available.
 
 The machine-readable source is [`api/openapi.json`](../api/openapi.json), using
 [OpenAPI 3.1.1](https://spec.openapis.org/oas/v3.1.1.html) and

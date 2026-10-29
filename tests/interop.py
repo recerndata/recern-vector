@@ -9,7 +9,8 @@ import recern_vector as rv
 
 root = Path(__file__).resolve().parents[1]
 expected_version = tomllib.loads((root / 'Cargo.toml').read_text())['workspace']['package']['version']
-cli = root / 'target/release' / ('recern-vector.exe' if os.name == 'nt' else 'recern-vector')
+cli = Path(os.getenv('RECERN_TEST_CLI_BIN', str(root / 'target/release' / ('recern-vector.exe' if os.name == 'nt' else 'recern-vector'))))
+node_package = os.getenv('RECERN_NATIVE_NODE', str(root / 'crates/recern-vector-node'))
 with tempfile.TemporaryDirectory(prefix='recern-interop-') as directory:
     path = Path(directory) / 'interop.rvec'
     db = rv.Database.create(path)
@@ -22,7 +23,7 @@ with tempfile.TemporaryDirectory(prefix='recern-interop-') as directory:
     if(c.get('python').metadata.source!=='python') throw Error('missing Python WAL');
     c.upsert('node',new Float32Array([0,1,0]),{source:'node'}); db.save();
     '''
-    subprocess.run(['node', '-e', script, str(root / 'crates/recern-vector-node'), str(path)], check=True)
+    subprocess.run(['node', '-e', script, node_package, str(path)], check=True)
     result = subprocess.run([str(cli), 'query', str(path), 'q', '--vector', '[0,1,0]', '-k', '1', '--exact'], text=True, capture_output=True)
     assert result.returncode == 0, result.stderr
     assert 'node' in result.stdout, result.stdout

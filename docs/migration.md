@@ -1,13 +1,15 @@
 # Portable export and migration
 
-**0.4.0 source extension:** the same API now imports into Recern HTTP and exports
-from its consistent snapshot leases. Construct the destination/source with
-`Client.remote(url, api_key=key, timeout=10.0, ca_file=...)`; build the Python
-package from this checkout. Python remains the archive migration orchestrator;
-Rust and Node provide the compatible data operations. Published 0.3.0 packages
-do not contain the remote backend. See [portable clients](portable-clients.md).
+**Recern Vector 0.4.0** supports consistent exports from embedded Recern or
+Recern HTTP and verified imports into embedded Recern, Recern HTTP and Qdrant.
+Construct a remote client with `Client.remote(url, api_key=key, timeout=10.0,
+ca_file=...)`. Python remains the resumable archive migration orchestrator;
+Rust and Node expose the same compatible data operations. Export format 1
+remains compatible with 0.3.0. See [portable clients](portable-clients.md).
 
-**Recern Vector 0.3.0** adds a versioned export and resumable import for `recern_vector.portable`. Supported paths are embedded Recern → embedded Recern and embedded Recern → Qdrant. A consistent export from live Qdrant is not implemented: `export_snapshot` raises `Unsupported` before creating files. Use Qdrant's native snapshot tools for its backups.
+A consistent export from live Qdrant is not implemented: `export_snapshot`
+raises `Unsupported` before creating files. Use Qdrant's native snapshot tools
+for its backups.
 
 This is an application data transfer, not a copy of an HNSW index. The destination rebuilds its index from records. Source files are never modified or deleted, and existing destination collections are never merged or replaced.
 

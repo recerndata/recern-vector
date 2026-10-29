@@ -1,8 +1,7 @@
 # Recern portable Rust client
 
-Source milestone for **0.4.0**, package `0.4.0-dev.1` (not published). Supports
-embedded files, the Recern HTTP v1 server and portable Qdrant 1.19.2 collections.
-The released native engine remains 0.3.0.
+**Version 0.4.0.** Supports embedded files, the Recern HTTP v1 server and
+portable Qdrant 1.19.2 collections. Install with `cargo add recern-vector-client@0.4.0`.
 
 ```rust,no_run
 use recern_vector_client::{Client, CollectionSpec, HttpOptions, Record};
@@ -55,4 +54,4 @@ Rust and Node provide compatible data operations, not separate archive tools.
 Run the same application example with `cargo run -p recern-vector-client
 --example portable -- --path demo.rvec`, `--remote URL` or `--qdrant URL`.
 Set `RECERN_API_KEY` for servers and `--ca path/to/root.pem` for a private CA.
-See [portable clients](../../docs/portable-clients.md) for the tested matrix.
+See [portable clients](https://recern.net/vector/docs/portable-clients) for the tested matrix.
