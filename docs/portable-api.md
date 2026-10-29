@@ -4,6 +4,11 @@ Available from **Recern Vector 0.3.0**. Install with `pip install --upgrade rece
 
 `recern_vector.portable` separates application data operations from backend configuration. Profile `recern-vector/1` (`API_VERSION = 1`) supports embedded Recern and Qdrant. The existing native Python, Rust, Node.js and CLI APIs remain available. A Recern server and portable Rust/Node clients are planned for 0.4.0.
 
+The first 0.4.0 milestone defines a [draft HTTP/OpenAPI contract](http-api.md)
+for that server. It includes checked wire examples and private Python codecs.
+The [separate development server](server.md) now implements the HTTP contract
+from source; a remote portable `Client` backend is the next stage.
+
 ## One application, two backends
 
 ```python

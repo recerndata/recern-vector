@@ -12,6 +12,8 @@ __pycache__/
 
 *.rvec.wal
 *.rvec.lock
+*.rvec.server-owner
+/server-data/
 *.node
 node_modules/
 !crates/recern-vector/tests/fixtures/*.rvec

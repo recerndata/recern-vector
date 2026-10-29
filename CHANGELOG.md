@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased — 0.4.0 contract and server source milestone
+
+- Define draft HTTP API v1 in `api/openapi.json` and `docs/http-api.md`, mapping
+  portable profile v1 to versioned operations, authentication, typed errors,
+  request limits, durable acknowledgements, collection generations and snapshot
+  leases. Keep `.rvec` and migration formats unchanged.
+- Add wire request/response fixtures and private Python codecs preserving
+  arbitrary IDs, uint64 values and structural integer/float metadata. Reject
+  duplicate JSON keys, invalid Unicode, non-finite values and malformed errors.
+- Add a separate Rust `recern-vector-server` package (`0.4.0-dev.1`) with bearer
+  authentication, loopback listeners, bounded HTTP/1.1 requests and workers,
+  durable serialized writes, generation checks and snapshot leases. Catalog and
+  data changes share one native WAL commit; stale handles cannot access a
+  replacement generation.
+- Add durable sequence access and borrowed search-result visitation to the
+  engine, allowing bounded server responses without cloning all hit metadata.
+  Keep the existing native search behavior and frozen format/export fixtures.
+- Test real HTTP operations, shared filters, int8, concurrent clients, request
+  caps, torn WAL recovery and restart/lost acknowledgements; inject commit and
+  deadline/shutdown boundaries. Configure server HTTP CI on Linux/macOS/Windows.
+- Gate CI and installed-wheel checks on OpenAPI/schema validation and shared
+  portable fixtures. Remote clients, SDK migration validation and release
+  artifacts remain the next implementation stages; this is not a 0.4.0 release.
+
 ## 0.3.0 — 2026-10-11
 
 - Add Python portable profile `recern-vector/1`, with the same collection, record, pagination and filtered-search operations on embedded Recern and Qdrant 1.19.2.

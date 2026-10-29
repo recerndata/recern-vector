@@ -1,0 +1,1064 @@
+{
+  "contract": "recern-vector-http/1",
+  "draft": 1,
+  "cases": [
+    {
+      "name": "liveness",
+      "method": "get",
+      "path": "/health/live",
+      "request": null,
+      "status": 200,
+      "response": {
+        "status": "alive"
+      }
+    },
+    {
+      "name": "readiness",
+      "method": "get",
+      "path": "/health/ready",
+      "request": null,
+      "status": 200,
+      "response": {
+        "status": "ready"
+      }
+    },
+    {
+      "name": "discovery",
+      "method": "get",
+      "path": "/v1/info",
+      "request": null,
+      "status": 200,
+      "response": {
+        "api_version": 1,
+        "profile": "recern-vector/1",
+        "server_version": "0.4.0-draft.1",
+        "database_id": "db_01ab",
+        "sequence": "7",
+        "capabilities": {
+          "backend": "recern",
+          "profile": "recern-vector/1",
+          "atomic_batches": true,
+          "consistent_export": true,
+          "quantization": [
+            "f32",
+            "int8"
+          ],
+          "max_batch": 256,
+          "exact_search": true,
+          "snapshot_pages": false
+        },
+        "limits": {
+          "max_request_bytes": 67108864,
+          "max_response_bytes": 67108864,
+          "max_batch": 256,
+          "max_page_size": 256,
+          "max_k": 10000,
+          "max_dim": 65536,
+          "max_metadata_bytes": 1048576,
+          "max_filter_bytes": 1048576,
+          "max_json_depth": 64,
+          "max_collections": 10000,
+          "default_timeout_ms": 10000,
+          "max_timeout_ms": 30000,
+          "max_active_operations": 8,
+          "max_queued_operations": 32,
+          "max_snapshots": 1,
+          "snapshot_ttl_ms": 300000
+        }
+      }
+    },
+    {
+      "name": "openapi",
+      "method": "get",
+      "path": "/v1/openapi.json",
+      "request": null,
+      "status": 200,
+      "response": {
+        "openapi": "3.1.1"
+      }
+    },
+    {
+      "name": "empty-list",
+      "method": "post",
+      "path": "/v1/collections/list",
+      "request": {},
+      "status": 200,
+      "response": {
+        "collections": [],
+        "sequence": "0"
+      }
+    },
+    {
+      "name": "list-snapshot",
+      "method": "post",
+      "path": "/v1/collections/list",
+      "request": {
+        "snapshot_id": "s_b759c95bfc55468e9675aef798b37dab"
+      },
+      "status": 200,
+      "response": {
+        "collections": [
+          {
+            "name": "merchant/東京",
+            "identity": "c_80bbf98e05f24227b41f806d3fb07ee4",
+            "dim": 2,
+            "metric": "cosine",
+            "quantization": "f32",
+            "creation_token": "8eedeea8-c769-435e-8b01-69b4515d2f72"
+          }
+        ],
+        "sequence": "7"
+      }
+    },
+    {
+      "name": "create",
+      "method": "post",
+      "path": "/v1/collections/create",
+      "request": {
+        "spec": {
+          "name": "merchant/東京",
+          "dim": 2
+        },
+        "creation_token": "8eedeea8-c769-435e-8b01-69b4515d2f72"
+      },
+      "status": 201,
+      "response": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4",
+          "dim": 2,
+          "metric": "cosine",
+          "quantization": "f32",
+          "creation_token": "8eedeea8-c769-435e-8b01-69b4515d2f72"
+        },
+        "commit": {
+          "durable": true,
+          "sequence": "7"
+        }
+      }
+    },
+    {
+      "name": "create-replay",
+      "method": "post",
+      "path": "/v1/collections/create",
+      "request": {
+        "spec": {
+          "name": "merchant/東京",
+          "dim": 2
+        },
+        "creation_token": "8eedeea8-c769-435e-8b01-69b4515d2f72"
+      },
+      "status": 200,
+      "response": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4",
+          "dim": 2,
+          "metric": "cosine",
+          "quantization": "f32",
+          "creation_token": "8eedeea8-c769-435e-8b01-69b4515d2f72"
+        },
+        "commit": {
+          "durable": true,
+          "sequence": "7"
+        }
+      }
+    },
+    {
+      "name": "describe",
+      "method": "post",
+      "path": "/v1/collections/describe",
+      "request": {
+        "name": "merchant/東京"
+      },
+      "status": 200,
+      "response": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4",
+          "dim": 2,
+          "metric": "cosine",
+          "quantization": "f32",
+          "creation_token": "8eedeea8-c769-435e-8b01-69b4515d2f72"
+        },
+        "sequence": "7"
+      }
+    },
+    {
+      "name": "drop",
+      "method": "post",
+      "path": "/v1/collections/drop",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        }
+      },
+      "status": 200,
+      "response": {
+        "commit": {
+          "durable": true,
+          "sequence": "7"
+        }
+      }
+    },
+    {
+      "name": "upsert",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": [
+          {
+            "id": "",
+            "vector": [
+              0.6,
+              0.8
+            ],
+            "metadata_json": "{\"integer\":18446744073709551615,\"negative\":-9223372036854775808,\"array\":[1,1.0],\"_recern\":{\"id\":\"mine\"}}"
+          }
+        ]
+      },
+      "status": 200,
+      "response": {
+        "written": 1,
+        "commit": {
+          "durable": true,
+          "sequence": "7"
+        }
+      }
+    },
+    {
+      "name": "empty-upsert",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 200,
+      "response": {
+        "written": 0,
+        "commit": {
+          "durable": true,
+          "sequence": "7"
+        }
+      }
+    },
+    {
+      "name": "get-empty-id",
+      "method": "post",
+      "path": "/v1/records/get",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "id": ""
+      },
+      "status": 200,
+      "response": {
+        "record": {
+          "id": "",
+          "vector": [
+            0.6,
+            0.8
+          ],
+          "metadata_json": "{\"integer\":18446744073709551615,\"negative\":-9223372036854775808,\"array\":[1,1.0],\"_recern\":{\"id\":\"mine\"}}"
+        },
+        "sequence": "7"
+      }
+    },
+    {
+      "name": "get-unusual-id",
+      "method": "post",
+      "path": "/v1/records/get",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "id": "line\n東京/\u0000"
+      },
+      "status": 200,
+      "response": {
+        "record": null,
+        "sequence": "7"
+      }
+    },
+    {
+      "name": "missing-record",
+      "method": "post",
+      "path": "/v1/records/get",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "id": "missing"
+      },
+      "status": 200,
+      "response": {
+        "record": null,
+        "sequence": "7"
+      }
+    },
+    {
+      "name": "delete",
+      "method": "post",
+      "path": "/v1/records/delete",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "id": ""
+      },
+      "status": 200,
+      "response": {
+        "deleted": true,
+        "commit": {
+          "durable": true,
+          "sequence": "7"
+        }
+      }
+    },
+    {
+      "name": "missing-delete",
+      "method": "post",
+      "path": "/v1/records/delete",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "id": ""
+      },
+      "status": 200,
+      "response": {
+        "deleted": false,
+        "commit": {
+          "durable": true,
+          "sequence": "7"
+        }
+      }
+    },
+    {
+      "name": "uint64-count",
+      "method": "post",
+      "path": "/v1/records/count",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        }
+      },
+      "status": 200,
+      "response": {
+        "count": "18446744073709551615",
+        "sequence": "7"
+      }
+    },
+    {
+      "name": "page",
+      "method": "post",
+      "path": "/v1/records/page",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "limit": 1
+      },
+      "status": 200,
+      "response": {
+        "records": [
+          {
+            "id": "",
+            "vector": [
+              0.6,
+              0.8
+            ],
+            "metadata_json": "{\"integer\":18446744073709551615,\"negative\":-9223372036854775808,\"array\":[1,1.0],\"_recern\":{\"id\":\"mine\"}}"
+          }
+        ],
+        "next_cursor": "p_AQIDBAUGBwgJCgsMDQ4PEA",
+        "sequence": "7"
+      }
+    },
+    {
+      "name": "terminal-page",
+      "method": "post",
+      "path": "/v1/records/page",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "limit": 1,
+        "cursor": "p_AQIDBAUGBwgJCgsMDQ4PEA",
+        "snapshot_id": "s_b759c95bfc55468e9675aef798b37dab"
+      },
+      "status": 200,
+      "response": {
+        "records": [],
+        "next_cursor": null,
+        "sequence": "7"
+      }
+    },
+    {
+      "name": "search",
+      "method": "post",
+      "path": "/v1/search",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "query": [
+          0.6,
+          0.8
+        ],
+        "k": 5,
+        "filter_json": "{\"$not\":{\"missing\":null},\"$or\":[{\"n\":1},{\"arr\":{\"$eq\":[1.0,2]}}]}",
+        "exact": true
+      },
+      "status": 200,
+      "response": {
+        "hits": [
+          {
+            "id": "",
+            "distance": 0.0,
+            "metadata_json": "{\"integer\":18446744073709551615,\"negative\":-9223372036854775808,\"array\":[1,1.0],\"_recern\":{\"id\":\"mine\"}}"
+          }
+        ],
+        "sequence": "7"
+      }
+    },
+    {
+      "name": "no-matches",
+      "method": "post",
+      "path": "/v1/search",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "query": [
+          1,
+          0
+        ],
+        "filter_json": null
+      },
+      "status": 200,
+      "response": {
+        "hits": [],
+        "sequence": "7"
+      }
+    },
+    {
+      "name": "snapshot",
+      "method": "post",
+      "path": "/v1/snapshots/create",
+      "request": {},
+      "status": 201,
+      "response": {
+        "snapshot_id": "s_b759c95bfc55468e9675aef798b37dab",
+        "database_id": "db_01ab",
+        "sequence": "7",
+        "expires_at": "2026-10-29T12:05:00Z",
+        "capabilities": {
+          "backend": "recern",
+          "profile": "recern-vector/1",
+          "atomic_batches": true,
+          "consistent_export": true,
+          "quantization": [
+            "f32",
+            "int8"
+          ],
+          "max_batch": 256,
+          "exact_search": true,
+          "snapshot_pages": true
+        }
+      }
+    },
+    {
+      "name": "release",
+      "method": "post",
+      "path": "/v1/snapshots/release",
+      "request": {
+        "snapshot_id": "s_b759c95bfc55468e9675aef798b37dab"
+      },
+      "status": 200,
+      "response": {
+        "released": true
+      }
+    },
+    {
+      "name": "release-again",
+      "method": "post",
+      "path": "/v1/snapshots/release",
+      "request": {
+        "snapshot_id": "s_b759c95bfc55468e9675aef798b37dab"
+      },
+      "status": 200,
+      "response": {
+        "released": false
+      }
+    },
+    {
+      "name": "error-400-InvalidArgument",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 400,
+      "response": {
+        "error": {
+          "code": "InvalidArgument",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "not_committed"
+        }
+      }
+    },
+    {
+      "name": "error-401-PermissionDenied",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 401,
+      "response": {
+        "error": {
+          "code": "PermissionDenied",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "not_committed"
+        }
+      }
+    },
+    {
+      "name": "error-403-PermissionDenied",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 403,
+      "response": {
+        "error": {
+          "code": "PermissionDenied",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "not_committed"
+        }
+      }
+    },
+    {
+      "name": "error-404-NotFound",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 404,
+      "response": {
+        "error": {
+          "code": "NotFound",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "not_committed"
+        }
+      }
+    },
+    {
+      "name": "error-405-InvalidArgument",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 405,
+      "response": {
+        "error": {
+          "code": "InvalidArgument",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "not_committed"
+        }
+      }
+    },
+    {
+      "name": "error-408-Unavailable",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 408,
+      "response": {
+        "error": {
+          "code": "Unavailable",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "not_committed"
+        }
+      }
+    },
+    {
+      "name": "error-409-AlreadyExists",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 409,
+      "response": {
+        "error": {
+          "code": "AlreadyExists",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "not_committed"
+        }
+      }
+    },
+    {
+      "name": "error-409-Conflict",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 409,
+      "response": {
+        "error": {
+          "code": "Conflict",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "not_committed"
+        }
+      }
+    },
+    {
+      "name": "error-413-InvalidArgument",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 413,
+      "response": {
+        "error": {
+          "code": "InvalidArgument",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "not_committed"
+        }
+      }
+    },
+    {
+      "name": "error-413-Unsupported",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 413,
+      "response": {
+        "error": {
+          "code": "Unsupported",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "not_committed"
+        }
+      }
+    },
+    {
+      "name": "error-415-InvalidArgument",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 415,
+      "response": {
+        "error": {
+          "code": "InvalidArgument",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "not_committed"
+        }
+      }
+    },
+    {
+      "name": "error-422-Unsupported",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 422,
+      "response": {
+        "error": {
+          "code": "Unsupported",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "not_committed"
+        }
+      }
+    },
+    {
+      "name": "error-429-Unavailable",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 429,
+      "response": {
+        "error": {
+          "code": "Unavailable",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "not_committed"
+        }
+      }
+    },
+    {
+      "name": "error-500-CorruptData",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 500,
+      "response": {
+        "error": {
+          "code": "CorruptData",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "unknown"
+        }
+      }
+    },
+    {
+      "name": "error-500-Unavailable",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 500,
+      "response": {
+        "error": {
+          "code": "Unavailable",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "unknown"
+        }
+      }
+    },
+    {
+      "name": "error-503-Unavailable",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 503,
+      "response": {
+        "error": {
+          "code": "Unavailable",
+          "reason": "operation_failed",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "unknown"
+        }
+      }
+    },
+    {
+      "name": "error-504-Unavailable",
+      "method": "post",
+      "path": "/v1/records/upsert",
+      "request": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": []
+      },
+      "status": 504,
+      "response": {
+        "error": {
+          "code": "Unavailable",
+          "reason": "deadline_exceeded",
+          "message": "The operation could not be completed.",
+          "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+          "write_outcome": "unknown"
+        }
+      }
+    }
+  ],
+  "invalid_requests": [
+    {
+      "schema": "CreateCollectionRequest",
+      "value": {
+        "spec": {
+          "name": "x",
+          "dim": 0
+        }
+      }
+    },
+    {
+      "schema": "CreateCollectionRequest",
+      "value": {
+        "spec": {
+          "name": "x",
+          "dim": 2,
+          "metric": "cos"
+        }
+      }
+    },
+    {
+      "schema": "CreateCollectionRequest",
+      "value": {
+        "spec": {
+          "name": "x",
+          "dim": 2
+        },
+        "creation_token": "invalid"
+      }
+    },
+    {
+      "schema": "UpsertRequest",
+      "value": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": [
+          {
+            "id": 2,
+            "vector": [
+              1,
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "schema": "UpsertRequest",
+      "value": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": [
+          {
+            "id": "a",
+            "vector": [
+              true,
+              0
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "schema": "UpsertRequest",
+      "value": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "records": [
+          {
+            "id": "a",
+            "vector": [
+              1,
+              0
+            ],
+            "metadata": {}
+          }
+        ]
+      }
+    },
+    {
+      "schema": "GetRecordRequest",
+      "value": {
+        "collection": {
+          "name": "x"
+        },
+        "id": ""
+      }
+    },
+    {
+      "schema": "DeleteRecordRequest",
+      "value": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "id": "",
+        "snapshot_id": "s_b759c95bfc55468e9675aef798b37dab"
+      }
+    },
+    {
+      "schema": "PageRequest",
+      "value": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "limit": 0
+      }
+    },
+    {
+      "schema": "PageRequest",
+      "value": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "limit": 257
+      }
+    },
+    {
+      "schema": "SearchRequest",
+      "value": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "query": [
+          1,
+          0
+        ],
+        "k": 10001
+      }
+    },
+    {
+      "schema": "SearchRequest",
+      "value": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "query": [
+          1,
+          0
+        ],
+        "exact": "true"
+      }
+    },
+    {
+      "schema": "SearchRequest",
+      "value": {
+        "collection": {
+          "name": "merchant/東京",
+          "identity": "c_80bbf98e05f24227b41f806d3fb07ee4"
+        },
+        "query": [
+          1,
+          0
+        ],
+        "filter": {}
+      }
+    },
+    {
+      "schema": "CreateSnapshotRequest",
+      "value": {
+        "path": "/private/data.rvec"
+      }
+    }
+  ]
+}

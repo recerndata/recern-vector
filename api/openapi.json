@@ -1,0 +1,3692 @@
+{
+  "openapi": "3.1.1",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": {
+    "title": "Recern Vector HTTP API",
+    "version": "0.4.0-draft.1",
+    "description": "Contract-first draft for portable profile recern-vector/1. No server or remote clients ship with 0.3.0. See docs/http-api.md for normative validation, resource, acknowledgement and recovery rules."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:7337",
+      "description": "Local single-node development server; HTTPS required outside loopback."
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Reads"
+    },
+    {
+      "name": "Writes"
+    }
+  ],
+  "x-contract-status": "draft",
+  "x-error-status-codes": {
+    "400": [
+      "InvalidArgument"
+    ],
+    "401": [
+      "PermissionDenied"
+    ],
+    "403": [
+      "PermissionDenied"
+    ],
+    "404": [
+      "NotFound"
+    ],
+    "405": [
+      "InvalidArgument"
+    ],
+    "408": [
+      "Unavailable"
+    ],
+    "409": [
+      "AlreadyExists",
+      "Conflict"
+    ],
+    "413": [
+      "InvalidArgument",
+      "Unsupported"
+    ],
+    "415": [
+      "InvalidArgument"
+    ],
+    "422": [
+      "Unsupported"
+    ],
+    "429": [
+      "Unavailable"
+    ],
+    "500": [
+      "CorruptData",
+      "Unavailable"
+    ],
+    "503": [
+      "Unavailable"
+    ],
+    "504": [
+      "Unavailable"
+    ]
+  },
+  "paths": {
+    "/health/live": {
+      "get": {
+        "operationId": "liveness",
+        "summary": "Process liveness",
+        "description": "Only {status: alive}; no database metadata. Not a readiness or storage-health guarantee.",
+        "tags": [
+          "Reads"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": false,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "readiness",
+        "summary": "Authenticated readiness",
+        "description": "200 only after durable recovery and ownership acquisition; 503 during startup, failed recovery or draining.",
+        "tags": [
+          "Reads"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": false,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/info": {
+      "get": {
+        "operationId": "serverInfo",
+        "summary": "Discover profile, identity, guarantees and limits",
+        "description": "",
+        "tags": [
+          "Reads"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": false,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Info"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/openapi.json": {
+      "get": {
+        "operationId": "openapiDocument",
+        "summary": "Read this versioned OpenAPI document",
+        "description": "",
+        "tags": [
+          "Reads"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": false,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collections/list": {
+      "post": {
+        "operationId": "listCollections",
+        "summary": "List all collections in a live or snapshot view",
+        "description": "Sorted by Unicode scalar-value order of logical name. At most max_collections; no truncated list. Empty body is {}.",
+        "tags": [
+          "Reads"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": false,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListCollectionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListCollectionsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collections/create": {
+      "post": {
+        "operationId": "createCollection",
+        "summary": "Create a durable collection",
+        "description": "A creation_token permits recovery after a lost create acknowledgement: identical name, explicit spec/defaults and token return the original generation with 200. Existing names without a matching token return 409 AlreadyExists; matching token with a different spec returns 409 Conflict. Tokens are scoped to database and name and survive restart.",
+        "tags": [
+          "Writes"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": true,
+        "responses": {
+          "201": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCollectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Replay of an existing matching creation_token, without a new mutation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCollectionResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCollectionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collections/describe": {
+      "post": {
+        "operationId": "describeCollection",
+        "summary": "Describe and acquire the current generation",
+        "description": "",
+        "tags": [
+          "Reads"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": false,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DescribeCollectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DescribeCollectionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collections/drop": {
+      "post": {
+        "operationId": "dropCollection",
+        "summary": "Drop the expected collection generation",
+        "description": "",
+        "tags": [
+          "Writes"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": true,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DropCollectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DropCollectionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/records/upsert": {
+      "post": {
+        "operationId": "upsertRecords",
+        "summary": "Atomically replace up to 256 logical records",
+        "description": "Validate the complete batch before mutation. Reject duplicate IDs. Empty batch is a no-op after generation validation; written=0. Successful writes persist before acknowledgement.",
+        "tags": [
+          "Writes"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": true,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpsertResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/records/get": {
+      "post": {
+        "operationId": "getRecord",
+        "summary": "Read a logical record or null",
+        "description": "",
+        "tags": [
+          "Reads"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": false,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetRecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetRecordRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/records/delete": {
+      "post": {
+        "operationId": "deleteRecord",
+        "summary": "Delete one logical record",
+        "description": "deleted=false for an absent record in an existing expected generation. No compare-and-swap protection against later writes to the same logical ID.",
+        "tags": [
+          "Writes"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": true,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteRecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteRecordRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/records/count": {
+      "post": {
+        "operationId": "countRecords",
+        "summary": "Read an exact live-record count",
+        "description": "",
+        "tags": [
+          "Reads"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": false,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CountRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/records/page": {
+      "post": {
+        "operationId": "pageRecords",
+        "summary": "Read a bounded record page",
+        "description": "limit is an upper bound; the byte cap may produce a smaller nonempty page with next_cursor. Invalid syntax/forgery is 400; a valid cursor invalidated by mutation or restart is 409. Snapshot cursors survive live writes until the lease expires. No stable ordering guarantee; a stable view visits each ID exactly once.",
+        "tags": [
+          "Reads"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": false,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/search": {
+      "post": {
+        "operationId": "search",
+        "summary": "Search with portable filters and distances",
+        "description": "Sort by (distance, ID using Unicode scalar values). Fewer than k hits are allowed when fewer records match. ANN may miss candidates. Byte limits never silently remove hits: return 413 Unsupported/response_too_large and ask for a smaller k.",
+        "tags": [
+          "Reads"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": false,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/snapshots/create": {
+      "post": {
+        "operationId": "createSnapshot",
+        "summary": "Acquire a consistent read-only snapshot lease",
+        "description": "Capture committed state at one sequence across all collections. Consumes bounded extra RAM and a snapshot slot. Lease expires after the advertised TTL; operations admitted before expiry may finish under the same operation deadline. No writes are accepted through a snapshot.",
+        "tags": [
+          "Reads"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": false,
+        "responses": {
+          "201": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateSnapshotResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSnapshotRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/snapshots/release": {
+      "post": {
+        "operationId": "releaseSnapshot",
+        "summary": "Release a snapshot lease",
+        "description": "Idempotent cleanup: released=false when already absent or expired. In-flight reads keep a reference until finished. Clients release in finally/context-manager cleanup, including failed exports.",
+        "tags": [
+          "Reads"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestTimeout"
+          }
+        ],
+        "x-write-operation": false,
+        "responses": {
+          "200": {
+            "description": "Successful operation.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseSnapshotResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error405"
+          },
+          "408": {
+            "$ref": "#/components/responses/Error408"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error413"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "504": {
+            "$ref": "#/components/responses/Error504"
+          },
+          "default": {
+            "description": "Any other HTTP failure. Clients must not turn it into an empty successful result.",
+            "headers": {
+              "X-Request-ID": {
+                "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Database and snapshot responses must not be cached."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseSnapshotRequest"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Configured API key in Authorization: Bearer <key>. No query parameter, cookie, or browser credential fallback."
+      }
+    },
+    "parameters": {
+      "RequestTimeout": {
+        "name": "X-Recern-Timeout-Ms",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30000,
+          "default": 10000
+        },
+        "description": "Server-side budget from request headers received, including body, queue and execution. Must be <= advertised max_timeout_ms; absence uses advertised default_timeout_ms. Clients impose their own total HTTP deadline."
+      }
+    },
+    "schemas": {
+      "CollectionName": {
+        "type": "string",
+        "maxLength": 255,
+        "minLength": 1,
+        "description": "1–255 UTF-8 bytes, valid Unicode. No normalization or case folding. Never placed in a URL.",
+        "x-max-utf8-bytes": 255
+      },
+      "LogicalId": {
+        "type": "string",
+        "maxLength": 65536,
+        "description": "0–65,536 UTF-8 bytes, including empty, slash, newline and NUL characters. A string, never a numeric ID.",
+        "x-max-utf8-bytes": 65536
+      },
+      "Identity": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_-]+$",
+        "description": "Opaque durable database or collection generation. Clients compare exactly; never derive it from a name."
+      },
+      "Uint64": {
+        "type": "string",
+        "maxLength": 20,
+        "pattern": "^(0|[1-9][0-9]{0,19})$",
+        "description": "Base-10 uint64 in a string (0 through 18446744073709551615). Never a JSON number."
+      },
+      "Cursor": {
+        "type": "string",
+        "maxLength": 4096,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_-]+$",
+        "description": "Opaque authenticated page position. Bound to database, boot, collection generation, view and revision. Not a migration journal."
+      },
+      "SnapshotId": {
+        "type": "string",
+        "maxLength": 128,
+        "minLength": 16,
+        "pattern": "^[A-Za-z0-9_-]+$",
+        "description": "Opaque read-only snapshot lease; authenticated requests are still required."
+      },
+      "Vector": {
+        "type": "array",
+        "items": {
+          "type": "number",
+          "minimum": -3.4028234663852886e+38,
+          "maximum": 3.4028234663852886e+38
+        },
+        "maxItems": 65536,
+        "minItems": 1,
+        "description": "Finite numbers rounded once to float32. Length must equal dim. Sum of squared float32 coordinates <= float32.max/8; cosine requires norm squared >= float32.min_normal."
+      },
+      "JsonValue": {
+        "description": "Finite JSON values; integers must fit signed/unsigned 64 bits. Max nesting 64. Runtime validation also enforces UTF-8 and encoded-byte limits.",
+        "anyOf": [
+          {
+            "type": "null"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        ]
+      },
+      "MetadataJson": {
+        "type": "string",
+        "maxLength": 1048576,
+        "contentMediaType": "application/json",
+        "contentSchema": {
+          "$ref": "#/components/schemas/JsonValue"
+        },
+        "default": "null",
+        "description": "JSON text inside a string. Decode with lossless 64-bit integers and integer/float kinds; do not pass through JavaScript JSON.parse/JSON.stringify when they lose those distinctions. Runtime validates both the UTF-8 text size and portable canonical size <= 1 MiB.",
+        "x-max-utf8-bytes": 1048576,
+        "x-content-validation": "portable-json-v1"
+      },
+      "FieldOperators": {
+        "type": "object",
+        "properties": {
+          "$eq": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "$in": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "maxItems": 1048576
+          },
+          "$gt": {
+            "type": "number"
+          },
+          "$gte": {
+            "type": "number"
+          },
+          "$lt": {
+            "type": "number"
+          },
+          "$lte": {
+            "type": "number"
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "minProperties": 1
+      },
+      "FieldCondition": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/FieldOperators"
+          },
+          {
+            "$ref": "#/components/schemas/JsonValue",
+            "if": {
+              "type": "object"
+            },
+            "then": {
+              "propertyNames": {
+                "not": {
+                  "pattern": "^\\$"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Filter": {
+        "type": "object",
+        "description": "Portable profile v1 filter. Object entries are AND; paths traverse objects only. Empty object matches all. At most 64 JSON nesting levels and 1 MiB.",
+        "properties": {
+          "$and": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Filter"
+            },
+            "maxItems": 1048576,
+            "minItems": 1
+          },
+          "$or": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Filter"
+            },
+            "maxItems": 1048576,
+            "minItems": 1
+          },
+          "$not": {
+            "$ref": "#/components/schemas/Filter"
+          }
+        },
+        "patternProperties": {
+          "^(?!\\$)": {
+            "$ref": "#/components/schemas/FieldCondition"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FilterJson": {
+        "type": "string",
+        "maxLength": 1048576,
+        "contentMediaType": "application/json",
+        "contentSchema": {
+          "$ref": "#/components/schemas/Filter"
+        },
+        "description": "JSON text containing a portable filter. Omitted/null means no filter; the string \"null\" is invalid. Preserve literal numeric kinds for structural equality. Content schemas are checked explicitly by the conformance tests.",
+        "x-max-utf8-bytes": 1048576,
+        "x-content-validation": "portable-filter-v1"
+      },
+      "CollectionSpec": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/CollectionName"
+          },
+          "dim": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "metric": {
+            "type": "string",
+            "enum": [
+              "cosine",
+              "l2",
+              "dot"
+            ],
+            "default": "cosine"
+          },
+          "quantization": {
+            "type": "string",
+            "enum": [
+              "f32",
+              "int8"
+            ],
+            "default": "f32"
+          }
+        },
+        "required": [
+          "name",
+          "dim"
+        ],
+        "additionalProperties": false
+      },
+      "CollectionRef": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/CollectionName"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/Identity"
+          }
+        },
+        "required": [
+          "name",
+          "identity"
+        ],
+        "additionalProperties": false
+      },
+      "CollectionDescriptor": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/CollectionName"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/Identity"
+          },
+          "dim": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "metric": {
+            "enum": [
+              "cosine",
+              "l2",
+              "dot"
+            ]
+          },
+          "quantization": {
+            "enum": [
+              "f32",
+              "int8"
+            ]
+          },
+          "creation_token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "name",
+          "identity",
+          "dim",
+          "metric",
+          "quantization",
+          "creation_token"
+        ]
+      },
+      "RecordInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/LogicalId"
+          },
+          "vector": {
+            "$ref": "#/components/schemas/Vector"
+          },
+          "metadata_json": {
+            "$ref": "#/components/schemas/MetadataJson"
+          }
+        },
+        "required": [
+          "id",
+          "vector"
+        ],
+        "additionalProperties": false
+      },
+      "Record": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/LogicalId"
+          },
+          "vector": {
+            "$ref": "#/components/schemas/Vector"
+          },
+          "metadata_json": {
+            "$ref": "#/components/schemas/MetadataJson"
+          }
+        },
+        "required": [
+          "id",
+          "vector",
+          "metadata_json"
+        ]
+      },
+      "Hit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/LogicalId"
+          },
+          "distance": {
+            "type": "number",
+            "description": "Finite smaller-is-closer distance. Cosine max(0,1-similarity), squared L2, or negative dot product."
+          },
+          "metadata_json": {
+            "$ref": "#/components/schemas/MetadataJson"
+          }
+        },
+        "required": [
+          "id",
+          "distance",
+          "metadata_json"
+        ]
+      },
+      "Commit": {
+        "type": "object",
+        "properties": {
+          "durable": {
+            "const": true
+          },
+          "sequence": {
+            "$ref": "#/components/schemas/Uint64"
+          }
+        },
+        "required": [
+          "durable",
+          "sequence"
+        ]
+      },
+      "Capabilities": {
+        "type": "object",
+        "properties": {
+          "backend": {
+            "const": "recern"
+          },
+          "profile": {
+            "const": "recern-vector/1"
+          },
+          "atomic_batches": {
+            "const": true
+          },
+          "consistent_export": {
+            "const": true
+          },
+          "quantization": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "const": "f32"
+              },
+              {
+                "const": "int8"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "max_batch": {
+            "const": 256
+          },
+          "exact_search": {
+            "const": true
+          },
+          "snapshot_pages": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "backend",
+          "profile",
+          "atomic_batches",
+          "consistent_export",
+          "quantization",
+          "max_batch",
+          "exact_search",
+          "snapshot_pages"
+        ],
+        "description": "snapshot_pages is false on the live client, true on a leased snapshot. Capability guarantees are scoped to this single-node contract."
+      },
+      "Limits": {
+        "type": "object",
+        "properties": {
+          "max_request_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 67108864
+          },
+          "max_response_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 67108864
+          },
+          "max_batch": {
+            "const": 256
+          },
+          "max_page_size": {
+            "const": 256
+          },
+          "max_k": {
+            "const": 10000
+          },
+          "max_dim": {
+            "const": 65536
+          },
+          "max_metadata_bytes": {
+            "const": 1048576
+          },
+          "max_filter_bytes": {
+            "const": 1048576
+          },
+          "max_json_depth": {
+            "const": 64
+          },
+          "max_collections": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "default_timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30000
+          },
+          "max_timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30000
+          },
+          "max_active_operations": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64
+          },
+          "max_queued_operations": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1024
+          },
+          "max_snapshots": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          },
+          "snapshot_ttl_ms": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 3600000
+          }
+        },
+        "required": [
+          "max_request_bytes",
+          "max_response_bytes",
+          "max_batch",
+          "max_page_size",
+          "max_k",
+          "max_dim",
+          "max_metadata_bytes",
+          "max_filter_bytes",
+          "max_json_depth",
+          "max_collections",
+          "default_timeout_ms",
+          "max_timeout_ms",
+          "max_active_operations",
+          "max_queued_operations",
+          "max_snapshots",
+          "snapshot_ttl_ms"
+        ]
+      },
+      "Info": {
+        "type": "object",
+        "properties": {
+          "api_version": {
+            "const": 1
+          },
+          "profile": {
+            "const": "recern-vector/1"
+          },
+          "server_version": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1
+          },
+          "database_id": {
+            "$ref": "#/components/schemas/Identity"
+          },
+          "sequence": {
+            "$ref": "#/components/schemas/Uint64"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/Limits"
+          }
+        },
+        "required": [
+          "api_version",
+          "profile",
+          "server_version",
+          "database_id",
+          "sequence",
+          "capabilities",
+          "limits"
+        ]
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "enum": [
+              "alive",
+              "ready"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "enum": [
+                  "InvalidArgument",
+                  "NotFound",
+                  "AlreadyExists",
+                  "Conflict",
+                  "Unsupported",
+                  "Unavailable",
+                  "PermissionDenied",
+                  "CorruptData"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "message": {
+                "type": "string",
+                "maxLength": 512,
+                "minLength": 1,
+                "description": "Sanitized explanation without request bodies, logical IDs, collection names, keys or local paths."
+              },
+              "request_id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              "write_outcome": {
+                "enum": [
+                  "not_applicable",
+                  "not_committed",
+                  "unknown"
+                ],
+                "description": "No error claims that a write committed. A lost or malformed response is always ambiguous for a submitted mutation."
+              }
+            },
+            "required": [
+              "code",
+              "reason",
+              "message",
+              "request_id",
+              "write_outcome"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ListCollectionsRequest": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotId"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "ListCollectionsResponse": {
+        "type": "object",
+        "properties": {
+          "collections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CollectionDescriptor"
+            },
+            "maxItems": 10000
+          },
+          "sequence": {
+            "$ref": "#/components/schemas/Uint64"
+          }
+        },
+        "required": [
+          "collections",
+          "sequence"
+        ]
+      },
+      "CreateCollectionRequest": {
+        "type": "object",
+        "properties": {
+          "spec": {
+            "$ref": "#/components/schemas/CollectionSpec"
+          },
+          "creation_token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "spec"
+        ],
+        "additionalProperties": false
+      },
+      "CreateCollectionResponse": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/CollectionDescriptor"
+          },
+          "commit": {
+            "$ref": "#/components/schemas/Commit"
+          }
+        },
+        "required": [
+          "collection",
+          "commit"
+        ]
+      },
+      "DescribeCollectionRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/CollectionName"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotId"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "DescribeCollectionResponse": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/CollectionDescriptor"
+          },
+          "sequence": {
+            "$ref": "#/components/schemas/Uint64"
+          }
+        },
+        "required": [
+          "collection",
+          "sequence"
+        ]
+      },
+      "DropCollectionRequest": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/CollectionRef"
+          }
+        },
+        "required": [
+          "collection"
+        ],
+        "additionalProperties": false
+      },
+      "DropCollectionResponse": {
+        "type": "object",
+        "properties": {
+          "commit": {
+            "$ref": "#/components/schemas/Commit"
+          }
+        },
+        "required": [
+          "commit"
+        ]
+      },
+      "UpsertRequest": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/CollectionRef"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordInput"
+            },
+            "maxItems": 256
+          }
+        },
+        "required": [
+          "collection",
+          "records"
+        ],
+        "additionalProperties": false
+      },
+      "UpsertResponse": {
+        "type": "object",
+        "properties": {
+          "written": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 256
+          },
+          "commit": {
+            "$ref": "#/components/schemas/Commit"
+          }
+        },
+        "required": [
+          "written",
+          "commit"
+        ]
+      },
+      "GetRecordRequest": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/CollectionRef"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotId"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "id": {
+            "$ref": "#/components/schemas/LogicalId"
+          }
+        },
+        "required": [
+          "collection",
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "GetRecordResponse": {
+        "type": "object",
+        "properties": {
+          "record": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Record"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "sequence": {
+            "$ref": "#/components/schemas/Uint64"
+          }
+        },
+        "required": [
+          "record",
+          "sequence"
+        ]
+      },
+      "DeleteRecordRequest": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/CollectionRef"
+          },
+          "id": {
+            "$ref": "#/components/schemas/LogicalId"
+          }
+        },
+        "required": [
+          "collection",
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "DeleteRecordResponse": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "boolean"
+          },
+          "commit": {
+            "$ref": "#/components/schemas/Commit"
+          }
+        },
+        "required": [
+          "deleted",
+          "commit"
+        ]
+      },
+      "CountRequest": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/CollectionRef"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotId"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "collection"
+        ],
+        "additionalProperties": false
+      },
+      "CountResponse": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "$ref": "#/components/schemas/Uint64"
+          },
+          "sequence": {
+            "$ref": "#/components/schemas/Uint64"
+          }
+        },
+        "required": [
+          "count",
+          "sequence"
+        ]
+      },
+      "PageRequest": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/CollectionRef"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotId"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 256,
+            "default": 100
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Cursor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "collection"
+        ],
+        "additionalProperties": false
+      },
+      "PageResponse": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Record"
+            },
+            "maxItems": 256
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Cursor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "sequence": {
+            "$ref": "#/components/schemas/Uint64"
+          }
+        },
+        "required": [
+          "records",
+          "next_cursor",
+          "sequence"
+        ]
+      },
+      "SearchRequest": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/CollectionRef"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SnapshotId"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "query": {
+            "$ref": "#/components/schemas/Vector"
+          },
+          "k": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000,
+            "default": 10
+          },
+          "filter_json": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FilterJson"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "exact": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "collection",
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Hit"
+            },
+            "maxItems": 10000
+          },
+          "sequence": {
+            "$ref": "#/components/schemas/Uint64"
+          }
+        },
+        "required": [
+          "hits",
+          "sequence"
+        ]
+      },
+      "CreateSnapshotRequest": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "CreateSnapshotResponse": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "$ref": "#/components/schemas/SnapshotId"
+          },
+          "database_id": {
+            "$ref": "#/components/schemas/Identity"
+          },
+          "sequence": {
+            "$ref": "#/components/schemas/Uint64"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "database_id",
+          "sequence",
+          "expires_at",
+          "capabilities"
+        ]
+      },
+      "ReleaseSnapshotRequest": {
+        "type": "object",
+        "properties": {
+          "snapshot_id": {
+            "$ref": "#/components/schemas/SnapshotId"
+          }
+        },
+        "required": [
+          "snapshot_id"
+        ],
+        "additionalProperties": false
+      },
+      "ReleaseSnapshotResponse": {
+        "type": "object",
+        "properties": {
+          "released": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "released"
+        ]
+      }
+    },
+    "responses": {
+      "Error400": {
+        "description": "Malformed JSON, duplicate keys, invalid fields, types, Unicode, vectors, filters or cursor.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "InvalidArgument",
+                "reason": "invalid_argument",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "not_committed"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "InvalidArgument"
+        ]
+      },
+      "Error401": {
+        "description": "Missing or invalid bearer token; includes WWW-Authenticate: Bearer.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          },
+          "WWW-Authenticate": {
+            "schema": {
+              "const": "Bearer"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "PermissionDenied",
+                "reason": "unauthenticated",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "not_committed"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "PermissionDenied"
+        ]
+      },
+      "Error403": {
+        "description": "Authenticated request forbidden by deployment policy.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "PermissionDenied",
+                "reason": "permission_denied",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "not_committed"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "PermissionDenied"
+        ]
+      },
+      "Error404": {
+        "description": "Collection/snapshot or API route not found. A missing record returns HTTP 200 with record: null.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "NotFound",
+                "reason": "not_found",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "not_committed"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "NotFound"
+        ]
+      },
+      "Error405": {
+        "description": "The route does not accept this method; includes Allow.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          },
+          "Allow": {
+            "schema": {
+              "type": "string",
+              "maxLength": 128,
+              "minLength": 1
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "InvalidArgument",
+                "reason": "method_not_allowed",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "not_committed"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "InvalidArgument"
+        ]
+      },
+      "Error408": {
+        "description": "Request body deadline elapsed before execution.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "Unavailable",
+                "reason": "request_timeout",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "not_committed"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "Unavailable"
+        ]
+      },
+      "Error409": {
+        "description": "Name already exists, stale generation or cursor, or conflicting creation-token replay.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "AlreadyExists",
+                "reason": "conflict",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "not_committed"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "AlreadyExists",
+          "Conflict"
+        ]
+      },
+      "Error413": {
+        "description": "Request is too large or the complete response cannot fit the response cap; never truncate search hits.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "InvalidArgument",
+                "reason": "size_limit",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "not_committed"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "InvalidArgument",
+          "Unsupported"
+        ]
+      },
+      "Error415": {
+        "description": "Use application/json in UTF-8 with no Content-Encoding.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "InvalidArgument",
+                "reason": "unsupported_media_type",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "not_committed"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "InvalidArgument"
+        ]
+      },
+      "Error422": {
+        "description": "Unsupported profile, precision or operation capability.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "Unsupported",
+                "reason": "unsupported",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "not_committed"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "Unsupported"
+        ]
+      },
+      "Error429": {
+        "description": "Bounded operation queue or snapshot capacity is full. Includes Retry-After, without authorizing a write retry.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          },
+          "Retry-After": {
+            "schema": {
+              "type": "string",
+              "maxLength": 10,
+              "pattern": "^[0-9]+$"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "Unavailable",
+                "reason": "overloaded",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "not_committed"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "Unavailable"
+        ]
+      },
+      "Error500": {
+        "description": "Invalid durable state or unexpected internal failure, with sanitized details.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "CorruptData",
+                "reason": "internal_error",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "unknown"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "CorruptData",
+          "Unavailable"
+        ]
+      },
+      "Error503": {
+        "description": "Recovery, shutdown, storage failure or unavailable service.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "Unavailable",
+                "reason": "unavailable",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "unknown"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "Unavailable"
+        ]
+      },
+      "Error504": {
+        "description": "Operation deadline elapsed. Submitted writes may have committed.",
+        "headers": {
+          "X-Request-ID": {
+            "description": "Server-generated correlation ID. Matches error.request_id on errors.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          "Cache-Control": {
+            "schema": {
+              "const": "no-store"
+            },
+            "description": "Database and snapshot responses must not be cached."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "Unavailable",
+                "reason": "deadline_exceeded",
+                "message": "The operation could not be completed.",
+                "request_id": "b759c95b-fc55-468e-9675-aef798b37dab",
+                "write_outcome": "unknown"
+              }
+            }
+          }
+        },
+        "x-error-codes": [
+          "Unavailable"
+        ]
+      }
+    }
+  }
+}

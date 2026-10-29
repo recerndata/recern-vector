@@ -12,6 +12,33 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  server:
+    name: HTTP server (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, binary: target/debug/recern-vector-server }
+          - { os: macos-latest, binary: target/debug/recern-vector-server }
+          - { os: windows-latest, binary: target/debug/recern-vector-server.exe }
+    runs-on: ${{ matrix.os }}
+    env:
+      RECERN_TEST_SERVER_BIN: ${{ github.workspace }}/${{ matrix.binary }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: cargo build --locked -p recern-vector-server
+      - name: Install bindings and contract test tools
+        shell: bash
+        run: |
+          python -m pip install "maturin>=1.9,<2" pytest numpy -r api/requirements.txt
+          python -m maturin build --release --manifest-path crates/recern-vector-py/Cargo.toml --out dist
+          python -m pip install --no-index --find-links dist recern-vector
+      - run: python -m pytest api/tests -q
+
   rust:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -52,8 +79,10 @@ jobs:
           python -m venv .venv
           . .venv/bin/activate
           pip install "maturin>=1.9,<2" pytest numpy
+          pip install -r ../../api/requirements.txt
           maturin develop --release
           pytest
+          python -m pytest ../../api/tests -q
           python ../../examples/python/quickstart.py
           python ../../examples/python/inspect_and_tune.py
           python ../../examples/python/portable.py --path "$RUNNER_TEMP/portable.rvec"
@@ -63,6 +92,7 @@ jobs:
           node-version: 22
       - name: Verify Python, Node and CLI interoperability
         run: |
+          node api/tests/wire-roundtrip.mjs
           cargo build --release -p recern-vector-cli
           npm run build --prefix crates/recern-vector-node
           crates/recern-vector-py/.venv/bin/python tests/interop.py

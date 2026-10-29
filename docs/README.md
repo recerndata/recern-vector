@@ -1,6 +1,6 @@
 # Recern Vector documentation
 
-Recern Vector is an embedded vector database with a local snapshot and a WAL; there is no server. You open it from Python, Rust, Node.js or the command line, add vectors with JSON metadata, and search them with an HNSW index. Every search can report how it ran, and every collection can report the state of its index and measure its own recall.
+The published Recern Vector 0.3.0 is an embedded vector database with a local snapshot and a WAL. You open it from Python, Rust, Node.js or the command line, add vectors with JSON metadata, and search them with an HNSW index. Every search can report how it ran, and every collection can report the state of its index and measure its own recall. A separate [single-node HTTP server](server.md) is available from source as a 0.4.0 development milestone; portable remote clients are the next stage.
 
 > **Version 0.3.0.** Portable Python API and embedded-to-Qdrant migration, with stable format 2, format-1 readers and existing native APIs retained.
 
@@ -26,6 +26,8 @@ Recern Vector is an embedded vector database with a local snapshot and a WAL; th
 | [Inspecting and tuning](inspection.md) | `explain`, `stats`, `estimate_recall`, choosing `ef`, `compact` |
 | [Python API](python.md) | Every class, method and exception in the `recern_vector` package |
 | [Portable Python API](portable-api.md) | Profile v1, embedded/Qdrant backends, shared semantics and capabilities |
+| [HTTP API contract (0.4.0 draft)](http-api.md) | Versioned OpenAPI, wire values, authentication, durable writes, generations and snapshot leases |
+| [Development server](server.md) | Build and run, source milestone status, limits, single-writer ownership, recovery and TLS proxy guidance |
 | [Export and migration](migration.md) | Consistent snapshots, JSONL manifests, dry-run, resume and verification |
 | [Rust API](rust.md) | The `recern-vector` crate |
 | [Node.js](nodejs.md) | Native builds, TypeScript definitions and asynchronous search |

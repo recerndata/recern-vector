@@ -116,3 +116,43 @@ fn bounded_record_pages_skip_replacements_and_tombstones() {
     db.save().unwrap();
     assert_eq!(snapshot.collection("docs").unwrap().len(), 6);
 }
+
+#[test]
+fn borrowed_search_results_match_owned_hits_and_durable_sequence() {
+    let file = Temp::new("borrowed");
+    let mut db = Database::create(&file.0).unwrap();
+    let initial = db.sequence();
+    let col = db
+        .create_collection("docs", CollectionConfig::new(2, Metric::Cosine))
+        .unwrap();
+    for (id, vector) in [("one", [1.0, 0.0]), ("two", [0.0, 1.0])] {
+        col.upsert(
+            id,
+            &vector,
+            Some(serde_json::json!({"n":18446744073709551615u64,"f":1.0})),
+        )
+        .unwrap();
+    }
+    let options = SearchOptions::default().exact();
+    let owned = col.search(&[1.0, 0.0], 2, &options).unwrap();
+    let mut borrowed = Vec::new();
+    col.visit_search(&[1.0, 0.0], 2, &options, |id, distance, metadata| {
+        borrowed.push((id, distance, metadata));
+        Ok(())
+    })
+    .unwrap();
+    assert_eq!(owned.len(), borrowed.len());
+    for (owned, (id, distance, metadata)) in owned.iter().zip(borrowed) {
+        assert_eq!(owned.id, id);
+        assert_eq!(owned.distance, distance);
+        assert_eq!(owned.metadata.as_ref(), metadata);
+    }
+    db.save().unwrap();
+    assert!(db.sequence() > initial);
+    let saved = db.sequence();
+    db.save().unwrap();
+    assert_eq!(db.sequence(), saved);
+    db.checkpoint().unwrap();
+    assert_eq!(db.sequence(), saved);
+    assert_eq!(Database::open_read_only(&file.0).unwrap().sequence(), saved);
+}

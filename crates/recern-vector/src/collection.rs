@@ -140,6 +140,14 @@ impl fmt::Display for Strategy {
     }
 }
 
+struct SearchCandidates {
+    candidates: Vec<Candidate>,
+    strategy: Strategy,
+    ef: Option<usize>,
+    counters: Counters,
+    selectivity: Option<f64>,
+}
+
 /// Search results together with the work it took to produce them.
 #[derive(Clone, Debug)]
 pub struct SearchReport {
@@ -425,6 +433,46 @@ impl Collection {
         options: &SearchOptions,
     ) -> Result<SearchReport> {
         let start = Instant::now();
+        let found = self.search_candidates(query, k, options)?;
+        Ok(SearchReport {
+            hits: found.candidates.into_iter().map(|c| self.hit(c)).collect(),
+            strategy: found.strategy,
+            ef: found.ef,
+            visited: found.counters.visited,
+            distance_computations: found.counters.distance_computations,
+            filter_selectivity: found.selectivity,
+            elapsed: start.elapsed(),
+        })
+    }
+
+    /// Visits borrowed search results without cloning IDs or metadata. The
+    /// caller can bound response serialization before allocating large hits.
+    /// Candidate order matches `search`; no mutation may occur during the visit.
+    pub fn visit_search<'a>(
+        &'a self,
+        query: &[f32],
+        k: usize,
+        options: &SearchOptions,
+        mut visitor: impl FnMut(&'a str, f32, Option<&'a Value>) -> Result<()>,
+    ) -> Result<()> {
+        for candidate in self.search_candidates(query, k, options)?.candidates {
+            let node = candidate.id as usize;
+            let distance = if self.config.metric == Metric::Cosine {
+                candidate.dist.max(0.0)
+            } else {
+                candidate.dist
+            };
+            visitor(&self.ids[node], distance, self.metadata[node].as_ref())?;
+        }
+        Ok(())
+    }
+
+    fn search_candidates(
+        &self,
+        query: &[f32],
+        k: usize,
+        options: &SearchOptions,
+    ) -> Result<SearchCandidates> {
         if k == 0 {
             return Err(Error::InvalidArgument("k must be greater than zero".into()));
         }
@@ -473,14 +521,12 @@ impl Collection {
             }
         };
 
-        Ok(SearchReport {
-            hits: found.into_iter().map(|c| self.hit(c)).collect(),
+        Ok(SearchCandidates {
+            candidates: found,
             strategy,
             ef,
-            visited: counters.visited,
-            distance_computations: counters.distance_computations,
-            filter_selectivity: selectivity,
-            elapsed: start.elapsed(),
+            counters,
+            selectivity,
         })
     }
 

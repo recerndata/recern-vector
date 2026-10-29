@@ -82,8 +82,10 @@ jobs:
         shell: bash
         run: |
           python -m pip install pytest numpy
+          python -m pip install -r api/requirements.txt
           python -m pip install --no-index --find-links dist recern-vector
           python -m pytest crates/recern-vector-py/tests
+          python -m pytest api/tests -q
 
   portable-contract:
     needs: wheels
@@ -111,8 +113,10 @@ jobs:
       - name: Verify the installed wheel against authenticated Qdrant
         run: |
           python -m pip install pytest numpy
+          python -m pip install -r api/requirements.txt
           python -m pip install --no-index --find-links dist recern-vector
           python -m pytest crates/recern-vector-py/tests/test_portable.py crates/recern-vector-py/tests/test_portable_transport.py
+          python -m pytest api/tests -q
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v') || inputs.publish

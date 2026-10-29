@@ -27,6 +27,8 @@ PAGES = [
     ("inspection", "inspection.md", "Use explain, stats and estimate_recall to see how Recern Vector searches run and to choose ef."),
     ("python", "python.md", "Reference for the recern_vector Python package: Database, Collection, results and exceptions."),
     ("portable-api", "portable-api.md", "Portable Python API v1 for embedded Recern and Qdrant: records, filters, distances, capabilities and errors."),
+    ("http-api", "http-api.md", "Draft HTTP/OpenAPI contract implemented by the Recern Vector development server: wire values, authentication, durable acknowledgements and snapshot leases."),
+    ("server", "server.md", "Build the Recern Vector single-node development server from source: authentication, limits, durable writes, recovery, snapshot leases and TLS proxy guidance. Published packages remain 0.3.0."),
     ("migration", "migration.md", "Versioned snapshots and JSONL exports, dry-run, resumable imports and verification for Recern Vector."),
     ("rust", "rust.md", "A map of the recern-vector Rust crate: Database, Collection, filters and introspection."),
     ("nodejs", "nodejs.md", "Install native Recern Vector 0.3.0 Node.js builds, use TypeScript definitions and run asynchronous vector searches."),

@@ -123,6 +123,15 @@ impl Database {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         storage::header(&bytes).0
     }
+
+    /// Last durable commit sequence, including committed WAL frames.
+    pub fn sequence(&self) -> u64 {
+        let bytes = self
+            .persistence
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        storage::header(&bytes).1
+    }
     fn writable(&self) -> Result<()> {
         if self.read_only {
             Err(Error::InvalidArgument("database is read-only".into()))
