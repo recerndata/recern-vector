@@ -20,7 +20,7 @@ async function server(t, dir) {
   t.after(async () => { if (child.exitCode === null) { child.kill(); await new Promise(resolve => child.once('exit',resolve)); } });
   return new Promise((resolve,reject) => {
     const timer = setTimeout(()=>reject(Error('server startup timeout')),10000);
-    child.stderr.on('data',data=> { log += data; const match = log.match(/listening on (127\.0\.0\.1:\d+)/); if (match) {clearTimeout(timer); resolve('http://'+match[1]);} });
+    child.stderr.on('data',data=> { log += data; const match = log.match(/listening on (127\.0\.0\.1:\d+)\r?\n/); if (match) {clearTimeout(timer); resolve('http://'+match[1]);} });
     child.once('error',e=>{clearTimeout(timer);reject(e);});
     child.once('exit',()=>{clearTimeout(timer);reject(Error('server exited: '+log));});
   });
