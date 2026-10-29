@@ -17,9 +17,11 @@ try {
   const manifest=JSON.parse(fs.readFileSync(path.join(dir,'package/package.json'),'utf8'));
   assert.equal(manifest.version,process.env.RECERN_EXPECT_VERSION || '0.4.0');
   for(const file of ['portable/index.js','portable/index.d.ts','recern_vector.node']) assert.ok(fs.existsSync(path.join(dir,'package',file)));
-  const native=require(path.join(dir,'package')); assert.equal(native.version(),manifest.version);
   const dbPath=path.join(dir,'package.rvec');
-  const code=`const {Client}=require(${JSON.stringify(path.join(dir,'package/portable'))});
+  // Keep the native DLL in the child so Windows can remove it after child exit.
+  const code=`const native=require(${JSON.stringify(path.join(dir,'package'))});
+    require('node:assert/strict').equal(native.version(),${JSON.stringify(manifest.version)});
+    const {Client}=require(${JSON.stringify(path.join(dir,'package/portable'))});
     (async()=>{const client=await Client.embedded(${JSON.stringify(dbPath)});
       const col=await client.createCollection('package',{dim:2});
       await col.upsert('id',[1,0],'{"u64":18446744073709551615,"float":[1.0]}');
