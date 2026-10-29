@@ -28,11 +28,13 @@ async function server(t, dir) {
 for (const backend of ['embedded','remote','qdrant']) {
   test(`portable ${backend}: frozen profile and generation handles`,{skip:backend === 'remote' && !process.env.RECERN_TEST_SERVER_BIN || backend === 'qdrant' && !process.env.RECERN_TEST_QDRANT_URL},async t=> {
     const dir=fs.mkdtempSync(path.join(os.tmpdir(),'recern-node-portable-'));
-    t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
     const client=backend === 'embedded' ? await Client.embedded(path.join(dir,'native.rvec'))
       : backend === 'remote' ? await Client.remote(await server(t,dir),{apiKey:key})
       : await Client.qdrant(process.env.RECERN_TEST_QDRANT_URL,{apiKey:process.env.RECERN_TEST_QDRANT_API_KEY,namespace:'node_'+randomUUID().replaceAll('-','').slice(0,16)});
     t.after(()=>client.close());
+    // after hooks run in registration order. In particular Windows must
+    // release the server ownership lock before deleting its directory.
+    t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
     for (const metric of ['cosine','l2','dot']) {
       const c=await client.createCollection('collection/世界/'+metric,{dim:2,metric});
       assert.equal(await c.upsertMany(fixture.records.map((r,i)=>({...r,metadataJson:JSON.stringify(rawFixture.records[i].metadata)}))),fixture.records.length);
