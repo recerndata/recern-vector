@@ -88,17 +88,25 @@ def test_private_ca_is_verified_by_all_clients(tmp_path):
         source.create_collection("interop",2).upsert("python/東京\n\0",[1,0],
             {"u64":2**64-1,"float":[1.0],"integer":[1]})
     cert, key=tmp_path/"ca.pem",tmp_path/"server-key.pem"
+    # OpenSSL 1.1 appends -addext to ambient x509_extensions, which can
+    # duplicate basicConstraints/SKI and create an invalid trust anchor.
+    ca_config=tmp_path/"ca.cnf"
+    ca_config.write_text("[req]\nprompt=no\ndistinguished_name=dn\nx509_extensions=ca\n"
+        "[dn]\nCN=Recern test CA\n[ca]\nbasicConstraints=critical,CA:TRUE\n"
+        "keyUsage=critical,keyCertSign,cRLSign\nsubjectKeyIdentifier=hash\n")
     subprocess.run(["openssl","req","-x509","-newkey","rsa:2048","-nodes","-days","1",
-        "-subj","/CN=Recern test CA","-addext","basicConstraints=critical,CA:TRUE",
-        "-addext","keyUsage=critical,keyCertSign,cRLSign","-addext","subjectKeyIdentifier=hash",
+        "-sha256","-config",str(ca_config),
         "-keyout",str(tmp_path/"ca-key.pem"),"-out",str(cert)],capture_output=True,check=True)
     subprocess.run(["openssl","req","-new","-newkey","rsa:2048","-nodes","-subj","/CN=localhost",
+        "-config",str(ca_config),
         "-keyout",str(key),"-out",str(tmp_path/"leaf.csr")],capture_output=True,check=True)
     extensions=tmp_path/"extensions.cnf"
     extensions.write_text("basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:localhost,IP:127.0.0.1\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid,issuer\n")
     subprocess.run(["openssl","x509","-req","-in",str(tmp_path/"leaf.csr"),"-CA",str(cert),
         "-CAkey",str(tmp_path/"ca-key.pem"),"-CAcreateserial","-days","1","-sha256",
         "-extfile",str(extensions),"-out",str(tmp_path/"server.pem")],capture_output=True,check=True)
+    subprocess.run(["openssl","verify","-CAfile",str(cert),str(tmp_path/"server.pem")],
+        capture_output=True,check=True)
     class Proxy(BaseHTTPRequestHandler):
         def dispatch(self):
             body=self.rfile.read(int(self.headers.get("Content-Length","0"))) if self.command == "POST" else None

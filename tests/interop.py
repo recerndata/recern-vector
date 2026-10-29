@@ -31,4 +31,4 @@ with tempfile.TemporaryDirectory(prefix='recern-interop-') as directory:
     subprocess.run([str(cli), 'checkpoint', str(path)], check=True)
     assert len(rv.Database.open_read_only(path)['q']) == 2
     assert version('recern-vector') == expected_version
-    print(f'PASS: Python → Node → Rust CLI → Python share int8, WAL and checkpoint ({expected_version})')
+    print(f'PASS: Python -> Node -> Rust CLI -> Python share int8, WAL and checkpoint ({expected_version})')
