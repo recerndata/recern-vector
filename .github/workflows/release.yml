@@ -6,7 +6,7 @@ permissions:
   actions: read
 jobs:
   tls:
-    runs-on: macos-14
+    runs-on: macos-15-intel
     env:
       RECERN_TEST_SERVER_BIN: ${{ github.workspace }}/installed-native/bin/recern-vector-server
       RECERN_TEST_CLIENT_BIN: ${{ github.workspace }}/test-tools/portable
@@ -21,19 +21,19 @@ jobs:
           node-version: 22
       - uses: actions/download-artifact@v4
         with:
-          name: wheel-macos-14-aarch64
+          name: wheel-macos-15-intel-x86_64
           run-id: 40875337291
           github-token: ${{ github.token }}
           path: dist
       - uses: actions/download-artifact@v4
         with:
-          name: native-darwin-arm64
+          name: native-darwin-x64
           run-id: 40875337291
           github-token: ${{ github.token }}
           path: native-dist
       - uses: actions/download-artifact@v4
         with:
-          name: test-tools-darwin-arm64
+          name: test-tools-darwin-x64
           run-id: 40875337291
           github-token: ${{ github.token }}
           path: test-tools
@@ -41,9 +41,9 @@ jobs:
         shell: bash
         run: |
           mkdir installed-native
-          tar -xzf native-dist/recern-vector-0.4.0-darwin-arm64.tar.gz --strip-components=1 -C installed-native
+          tar -xzf native-dist/recern-vector-0.4.0-darwin-x64.tar.gz --strip-components=1 -C installed-native
           chmod +x test-tools/* installed-native/bin/*
-          npm install --ignore-scripts --no-audit --no-fund --prefix "$GITHUB_WORKSPACE/installed-node" "$GITHUB_WORKSPACE/native-dist/recern-vector-0.4.0-node-darwin-arm64.tgz"
+          npm install --ignore-scripts --no-audit --no-fund --prefix "$GITHUB_WORKSPACE/installed-node" "$GITHUB_WORKSPACE/native-dist/recern-vector-0.4.0-node-darwin-x64.tgz"
           python -m pip install pytest numpy -r api/requirements.txt
           python -m pip install --no-index --find-links dist recern-vector
           python - <<'PY'
