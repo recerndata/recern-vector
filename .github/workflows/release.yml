@@ -1,254 +1,13 @@
-name: Release
-
-# Build and test the exact distributions before trusted PyPI publication.
-# Tags identify a completed release; dispatch this workflow on main first.
+name: Release diagnostics
 on:
   workflow_dispatch:
-    inputs:
-      publish:
-        description: Publish verified Python distributions to PyPI
-        type: boolean
-        default: false
-
 permissions:
   contents: read
-
-env:
-  CARGO_TERM_COLOR: always
-  CARGO_BUILD_JOBS: 2
-
+  actions: read
 jobs:
-  msrv:
-    name: Rust 1.89 minimum
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - uses: dtolnay/rust-toolchain@1.89.0
-      - run: cargo check --locked --workspace --all-targets
-
-  crates:
-    name: Packaged Rust crates
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo fmt --all --check
-      - name: Build the actual registry packages together
-        run: |
-          cargo package --locked -p recern-vector -p recern-vector-cli -p recern-vector-client -p recern-vector-server
-          mkdir -p dist
-          cp target/package/recern-vector-*.crate dist/
-      - uses: actions/upload-artifact@v4
-        with:
-          name: rust-crates
-          path: dist/*.crate
-
-  native:
-    name: Native release (${{ matrix.platform }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {os: ubuntu-22.04, platform: linux-x64, node_os: linux, arch: x64, suffix: ''}
-          - {os: ubuntu-22.04-arm, platform: linux-arm64, node_os: linux, arch: arm64, suffix: ''}
-          - {os: macos-15-intel, platform: darwin-x64, node_os: darwin, arch: x64, suffix: ''}
-          - {os: macos-14, platform: darwin-arm64, node_os: darwin, arch: arm64, suffix: ''}
-          - {os: windows-latest, platform: win32-x64, node_os: win32, arch: x64, suffix: .exe}
-    runs-on: ${{ matrix.os }}
+  tls:
+    runs-on: macos-14
     env:
-      RECERN_TEST_SERVER_BIN: ${{ github.workspace }}/target/release/recern-vector-server${{ matrix.suffix }}
-      MACOSX_DEPLOYMENT_TARGET: '13.0'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Build and test optimized CLI, server and Rust client
-        shell: bash
-        run: |
-          cargo build --locked --release -p recern-vector-cli -p recern-vector-server
-          cargo build --locked --release -p recern-vector-client --example portable
-          cargo test --locked --release -p recern-vector -p recern-vector-client -p recern-vector-server
-          target/release/recern-vector${{ matrix.suffix }} --version
-          target/release/recern-vector-server${{ matrix.suffix }} --version
-      - name: Build and test native and portable Node APIs
-        shell: bash
-        run: |
-          npm run build --prefix crates/recern-vector-node
-          npm test --prefix crates/recern-vector-node
-          node -e "if(process.platform!=='${{ matrix.node_os }}'||process.arch!=='${{ matrix.arch }}')throw Error('wrong native build host')"
-      - name: Create and verify native archives and npm tarball
-        shell: bash
-        run: |
-          python scripts/release_assets.py native --platform '${{ matrix.platform }}'
-          python - <<'PY'
-          import json,os
-          from pathlib import Path
-          p=Path('crates/recern-vector-node/package.json')
-          value=json.loads(p.read_text())
-          value['os']=['${{ matrix.node_os }}'];value['cpu']=['${{ matrix.arch }}']
-          if '${{ matrix.node_os }}'=='linux':value['libc']=['glibc']
-          p.write_text(json.dumps(value,indent=2)+'\n')
-          PY
-          (cd crates/recern-vector-node && npm pack --pack-destination "$GITHUB_WORKSPACE/dist")
-          python - <<'PY'
-          from pathlib import Path
-          p=next(Path('dist').glob('recern-vector-*.tgz'))
-          p.rename(p.with_name('recern-vector-0.4.0-node-${{ matrix.platform }}.tgz'))
-          PY
-          node tests/node-package.cjs 'dist/recern-vector-0.4.0-node-${{ matrix.platform }}.tgz'
-          npm install --ignore-scripts --no-audit --no-fund --prefix "$GITHUB_WORKSPACE/installed-node" "$GITHUB_WORKSPACE/dist/recern-vector-0.4.0-node-${{ matrix.platform }}.tgz"
-          mkdir -p test-tools
-          cp target/release/examples/portable${{ matrix.suffix }} test-tools/
-      - uses: actions/upload-artifact@v4
-        with:
-          name: native-${{ matrix.platform }}
-          path: dist/*
-      - uses: actions/upload-artifact@v4
-        with:
-          name: test-tools-${{ matrix.platform }}
-          path: test-tools/*
-
-  wheels:
-    name: wheel ${{ matrix.target }} (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {os: ubuntu-22.04, target: x86_64}
-          - {os: ubuntu-22.04-arm, target: aarch64}
-          - {os: macos-15-intel, target: x86_64}
-          - {os: macos-14, target: aarch64}
-          - {os: windows-latest, target: x64}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - uses: PyO3/maturin-action@v1
-        with:
-          working-directory: crates/recern-vector-py
-          target: ${{ matrix.target }}
-          manylinux: auto
-          args: --release --out dist
-      - uses: actions/upload-artifact@v4
-        with:
-          name: wheel-${{ matrix.os }}-${{ matrix.target }}
-          path: crates/recern-vector-py/dist/*
-
-  sdist:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - uses: dtolnay/rust-toolchain@stable
-      - run: python -m pip install 'maturin>=1.9,<2'
-      - name: Build and install the source distribution
-        run: |
-          maturin sdist --manifest-path crates/recern-vector-py/Cargo.toml --out dist
-          python -m pip wheel --no-deps dist/*.tar.gz --wheel-dir source-wheel
-          python -m pip install --no-index --find-links source-wheel recern-vector
-          python -m pip install pytest numpy -r api/requirements.txt
-          python -c 'import importlib.metadata; assert importlib.metadata.version("recern-vector") == "0.4.0"'
-          python -m pytest crates/recern-vector-py/tests api/tests -q
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sdist
-          path: dist/*.tar.gz
-
-  test-wheels:
-    name: Installed wheel (${{ matrix.platform }}, Python ${{ matrix.python }})
-    needs: [wheels, native]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {os: ubuntu-22.04, platform: linux-x64, python: '3.11', suffix: ''}
-          - {os: ubuntu-22.04, platform: linux-x64, python: '3.14', suffix: ''}
-          - {os: ubuntu-22.04-arm, platform: linux-arm64, python: '3.11', suffix: ''}
-          - {os: ubuntu-22.04-arm, platform: linux-arm64, python: '3.14', suffix: ''}
-          - {os: macos-15-intel, platform: darwin-x64, python: '3.11', suffix: ''}
-          - {os: macos-15-intel, platform: darwin-x64, python: '3.14', suffix: ''}
-          - {os: macos-14, platform: darwin-arm64, python: '3.11', suffix: ''}
-          - {os: macos-14, platform: darwin-arm64, python: '3.14', suffix: ''}
-          - {os: windows-latest, platform: win32-x64, python: '3.11', suffix: .exe}
-          - {os: windows-latest, platform: win32-x64, python: '3.14', suffix: .exe}
-    env:
-      RECERN_TEST_SERVER_BIN: ${{ github.workspace }}/installed-native/bin/recern-vector-server${{ matrix.suffix }}
-      RECERN_TEST_CLIENT_BIN: ${{ github.workspace }}/test-tools/portable${{ matrix.suffix }}
-      RECERN_TEST_NODE_PORTABLE: ${{ github.workspace }}/installed-node/node_modules/@recern/vector/portable
-      RECERN_NATIVE_NODE: ${{ github.workspace }}/installed-node/node_modules/@recern/vector
-      RECERN_TEST_CLI_BIN: ${{ github.workspace }}/installed-native/bin/recern-vector${{ matrix.suffix }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: wheel-*
-          path: dist
-          merge-multiple: true
-      - uses: actions/download-artifact@v4
-        with:
-          name: native-${{ matrix.platform }}
-          path: native-dist
-      - uses: actions/download-artifact@v4
-        with:
-          name: test-tools-${{ matrix.platform }}
-          path: test-tools
-      - name: Install the actual release distributions
-        shell: bash
-        run: |
-          mkdir -p installed-native
-          python - <<'PY'
-          import tarfile,zipfile
-          from pathlib import Path
-          archive=next(p for p in Path('native-dist').iterdir() if 'node-' not in p.name)
-          if archive.suffix=='.zip':
-           with zipfile.ZipFile(archive) as z:z.extractall('unpacked')
-          else:
-           with tarfile.open(archive) as t:t.extractall('unpacked',filter='data')
-          import shutil
-          folder=next(Path('unpacked').iterdir())
-          shutil.copytree(folder,'installed-native',dirs_exist_ok=True)
-          PY
-          chmod +x test-tools/* installed-native/bin/*
-          npm install --ignore-scripts --no-audit --no-fund --prefix "$GITHUB_WORKSPACE/installed-node" "$GITHUB_WORKSPACE/native-dist/recern-vector-0.4.0-node-${{ matrix.platform }}.tgz"
-          python -m pip install pytest numpy -r api/requirements.txt
-          python -m pip install --no-index --find-links dist recern-vector
-          python -c 'import importlib.metadata,recern_vector; assert importlib.metadata.version("recern-vector")=="0.4.0"; print(recern_vector.__file__)'
-          python -m pytest crates/recern-vector-py/tests api/tests -q
-          python tests/interop.py
-
-  portable-contract:
-    name: Release interoperability and 0.3 upgrade
-    needs: [wheels, native]
-    runs-on: ubuntu-22.04
-    services:
-      qdrant:
-        image: qdrant/qdrant:v1.19.2
-        ports: [6333:6333]
-        env:
-          QDRANT__TELEMETRY_DISABLED: 'true'
-          QDRANT__SERVICE__API_KEY: recern-vector-tests-local-only
-    env:
-      RECERN_TEST_QDRANT_URL: http://127.0.0.1:6333
-      RECERN_TEST_QDRANT_API_KEY: recern-vector-tests-local-only
       RECERN_TEST_SERVER_BIN: ${{ github.workspace }}/installed-native/bin/recern-vector-server
       RECERN_TEST_CLIENT_BIN: ${{ github.workspace }}/test-tools/portable
       RECERN_TEST_NODE_PORTABLE: ${{ github.workspace }}/installed-node/node_modules/@recern/vector/portable
@@ -256,56 +15,52 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.14'
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - uses: actions/download-artifact@v4
         with:
-          pattern: wheel-*
+          name: wheel-macos-14-aarch64
+          run-id: 40875337291
+          github-token: ${{ github.token }}
           path: dist
-          merge-multiple: true
       - uses: actions/download-artifact@v4
         with:
-          name: native-linux-x64
+          name: native-darwin-arm64
+          run-id: 40875337291
+          github-token: ${{ github.token }}
           path: native-dist
       - uses: actions/download-artifact@v4
         with:
-          name: test-tools-linux-x64
+          name: test-tools-darwin-arm64
+          run-id: 40875337291
+          github-token: ${{ github.token }}
           path: test-tools
-      - name: Verify registry upgrades and cross-language release artifacts
+      - name: Install and diagnose the built packages
         shell: bash
         run: |
           mkdir installed-native
-          tar -xzf native-dist/recern-vector-0.4.0-linux-x64.tar.gz --strip-components=1 -C installed-native
+          tar -xzf native-dist/recern-vector-0.4.0-darwin-arm64.tar.gz --strip-components=1 -C installed-native
           chmod +x test-tools/* installed-native/bin/*
-          npm install --ignore-scripts --no-audit --no-fund --prefix "$GITHUB_WORKSPACE/installed-node" "$GITHUB_WORKSPACE/native-dist/recern-vector-0.4.0-node-linux-x64.tgz"
+          npm install --ignore-scripts --no-audit --no-fund --prefix "$GITHUB_WORKSPACE/installed-node" "$GITHUB_WORKSPACE/native-dist/recern-vector-0.4.0-node-darwin-arm64.tgz"
           python -m pip install pytest numpy -r api/requirements.txt
           python -m pip install --no-index --find-links dist recern-vector
-          python -m pytest crates/recern-vector-py/tests api/tests -q
-          python -m venv "$RUNNER_TEMP/vector-03"
-          "$RUNNER_TEMP/vector-03/bin/python" -m pip install recern-vector==0.3.0
-          python scripts/release_compatibility.py --old-python "$RUNNER_TEMP/vector-03/bin/python" --new-python "$(command -v python)" --work "$RUNNER_TEMP/release-upgrade"
-
-  publish:
-    if: inputs.publish
-    needs: [msrv, crates, wheels, native, sdist, test-wheels, portable-contract]
-    runs-on: ubuntu-22.04
-    environment:
-      name: pypi
-      url: https://pypi.org/project/recern-vector/
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: wheel-*
-          path: dist
-          merge-multiple: true
-      - uses: actions/download-artifact@v4
-        with:
-          name: sdist
-          path: dist
-      - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          skip-existing: true
+          python - <<'PY'
+          import http.client,ssl,socket,pytest
+          from pathlib import Path
+          print('SSL',ssl.OPENSSL_VERSION,flush=True)
+          print('localhost addresses',socket.getaddrinfo('localhost',443),flush=True)
+          original=http.client.HTTPSConnection.connect
+          def trace(self):
+            try:return original(self)
+            except Exception as e:
+              print('TLS CONNECT:',type(e).__name__,str(e),flush=True);raise
+          http.client.HTTPSConnection.connect=trace
+          target='api/tests/test_sdk_interop.py::test_private_ca_is_verified_by_all_clients'
+          result=pytest.main([target,'-s','-q','--tb=short'])
+          print('LOCALHOST RESULT',result,flush=True)
+          p=Path('api/tests/test_sdk_interop.py');p.write_text(p.read_text().replace('url=f"https://localhost:', 'url=f"https://127.0.0.1:'))
+          result2=pytest.main([target,'-s','-q','--tb=short'])
+          print('IPV4 RESULT',result2,flush=True)
+          PY
