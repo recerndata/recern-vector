@@ -23,6 +23,7 @@ PAGES = [
     ("", "README.md", "Recern Vector 0.4.0 documentation: embedded and HTTP operation, portable Python/Rust/Node clients and verified migration."),
     ("release", "release.md", "Recern Vector 0.4.0 packages, native release artifacts, supported platforms, checksums and upgrade compatibility."),
     ("getting-started", "getting-started.md", "Install Recern Vector and create a first vector database from Python, Rust, Node.js or the command line."),
+    ("semantic-search", "semantic-search.md", "A complete first vector search in Python: create a collection, filter results, inspect the query and open the checkpointed file in Workspace."),
     ("concepts", "concepts.md", "Databases, collections, records, distance metrics, the HNSW index, saving and threads in Recern Vector."),
     ("filters", "filters.md", "Metadata filter syntax in Recern Vector and how filtered vector searches are planned."),
     ("inspection", "inspection.md", "Use explain, stats and estimate_recall to see how Recern Vector searches run and to choose ef."),
@@ -47,7 +48,7 @@ def rewrite_link(href: str) -> str:
         return href[len(SITE_URL):]
     if href == SITE_URL:
         return "/"
-    if re.match(r"^[a-z]+:", href) or href.startswith("#"):
+    if re.match(r"^[a-z]+:", href) or href.startswith(("#", "/")):
         return href
     path, _, anchor = href.partition("#")
     anchor = f"#{anchor}" if anchor else ""
@@ -74,6 +75,7 @@ def render(source: str) -> dict:
     body = re.sub(r'href="([^"]+)"', lambda m: f'href="{html.escape(rewrite_link(html.unescape(m.group(1))))}"', body)
     # External links open in a new tab.
     body = re.sub(r'<a href="(https?://[^"]+)"', r'<a href="\1" target="_blank" rel="noopener noreferrer"', body)
+    body = body.replace("<img ", '<img loading="lazy" decoding="async" ')
     headings = [
         {"id": item["id"], "title": html.unescape(item["name"])}
         for top in md.toc_tokens

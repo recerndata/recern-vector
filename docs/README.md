@@ -22,6 +22,7 @@ Recern Vector 0.4.0 is an embedded vector database with a local snapshot and a W
 |---|---|
 | [0.4.0 release](release.md) | Packages, native artifacts, checksums and upgrade compatibility |
 | [Getting started](getting-started.md) | Install, then a first database from Python, Rust, Node.js and the CLI |
+| [First vector search](semantic-search.md) | A complete Python example, filtered results, query inspection and a checkpointed file in Workspace |
 | [Concepts](concepts.md) | Databases, collections, records, metrics, the HNSW index, saving, threads |
 | [Filters](filters.md) | Metadata filter syntax and how filtered searches are planned |
 | [Inspecting and tuning](inspection.md) | `explain`, `stats`, `estimate_recall`, choosing `ef`, `compact` |
@@ -37,6 +38,6 @@ Recern Vector 0.4.0 is an embedded vector database with a local snapshot and a W
 | [File format](file-format.md) | What is inside a `.rvec` file |
 | [Limitations and next work](limitations.md) | Current bounds and what comes next |
 
-Runnable examples are in [`examples/`](../examples/README.md). Benchmarks against faiss, LanceDB and sqlite-vec: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks).
+Runnable examples are in [`examples/`](../examples/README.md). The [release benchmark](https://recern.net/vector/benchmarks) measures 0.4.0 f32/int8 and faiss HNSW on full SIFT1M and GloVe-100. The earlier comparison with LanceDB and sqlite-vec is kept in the [historical report](https://recern.net/vector/benchmarks/historical).
 
 See [Node.js](nodejs.md) and the [durability contract](file-format.md).
