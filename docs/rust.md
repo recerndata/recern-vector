@@ -1,12 +1,11 @@
 # Rust API
 
-> Development **0.5.0-dev.1** adds paged format 3, incremental saves, explicit storage upgrades and automatic checkpoints.
+> **0.5.0** adds paged format 3, incremental saves, explicit storage upgrades and automatic checkpoints.
 > See [policy, statistics, examples and failure behavior](persistence-0.5.md).
-> Published 0.4.0 packages do not include these additions.
 
-For the **0.4.0** portable API (embedded Recern, Recern HTTP and Qdrant), see
+For the portable API (embedded Recern, Recern HTTP and Qdrant), see
 [portable clients](portable-clients.md) and [release packages](release.md).
-The native API remains available. The new persistence policy is described in the development guide above.
+The native API remains available. The new persistence policy is described in the persistence guide above.
 
 ```sh
 cargo add recern-vector

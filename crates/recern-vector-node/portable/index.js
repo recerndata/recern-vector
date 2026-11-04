@@ -1,5 +1,5 @@
 'use strict';
-const {PortableSession} = require('../recern_vector.node');
+const {PortableSession} = require('../index.js');
 
 class PortableError extends Error {
   constructor(value) {

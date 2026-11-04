@@ -13,7 +13,15 @@ Every command takes the database file first. Commands that change the database c
 recern-vector init FILE
 ```
 
-Creates an empty database. Fails if the file exists.
+Creates an empty format-3 database. Fails if the file exists. Workspace 1.0.0 cannot open format 3; see [release compatibility](release.md).
+
+## upgrade-storage
+
+```sh
+recern-vector upgrade-storage FILE
+```
+
+Explicitly converts format 2 to format 3, retaining a standalone format-2 backup of the last durable state. Stop other writers and keep the returned backup path. Format-1 input must checkpoint to format 2 first. Ordinary saves keep format-2 files at format 2. See [upgrade and recovery](persistence-0.5.md).
 
 ## create-collection
 

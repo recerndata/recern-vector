@@ -1,12 +1,13 @@
 # Recern Vector documentation
 
-Recern Vector 0.4.0 is an embedded vector database with a local snapshot and a WAL. You open it from Python, Rust, Node.js or the command line, add vectors with JSON metadata, and search them with an HNSW index. Every search can report how it ran, and every collection can report the state of its index and measure its own recall. Version 0.4.0 provides a separate [single-node HTTP server](server.md) and [portable Python, Rust and Node clients](portable-clients.md), including SDK migration and interoperability tests. See the [release guide](release.md) for packages, native archives and compatibility.
+Recern Vector 0.5.0 is an embedded vector database with a local snapshot and a WAL. You open it from Python, Rust, Node.js or the command line, add vectors with JSON metadata, and search them with an HNSW index. Every search can report how it ran, and every collection can report the state of its index and measure its own recall. Version 0.5.0 provides a separate [single-node HTTP server](server.md) and [portable Python, Rust and Node clients](portable-clients.md), including SDK migration and interoperability tests. See the [release guide](release.md) for packages, native archives and compatibility.
 
-> **Version 0.4.0.** HTTP server, portable Python/Rust/Node clients and checked migration across embedded Recern, Recern HTTP and Qdrant. Format 2, format-1 readers and export v1 are retained.
-
-> Source development: **0.5.0-dev.1** adds paged format 3, incremental encoding and automatic checkpoints. See the
-> [implementation status and remaining gates](persistence-0.5.md). The published
-> packages described in the release guide remain **0.4.0**.
+> **Version 0.5.0.** Incremental encoding, paged format 3, automatic WAL checkpoints
+> and published Node packages. Readers retain formats 1/2. HTTP/profile/export v1
+> remain unchanged. See the [persistence guide](persistence-0.5.md).
+>
+> **Workspace 1.0.0 cannot open format 3.** Keep existing files at format 2 when
+> using its current reader; see [release compatibility](release.md).
 
 ## When it fits
 
@@ -18,15 +19,16 @@ Recern Vector 0.4.0 is an embedded vector database with a local snapshot and a W
 
 - Many processes writing directly to the same database file. Use a single database owner. The [0.4.0 HTTP server](server.md) serializes HTTP access to its own database; it is not a distributed or highly available service.
 - Data much larger than memory. The whole database is loaded on open.
-- You need constant-cost commits regardless of database size. WAL writes changed pages, but `save()` still encodes and compares a full in-memory image (see [Limitations and next work](limitations.md)).
+- You need a larger-than-memory engine or bounded latency regardless of maintenance. Format-3 saves encode changed records, but open/checkpoint still process a full image and cached pages add RAM and padding. Format-2 saves retain full-image encoding (see [Limitations and next work](limitations.md)).
 
 ## Contents
 
 | Page | What it covers |
 |---|---|
-| [0.4.0 release](release.md) | Packages, native artifacts, checksums and upgrade compatibility |
+| [0.5.0 release](release.md) | Packages, native artifacts, checksums and upgrade compatibility |
+| [Persistence in 0.5.0](persistence-0.5.md) | Incremental pages, checkpoint policy, upgrade, recovery and measured limits |
 | [Getting started](getting-started.md) | Install, then a first database from Python, Rust, Node.js and the CLI |
-| [First vector search](semantic-search.md) | A complete Python example, filtered results, query inspection and a checkpointed file in Workspace |
+| [First vector search](semantic-search.md) | A complete Python example, filtered results, query inspection and Workspace compatibility |
 | [Concepts](concepts.md) | Databases, collections, records, metrics, the HNSW index, saving, threads |
 | [Filters](filters.md) | Metadata filter syntax and how filtered searches are planned |
 | [Inspecting and tuning](inspection.md) | `explain`, `stats`, `estimate_recall`, choosing `ef`, `compact` |
@@ -42,6 +44,6 @@ Recern Vector 0.4.0 is an embedded vector database with a local snapshot and a W
 | [File format](file-format.md) | What is inside a `.rvec` file |
 | [Limitations and next work](limitations.md) | Current bounds and what comes next |
 
-Runnable examples are in [`examples/`](../examples/README.md). The [release benchmark](https://recern.net/vector/benchmarks) measures 0.4.0 f32/int8 and faiss HNSW on full SIFT1M and GloVe-100. The earlier comparison with LanceDB and sqlite-vec is kept in the [historical report](https://recern.net/vector/benchmarks/historical).
+Runnable examples are in [`examples/`](../examples/README.md). The [benchmark report](https://recern.net/vector/benchmarks) includes 0.5 development-engine persistence and full SIFT1M/GloVe-100 f32/int8 measurements, with the unchanged engine retained for 0.5.0. Historical 0.4.0/faiss results remain separately labeled. The earlier comparison with LanceDB and sqlite-vec is kept in the [historical report](https://recern.net/vector/benchmarks/historical).
 
 See [Node.js](nodejs.md) and the [durability contract](file-format.md).

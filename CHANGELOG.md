@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.0-dev.1 — in development
+## 0.5.0 — 2026-11-04
 
 - Add automatic checkpoint triggers at 64 MiB of valid WAL or 1,000 commits,
   configurable per native handle and with HTTP server flags. Recover counts on
@@ -24,8 +24,8 @@
   I/O failure and subprocess exit at WAL write/sync and four checkpoint boundaries.
   Verify graph/vector equality, rollback, page reuse, malformed directories,
   stale writers after equal-sized WAL replacement, explicit upgrade recovery and
-  released-reader compatibility. Retain frozen fixtures and document remaining
-  benchmark/package release gates.
+  released-reader compatibility. Retain frozen fixtures and document the measured
+  persistence limits and format-3 compatibility boundary.
 - Add reproducible release-build persistence measurements against the published
   0.4.0 engine and the retained format-2 path, full SIFT1M/GloVe-100 f32/int8
   recall/throughput sweeps, process peak RSS, raw samples and validated plots.
@@ -34,6 +34,13 @@
 - Verify real authenticated Qdrant locally and in Linux CI. Add ordinary CI gates
   for published 0.2/0.3/0.4 readers and the benchmark protocol alongside native,
   HTTP and Node checks on Linux, Windows and macOS.
+
+- Publish `@recern/vector` with five exact-version optional native packages for
+  Linux x64/ARM64 (glibc), macOS Intel/Apple silicon and Windows x64. Verify the
+  installed registry layout and retain self-contained GitHub Node archives.
+- Ship Rust engine/client/CLI/server packages, Python ABI3 wheels and sdist, native
+  release archives and checksums. Keep the 0.5.0-dev.1 benchmark provenance;
+  Workspace 1.0.0 still supports formats 1/2, not new format-3 files.
 
 ## 0.4.0 — 2026-10-29
 

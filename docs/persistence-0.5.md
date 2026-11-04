@@ -1,6 +1,6 @@
 # Persistence work for Vector 0.5.0
 
-Status: **0.5.0-dev.1**, development only. The published baseline is **0.4.0**.
+**Recern Vector 0.5.0.** Incremental encoding, format 3 and automatic checkpoints.
 Workspace **1.0.0** has shipped separately; its embedded reader remains 0.2.0.
 
 ## Incremental encoding and the page directory
@@ -201,10 +201,12 @@ Qdrant. Local macOS Qdrant 1.19.2 checks passed 258 Python/API/SDK cases (six
 backend-inapplicable skips) and eight Node cases without skips. See the recorded
 [validation evidence](../bench/releases/0.5.0-dev.1/validation.json).
 
-## Remaining 0.5.0 release work
+## Release packages and Workspace handoff
 
-Publish and verify Node packages for advertised targets, run the actual release
-artifact installation gates and retain the measured limits in release notes.
-GitHub tarballs from 0.4.0 remain the public distribution until that gate is
-completed. A Workspace reader upgrade/UI refresh check remains a separate
-handoff: Workspace 1.0.0 still rejects format 3 through its 0.2.0 reader.
+The [release guide](release.md) lists Rust/Python/Node packages, native artifacts,
+checksums and the installation/compatibility matrix. Registry Node packages select
+one verified native addon for the current supported platform.
+
+A Workspace reader upgrade/UI refresh check remains separate future work:
+Workspace 1.0.0 rejects format 3 through its 0.2.0 reader. Keep existing format-2
+files at format 2 when using that Workspace release.

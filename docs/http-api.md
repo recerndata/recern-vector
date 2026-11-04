@@ -9,7 +9,7 @@ The machine-readable source is [`api/openapi.json`](../api/openapi.json), using
 [JSON Schema 2020-12](https://json-schema.org/draft/2020-12/json-schema-core).
 The HTTP paths use `/v1`; application semantics use portable profile
 `recern-vector/1`. These version numbers are independent of the package version,
-`.rvec` format 2, and migration archive format 1.
+`.rvec` storage versions (1/2/3 in 0.5.0), and migration archive format 1.
 
 This page supplies normative rules which schemas cannot express, such as
 UTF-8 byte limits, vector norms and durable acknowledgement. Schema validation
@@ -207,9 +207,10 @@ generation and token before deciding. Import journals must retain their existing
 ownership, replay and read-back verification rules. No generic exactly-once or
 transactional remote cutover promise.
 
-The first server retains the engine's RAM and O(database-size) save-encoding
-costs. A network API does not remove those limits. Incremental encoding and
-automatic checkpoints remain 0.5.0 work.
+The server retains the engine's RAM requirements and full-image open/checkpoint
+costs. Version 0.5.0 adds incremental saves for format 3 and automatic checkpoints;
+legacy format-2 saves still encode a full image. A network API does not remove
+these limits. See [persistence and recovery](persistence-0.5.md).
 
 ## Deadlines, sizes and admission
 

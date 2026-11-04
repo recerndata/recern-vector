@@ -1,15 +1,14 @@
-# Single-node server (0.4.0)
+# Single-node server
 
-> Development **0.5.0-dev.1** adds configurable automatic checkpoints.
+> **0.5.0** adds configurable automatic checkpoints.
 > See [policy, statistics, examples and failure behavior](persistence-0.5.md).
-> Published 0.4.0 packages do not include this addition.
 
-**Recern Vector 0.4.0.** Install `recern-vector-server` from crates.io or
-use a verified native archive from the [0.4.0 release](release.md). Python,
+**Recern Vector 0.5.0.** Install `recern-vector-server` from crates.io or
+use a verified native archive from the [0.5.0 release](release.md). Python,
 Rust and Node portable clients use the [HTTP v1 contract](http-api.md).
 
 ```sh
-cargo install recern-vector-server --version 0.4.0 --locked
+cargo install recern-vector-server --version 0.5.0 --locked
 ```
 
 The server provides authenticated collection/record operations, filtered vector
@@ -128,7 +127,7 @@ aliases resolve to that path. Hard links, file replacement, network filesystems
 and native writers bypassing the server are unsupported. The existing native
 stale-writer check is retained as a final error boundary.
 
-The server keeps its catalog and physical collections in **one native database** (format 2 in published 0.4.0; new development 0.5 files use format 3).
+The server keeps its catalog and physical collections in **one native database** (new files use format 3; existing format-2 files retain format 2).
 Logical names map to opaque physical collection generations. Catalog updates and
 user mutations share one native WAL commit, so a crash cannot leave a generation
 in a separate, inconsistent metadata sidecar. The catalog also retains cursor

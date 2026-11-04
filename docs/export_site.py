@@ -20,8 +20,8 @@ DOCS = Path(__file__).resolve().parent
 REPO_URL = "https://github.com/recerndata/recern-vector"
 # Sidebar order. The README is the index page (slug "").
 PAGES = [
-    ("", "README.md", "Recern Vector 0.4.0 documentation: embedded and HTTP operation, portable Python/Rust/Node clients and verified migration."),
-    ("release", "release.md", "Recern Vector 0.4.0 packages, native release artifacts, supported platforms, checksums and upgrade compatibility."),
+    ("", "README.md", "Recern Vector 0.5.0 documentation: embedded and HTTP operation, portable Python/Rust/Node clients and verified migration."),
+    ("release", "release.md", "Recern Vector 0.5.0 packages, native release artifacts, supported platforms, checksums and upgrade compatibility."),
     ("getting-started", "getting-started.md", "Install Recern Vector and create a first vector database from Python, Rust, Node.js or the command line."),
     ("semantic-search", "semantic-search.md", "A complete first vector search in Python: create a collection, filter results, inspect the query and open the checkpointed file in Workspace."),
     ("concepts", "concepts.md", "Databases, collections, records, distance metrics, the HNSW index, saving and threads in Recern Vector."),
@@ -29,14 +29,15 @@ PAGES = [
     ("inspection", "inspection.md", "Use explain, stats and estimate_recall to see how Recern Vector searches run and to choose ef."),
     ("python", "python.md", "Reference for the recern_vector Python package: Database, Collection, results and exceptions."),
     ("portable-api", "portable-api.md", "Portable Python API v1 for embedded Recern and Qdrant, plus the Recern HTTP backend: records, filters, distances, capabilities and errors."),
-    ("portable-clients", "portable-clients.md", "Recern Vector 0.4 portable Python, Rust and Node clients: embedded Recern, Recern HTTP and Qdrant, verified TLS, migration and compatibility."),
+    ("portable-clients", "portable-clients.md", "Recern Vector 0.5 portable Python, Rust and Node clients: embedded Recern, Recern HTTP and Qdrant, verified TLS, migration and compatibility."),
     ("http-api", "http-api.md", "Released HTTP/OpenAPI contract implemented by the Recern Vector server: wire values, authentication, durable acknowledgements and snapshot leases."),
     ("server", "server.md", "Install and run the Recern Vector single-node HTTP server: authentication, limits, durable writes, recovery, snapshot leases and TLS proxy guidance."),
     ("migration", "migration.md", "Versioned snapshots and JSONL exports, dry-run, resumable imports and verification for Recern Vector."),
     ("rust", "rust.md", "A map of the recern-vector Rust crate: Database, Collection, filters and introspection."),
-    ("nodejs", "nodejs.md", "Install native Recern Vector 0.4.0 Node.js builds, use TypeScript definitions and run asynchronous vector searches."),
+    ("nodejs", "nodejs.md", "Install native Recern Vector 0.5.0 Node.js builds, use TypeScript definitions and run asynchronous vector searches."),
     ("cli", "cli.md", "The recern-vector command: create databases, insert JSON Lines, query, inspect, measure recall and compact."),
-    ("file-format", "file-format.md", "Stable .rvec format 2, format-1 compatibility, checksums, WAL recovery and checkpoints."),
+    ("persistence-0.5", "persistence-0.5.md", "Incremental record and HNSW encoding, page directory, automatic checkpoints, explicit upgrades, compatibility and measured limits in Vector 0.5.0."),
+    ("file-format", "file-format.md", "Paged .rvec format 3, format-1/2 compatibility, explicit upgrades, WAL recovery and checkpoints."),
     ("limitations", "limitations.md", "Current engine and portable API limits, plus the roadmap to Recern Vector 1.0."),
 ]
 SLUGS = {file: slug for slug, file, _ in PAGES}

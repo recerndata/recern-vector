@@ -27,7 +27,7 @@ else:
  for name in ['LICENSE-MIT','LICENSE-APACHE']:
   shutil.copy2(root/name,folder/name)
  shutil.copy2(root/'api/openapi.json',folder/'api/openapi.json')
- (folder/'README.txt').write_text(f'Recern Vector {version}\nPlatform: {a.platform}\n\nCLI: bin/recern-vector{suffix} --help\nServer: bin/recern-vector-server{suffix} --help\n\nThe HTTP server requires a new/empty server-owned database and a private API-key file.\nUse verified HTTPS through a reverse proxy outside loopback. The database fits in RAM; save encoding remains O(database size).\n\nServer guide: https://recern.net/vector/docs/server\nPortable clients: https://recern.net/vector/docs/portable-clients\nRelease notes: https://github.com/recerndata/recern-vector/releases/tag/v{version}\n',encoding='utf8')
+ (folder/'README.txt').write_text(f'Recern Vector {version}\nPlatform: {a.platform}\n\nCLI: bin/recern-vector{suffix} --help\nServer: bin/recern-vector-server{suffix} --help\n\nThe HTTP server requires a new/empty server-owned database and a private API-key file.\nUse verified HTTPS through a reverse proxy outside loopback. The database, graph and cached pages fit in RAM. New format-3 files save incrementally; legacy format-2 writes keep their layout until explicit upgrade. Open/checkpoint process a full image. Workspace 1.0.0 cannot read format 3.\n\nServer guide: https://recern.net/vector/docs/server\nPortable clients: https://recern.net/vector/docs/portable-clients\nRelease notes: https://github.com/recerndata/recern-vector/releases/tag/v{version}\n',encoding='utf8')
  if windows:
   with zipfile.ZipFile(out/(folder.name+'.zip'),'w',zipfile.ZIP_DEFLATED) as archive:
    for f in folder.rglob('*'):

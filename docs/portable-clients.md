@@ -1,6 +1,6 @@
-# Portable clients (0.4.0)
+# Portable clients
 
-**Recern Vector 0.4.0, 29 October 2026.** Python, Rust and Node.js expose
+**Recern Vector 0.5.0.** Python, Rust and Node.js expose
 profile `recern-vector/1` against embedded Recern, the Recern HTTP v1 server and
 Qdrant 1.19.2. See [release packages and compatibility](release.md) for installation
 and verified platform archives. Recern does not provide a hosted Vector service.
@@ -12,7 +12,7 @@ native formats 1/2 and their frozen fixtures are unchanged.
 
 ## Python remote backend
 
-Install `pip install --upgrade recern-vector` (version 0.4.0 or later), then use:
+Install `pip install --upgrade recern-vector` (version 0.5.0), then use:
 
 ```python
 import os
@@ -47,11 +47,11 @@ allowed. Closing a client rejects new requests and closes its live connections.
 
 ## Rust
 
-Install the `recern-vector-client` crate, version 0.4.0. It leaves the low-level
+Install the `recern-vector-client` crate, version 0.5.0. It leaves the low-level
 `recern_vector::Database` API unchanged.
 
 ```sh
-cargo add recern-vector-client@0.4.0
+cargo add recern-vector-client@0.5.0
 ```
 
 ```rust,no_run
@@ -90,11 +90,11 @@ cargo run -p recern-vector-client --example portable -- --path demo.rvec
 
 ## Node.js
 
-Install the platform-specific npm tarball from the [0.4.0 GitHub release](release.md).
+Install the platform-selecting [npm package](release.md).
 For example, on Linux x64 with glibc:
 
 ```sh
-npm install https://github.com/recerndata/recern-vector/releases/download/v0.4.0/recern-vector-0.4.0-node-linux-x64.tgz
+npm install @recern/vector@0.5.0
 ```
 
 The native API is `@recern/vector`; the portable entry point is
@@ -134,7 +134,8 @@ The existing synchronous native entry point keeps its original behavior.
 Call `snapshot.close()` in a `finally` block. Root-client `close()` also releases
 its outstanding snapshot leases. `PortableError` has `code`, `requestId` and
 `writeOutcome`. Large argument/response conversion still costs memory; worker
-execution does not remove the engine's RAM or O(database size) save limits.
+execution does not remove the engine's RAM or full-image open/checkpoint costs.
+Format-3 saves encode changed records; legacy format-2 saves encode a full image.
 
 ## Backend guarantees and validation
 
@@ -169,5 +170,5 @@ Qdrant plus Python/Rust/Node interoperability matrix on Linux. Check the current
 commit's CI results before treating that platform matrix as passed.
 
 The published artifacts and supported upgrade path are documented in the
-[release guide](release.md). Version 0.4.0 does not include
-clustering, a managed service, RBAC or the 0.5.0 incremental-persistence work.
+[release guide](release.md). Version 0.5.0 does not include
+clustering, a managed service or RBAC. HTTP/profile/export contracts remain v1.

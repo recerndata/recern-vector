@@ -1,6 +1,6 @@
 # File format and durability
 
-Published Recern Vector **0.2.0–0.4.0** writes format **2** and reads **1/2**. Development **0.5.0-dev.1** reads **1/2/3** and creates new files in paged format **3**. Existing format-2 files keep their layout on save/checkpoint; conversion requires an explicit `upgrade_storage()` / `upgradeStorage()` / CLI `upgrade-storage` call. Format-1 files first checkpoint to format 2. These are separate storage versions from the package version.
+Published Recern Vector **0.2.0–0.4.0** writes format **2** and reads **1/2**. Recern Vector **0.5.0** reads **1/2/3** and creates new files in paged format **3**. Existing format-2 files keep their layout on save/checkpoint; conversion requires an explicit `upgrade_storage()` / `upgradeStorage()` / CLI `upgrade-storage` call. Format-1 files first checkpoint to format 2. These are separate storage versions from the package version.
 
 Old 0.2/0.3/0.4 readers, including Workspace 1.0.0's embedded 0.2.0 reader, reject format 3 as unsupported. To return to an older reader, retain the generated format-2 backup or export/import with portable migration v1. Export/import rebuilds the index; it is not a binary downgrade. Upgrades include pending in-memory changes, while the backup contains the last durable state. Stop other writers, inspect the returned backup path, and reopen after any upgrade error: an error after rename can mean the conversion already committed.
 
@@ -8,7 +8,7 @@ Frozen binary fixtures retain old layouts and cover format 3 separately; tests n
 
 A database consists of `name.rvec` (snapshot), `name.rvec.wal` (committed changes since checkpoint) and `name.rvec.lock` (OS advisory coordination, no data). Call `checkpoint()` before copying just the `.rvec` file; stop concurrent writers while taking that copy. Otherwise back up snapshot and WAL together while no writes run. Copying an active snapshot alone can lose committed changes that only exist in WAL.
 
-## Snapshot 3 (0.5 development)
+## Snapshot 3 (0.5.0)
 
 Integers are little-endian. The file contains N fixed **4096-byte pages**, followed by a four-byte checksum-tree root. Each page reserves its last four bytes for IEEE CRC32 of the preceding 4092 bytes. The first page is:
 
@@ -96,4 +96,4 @@ In-process saves serialize. File locks coordinate snapshots and commits across p
 
 `open_read_only()` acquires a shared lock when present, replays committed WAL and permits no mutations or persistence. It does not create sidecars. The result is a point-in-time in-memory snapshot; reopen to see later commits.
 
-Format 2 retains full-image encoding/comparison at save and can dirty many pages when collection boundaries move. Format 3 caches encoded pages in addition to the in-memory index; it is not an mmap/out-of-core engine. Small records consume at least one page each, so int8 memory savings do not imply proportional file-size savings. Open/checkpoint still process a complete image. Published 0.4.0 has no automatic checkpoint scheduling. Development 0.5.0-dev.1 adds byte/commit triggers; they are not hard quotas, and failed maintenance does not undo a synced WAL commit. See [policy, statistics and recovery checks](persistence-0.5.md). On platforms/filesystems where directory fsync is unavailable, that final directory durability guarantee depends on the OS.
+Format 2 retains full-image encoding/comparison at save and can dirty many pages when collection boundaries move. Format 3 caches encoded pages in addition to the in-memory index; it is not an mmap/out-of-core engine. Small records consume at least one page each, so int8 memory savings do not imply proportional file-size savings. Open/checkpoint still process a complete image. Published 0.4.0 has no automatic checkpoint scheduling. Version 0.5.0 adds byte/commit triggers; they are not hard quotas, and failed maintenance does not undo a synced WAL commit. See [policy, statistics and recovery checks](persistence-0.5.md). On platforms/filesystems where directory fsync is unavailable, that final directory durability guarantee depends on the OS.

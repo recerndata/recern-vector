@@ -1,6 +1,6 @@
 {
   "name": "@recern/vector",
-  "version": "0.5.0-dev.1",
+  "version": "0.5.0",
   "description": "Recern Vector database: native and portable embedded, HTTP and Qdrant APIs",
   "main": "index.js",
   "types": "index.d.ts",
@@ -34,5 +34,12 @@
     "type": "git",
     "url": "git+https://github.com/recerndata/recern-vector.git",
     "directory": "crates/recern-vector-node"
+  },
+  "optionalDependencies": {
+    "@recern/vector-darwin-arm64": "0.5.0",
+    "@recern/vector-darwin-x64": "0.5.0",
+    "@recern/vector-linux-arm64-gnu": "0.5.0",
+    "@recern/vector-linux-x64-gnu": "0.5.0",
+    "@recern/vector-win32-x64-msvc": "0.5.0"
   }
 }

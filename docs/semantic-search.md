@@ -15,7 +15,7 @@ python -m venv .venv
 Activate it with `source .venv/bin/activate` on macOS/Linux, or `.venv\Scripts\Activate.ps1` in Windows PowerShell. Then install the release used in this guide:
 
 ```sh
-python -m pip install recern-vector==0.4.0
+python -m pip install recern-vector==0.5.0
 ```
 
 ## 2. Create and search a collection
@@ -82,9 +82,16 @@ print(len(db["notes"]))
 
 The output includes `notes` and a record count of `5`. Keep the writer closed while copying the checkpointed snapshot to another machine.
 
-## 4. Inspect it in Workspace
+## 4. Workspace compatibility
 
-In [Recern Workspace](https://recern.net/download), add a **Recern Vector** connection and choose `first-search.rvec`. Open **Overview**, **Index** and **Recall**. Your collection is named `notes`; this tiny example will not have the scale or graph structure of a real embedding dataset.
+This example creates a format-3 file with Vector 0.5.0. **Workspace 1.0.0 cannot
+open format 3**: its embedded reader remains Vector 0.2.0. Inspect the database
+through Python/CLI for now; a Workspace reader upgrade is separate future work.
+
+For existing format-2 files, [Recern Workspace](https://recern.net/download) can
+show **Overview**, **Index** and **Recall**. Ordinary saves with Vector 0.5.0 keep
+those files at format 2. Explicit storage conversion requires an upgrade and a
+format-2 backup; see [compatibility](release.md).
 
 ![Recern Workspace's Vector index view on its synthetic fintech demo.](/screens/vector-index.webp)
 

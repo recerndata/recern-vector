@@ -119,6 +119,47 @@ jobs:
           name: test-tools-${{ matrix.platform }}
           path: test-tools/*
 
+  npm-packages:
+    name: Registry Node packages
+    needs: [native]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: native-dist
+      - run: python scripts/npm_release.py --artifacts native-dist --out npm-dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-packages
+          path: npm-dist/*
+
+  test-npm:
+    name: Installed registry Node (${{ matrix.os }})
+    needs: [npm-packages]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-22.04-arm, macos-15-intel, macos-14, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-packages
+          path: npm-dist
+      - run: node tests/npm-registry.cjs npm-dist
+
   wheels:
     name: wheel ${{ matrix.target }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -296,7 +337,7 @@ jobs:
 
   publish:
     if: inputs.publish
-    needs: [msrv, crates, wheels, native, sdist, test-wheels, portable-contract]
+    needs: [msrv, crates, wheels, native, sdist, test-wheels, portable-contract, npm-packages, test-npm]
     runs-on: ubuntu-22.04
     environment:
       name: pypi

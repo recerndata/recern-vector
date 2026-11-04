@@ -4,7 +4,7 @@
 
 **A single-file vector database. Embedded, inspectable, boring in the best way.**
 
-> **Version 0.4.0:** authenticated single-node HTTP server and portable Python, Rust and Node clients for embedded Recern, Recern HTTP and Qdrant. Checked, resumable migration retains file format 2, format-1 readers and export format 1.
+> **Version 0.5.0:** incremental encoding and paged format 3, automatic WAL checkpoints, explicit storage upgrades and Node.js packages on npm. Readers retain formats 1/2; HTTP, portable and migration contracts remain v1.
 
 ```sh
 pip install recern-vector           # Python
@@ -12,23 +12,30 @@ cargo add recern-vector             # Rust library
 cargo install recern-vector-cli     # the recern-vector command
 cargo add recern-vector-client      # portable Rust API
 cargo install recern-vector-server  # HTTP server
+npm install @recern/vector          # Node.js native + portable APIs
 ```
 
-Release: [v0.4.0](https://github.com/recerndata/recern-vector/releases/tag/v0.4.0) ([PyPI](https://pypi.org/project/recern-vector/), [crates.io](https://crates.io/crates/recern-vector)) · Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
+Release: [v0.5.0](https://github.com/recerndata/recern-vector/releases/tag/v0.5.0) ([PyPI](https://pypi.org/project/recern-vector/), [crates.io](https://crates.io/crates/recern-vector)) · Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
 
 **Documentation:** [recern.net/vector/docs](https://recern.net/vector/docs) (sources in [`docs/`](docs/README.md)) · **Examples:** [`examples/`](examples/README.md) — quickstart, semantic search, RAG retrieval, tuning recall, CLI and Rust
 
 Recern Vector stores vectors, JSON metadata and an HNSW index in a local snapshot with a WAL for incremental commits. A checkpoint produces a standalone database file. Its internals are part of the API: every query can explain how it was executed, every collection reports its graph structure and memory, and recall can be measured against exact search at any time.
 
-## 0.5.0 development
+## Version 0.5.0
 
-The published release remains **0.4.0**. Current source is **0.5.0-dev.1**:
-incremental record/HNSW encoding, a stable page directory and automatic WAL
-checkpoints. New files use format 3; existing format-2 files keep their layout
-until an explicit upgrade with a format-2 backup. Readers retain 1/2; old readers
-reject 3. WAL/portable contracts stay unchanged. Release-build persistence/ANN
-[measurements](bench/releases/0.5.0-dev.1/README.md) are available; npm publication
-and release artifact installation remain gates; see the [0.5 implementation status](docs/persistence-0.5.md).
+Save encodes changed records/HNSW neighbors into stable pages; new databases use
+format 3. Existing format-2 files retain their layout until an explicit upgrade
+with a standalone format-2 backup. Automatic checkpoints default to 64 MiB of WAL
+or 1,000 commits. See the [policy and recovery guide](docs/persistence-0.5.md).
+
+The [reproducible measurements](bench/releases/0.5.0-dev.1/README.md) retain their
+actual 0.5.0-dev.1 provenance; the measured engine implementation is unchanged in
+0.5.0. Full-image open/checkpoint costs, cached-page RAM and file padding remain.
+Int8 reduces vector payload, without guaranteeing faster queries or lower peak RSS.
+
+**Workspace 1.0.0 cannot open format 3.** Keep files at format 2 for its existing
+reader. Older Vector releases reject 3; use the upgrade backup or export v1 to
+move data back. See [packages and compatibility](docs/release.md).
 
 ## Quick start (CLI)
 
@@ -109,7 +116,7 @@ db.save()?;
 | Filters | equality, `$in`, `$gt`/`$gte`/`$lt`/`$lte`, dotted paths, `$and`, `$or`, `$not` |
 | Filter planning | sampled selectivity and operation-cost estimates choose exact scan or HNSW with an adaptive candidate budget |
 | Introspection | `stats()` (layers, degree, unreachable records, memory), `explain()`, `estimate_recall()` |
-| Storage | stable format 2, format-1 compatibility, checksummed page WAL, atomic checkpoints, stale-writer protection |
+| Storage | paged format 3, format-1/2 compatibility, incremental encoding, checksummed page WAL, automatic checkpoints, stale-writer protection |
 | Precision | f32 or per-vector int8 quantization; distance calculations operate directly on stored codes |
 | Python | PyO3 bindings; float32 NumPy arrays are read through the buffer protocol |
 | Node.js | native Node-API bindings, Float32Array input and asynchronous search |
@@ -159,7 +166,7 @@ What this says about the prototype:
 - `$and`, `$or`, `$not` filters with cost-based exact/HNSW selection and adaptive candidate budgets.
 - [Native Node.js bindings](crates/recern-vector-node/README.md), including asynchronous search.
 
-A database now uses a snapshot plus WAL. Call `checkpoint()` before copying a standalone `.rvec`. `save()` makes pending changes durable. Published 0.4.0 checkpoints manually; 0.5.0 development also attempts automatic maintenance when due (see the [policy](docs/persistence-0.5.md)). See the [format and durability contract](docs/file-format.md) and [current limitations](docs/limitations.md). Historical benchmark results above describe the pre-0.2 f32 engine and have not been rerun for int8.
+A database now uses a snapshot plus WAL. Call `checkpoint()` before copying a standalone `.rvec`. `save()` makes pending changes durable. 0.4.0 checkpoints manually; 0.5.0 also attempts automatic maintenance when due (see the [policy](docs/persistence-0.5.md)). See the [format and durability contract](docs/file-format.md) and [current limitations](docs/limitations.md). Historical benchmark results above describe the pre-0.2 f32 engine and have not been rerun for int8.
 
 **0.4.0** adds the [HTTP/OpenAPI v1 contract](docs/http-api.md), a separate
 [single-node server](docs/server.md), and [portable Python, Rust and Node clients](docs/portable-clients.md)
@@ -167,26 +174,16 @@ for embedded Recern, Recern HTTP and Qdrant. Migration tests cover interrupted
 imports, lost acknowledgements, restart/reconnect, snapshot leases and cross-language
 precision. Native format-1/2 readers and export format 1 remain compatible.
 
-The [release guide](docs/release.md) lists the actual packages, native artifacts,
-checksums, tested platforms and upgrade guarantees. Node.js is distributed as
-platform-specific npm tarballs in the GitHub release; public npm distribution
-remains planned for 0.5.0. The HTTP server is single-node and owns its database;
-its RAM and O(database size) save-encoding limits remain.
+The [release guide](docs/release.md) lists packages, native artifacts, checksums,
+tested platforms and upgrade guarantees. Node.js is available as `@recern/vector`
+on npm and self-contained platform archives on GitHub. The HTTP server is
+single-node and owns its database. Its database/index/cached pages must fit in RAM;
+open/checkpoint still process a full image.
 
-Next: Vector **0.5.0 → 1.0.0**. Workspace **1.0.0** is published separately. Incremental encoding,
-automatic checkpoints and current f32/int8 benchmarks belong to 0.5.0; API and
-migration/deprecation policy stabilization belong to 1.0.0. See the
+Next: Vector **1.0.0** stabilizes the API and migration/deprecation policy, upgrade,
+backup/restore and the client/server compatibility matrix. Workspace **1.0.0** is
+published separately and its format-3 reader upgrade remains future work. See the
 [roadmap](docs/limitations.md#planned-api-portability-and-migration).
-
-## Contributing
-
-Issues and pull requests are welcome. Before sending a change, run:
-
-```sh
-cargo fmt --all --check
-cargo clippy --all-targets -- -D warnings
-cargo test
-```
 
 ## License
 

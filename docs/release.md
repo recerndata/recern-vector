@@ -1,106 +1,95 @@
-# Recern Vector 0.4.0: packages and compatibility
+# Recern Vector 0.5.0: packages and compatibility
 
-Recern Vector 0.4.0 adds the single-node HTTP server and compatible portable
-Python, Rust and Node.js clients for embedded Recern, Recern HTTP and Qdrant.
-The native engine keeps file format 2, format-1 readers and migration export
-format 1. Existing native APIs remain available.
+Version **0.5.0** adds incremental record/HNSW encoding, paged format 3,
+automatic WAL checkpoints, explicit storage upgrades with a format-2 backup,
+and published Node.js packages with automatic platform selection. The portable
+profile, HTTP API, migration/export format and WAL contract remain version 1.
 
 ## Install
 
 ```sh
-pip install --upgrade recern-vector==0.4.0
-cargo add recern-vector@0.4.0
-cargo add recern-vector-client@0.4.0
-cargo install recern-vector-cli --version 0.4.0 --locked
-cargo install recern-vector-server --version 0.4.0 --locked
+pip install --upgrade recern-vector==0.5.0
+cargo add recern-vector@0.5.0
+cargo add recern-vector-client@0.5.0
+cargo install recern-vector-cli --version 0.5.0 --locked
+cargo install recern-vector-server --version 0.5.0 --locked
+npm install @recern/vector@0.5.0
 ```
 
-Python requires CPython 3.11+. Rust packages require Rust 1.89+; the release
-workflow checks the minimum compiler as well as the current stable compiler.
-Python wheels are ABI3 and are tested on CPython 3.11 and 3.14; the Linux
-interoperability suite also runs on 3.12. A source distribution is built and
-installed independently of the wheels.
+Python requires CPython 3.11+. ABI3 wheels are tested on 3.11 and 3.14; the
+interoperability suite also runs on 3.12. The sdist is built and installed
+separately. Rust requires 1.89+; the minimum and stable compilers are checked.
+Node.js requires 22+. npm installs the exact-version native package for the
+supported operating system, CPU and libc. Keep optional dependencies enabled;
+installation does not run a binary-download script.
 
-[GitHub release v0.4.0](https://github.com/recerndata/recern-vector/releases/tag/v0.4.0)
-contains the exact release binaries, Node packages, Python distributions,
-Rust source packages and `SHA256SUMS`.
+## Platforms and artifacts
 
-## Native and Node artifacts
+[GitHub release v0.5.0](https://github.com/recerndata/recern-vector/releases/tag/v0.5.0)
+contains native CLI/server archives, Python wheels/sdist, Rust source packages,
+Node registry packages, self-contained Node archives and SHA256SUMS.
 
-| Platform | CLI + HTTP server | Node npm tarball |
+| Platform | CLI + HTTP server | npm native dependency |
 |---|---|---|
-| Linux x64, glibc 2.35+ | `recern-vector-0.4.0-linux-x64.tar.gz` | `recern-vector-0.4.0-node-linux-x64.tgz` |
-| Linux ARM64, glibc 2.35+ | `recern-vector-0.4.0-linux-arm64.tar.gz` | `recern-vector-0.4.0-node-linux-arm64.tgz` |
-| macOS Intel, macOS 13+ | `recern-vector-0.4.0-darwin-x64.tar.gz` | `recern-vector-0.4.0-node-darwin-x64.tgz` |
-| macOS Apple silicon, macOS 13+ | `recern-vector-0.4.0-darwin-arm64.tar.gz` | `recern-vector-0.4.0-node-darwin-arm64.tgz` |
-| Windows x64 | `recern-vector-0.4.0-win32-x64.zip` | `recern-vector-0.4.0-node-win32-x64.tgz` |
+| Linux x64, glibc 2.35+ | `recern-vector-0.5.0-linux-x64.tar.gz` | `@recern/vector-linux-x64-gnu` |
+| Linux ARM64, glibc 2.35+ | `recern-vector-0.5.0-linux-arm64.tar.gz` | `@recern/vector-linux-arm64-gnu` |
+| macOS Intel, macOS 13+ | `recern-vector-0.5.0-darwin-x64.tar.gz` | `@recern/vector-darwin-x64` |
+| macOS Apple silicon, macOS 13+ | `recern-vector-0.5.0-darwin-arm64.tar.gz` | `@recern/vector-darwin-arm64` |
+| Windows x64 | `recern-vector-0.5.0-win32-x64.zip` | `@recern/vector-win32-x64-msvc` |
 
-Linux native archives are built on Ubuntu 22.04 and use glibc. They are not musl
-packages. Python wheel compatibility is stated by the wheel's own manylinux or
-macOS tag and can differ from these native archive minimums. Windows and macOS
-archives are developer binaries, without installer signing/notarization.
+Use the umbrella `@recern/vector` package for ordinary npm installs. The
+self-contained GitHub Node archives have `recern-vector-0.5.0-node-<platform>.tgz`
+names. Linux musl, Windows ARM64 and other targets have no advertised prebuilt
+addon. Build from source on other targets; only the listed hosts are verified.
 
-Native archives contain `bin/recern-vector`, `bin/recern-vector-server`
-(`.exe` on Windows), licenses, the release OpenAPI document and usage notes.
-Extract and verify the corresponding SHA-256 before running them.
-
-Node requires Node.js 22+. Select the tarball matching both OS and CPU, then:
+Checksums use UTF-8 text with portable relative names:
 
 ```sh
-# Linux x64 example; change the artifact name for another supported platform.
-npm install https://github.com/recerndata/recern-vector/releases/download/v0.4.0/recern-vector-0.4.0-node-linux-x64.tgz
+sha256sum --check SHA256SUMS
+# macOS: shasum -a 256 -c SHA256SUMS
 ```
-
-Use `require('@recern/vector')` for the original native API and
-`require('@recern/vector/portable')` for portable async data operations. Tarballs
-contain the native binary, JavaScript, TypeScript definitions and licenses;
-installation does not download or compile code. OS/CPU metadata rejects a
-mismatched package. Public npm registry distribution and platform selection
-remain planned for 0.5.0; these GitHub tarballs are installable npm packages.
 
 ## Upgrade and backup
 
-1. Back up a matching `.rvec` snapshot and `.wal` while its owner is stopped, or
-   call `checkpoint()` and copy the resulting standalone database with no writer.
-2. Install 0.4.0. An ordinary 0.3.0 embedded file/WAL opens directly; the format
-   version has not changed. Reacquire native handles after reopening.
-3. To move an embedded database to HTTP, export a checked portable archive and
-   import it into a new server database with the Python API. A server owns an
-   internal catalog and does not adopt an ordinary application file in place.
-4. Reconnect application clients and verify counts and representative searches
-   before switching traffic. Keep the original backup and migration archive.
+1. Stop writers and back up a matching snapshot/WAL pair, or checkpoint and copy
+   the standalone snapshot while writes remain stopped.
+2. Install 0.5.0. Readers support formats **1, 2 and 3**. Ordinary saves keep
+   format-2 files in format 2; format 1 first checkpoints to format 2.
+3. New databases use format **3**. To opt an existing format-2 file into the new
+   layout, run `recern-vector upgrade-storage data.rvec`, Python
+   `db.upgrade_storage()` or Node `db.upgradeStorage()`. Keep the returned
+   standalone format-2 backup. Pending data is included in the converted file;
+   its backup contains the last durable state.
+4. An error after snapshot rename can mean the upgrade committed. Reopen to
+   inspect rather than blindly replaying mutations. Conversion is not a binary
+   downgrade. Older 0.2/0.3/0.4 readers reject format 3 explicitly.
 
-Release validation creates a database/WAL with the actual published 0.3.0 wheel,
-opens and extends it with the installed 0.4.0 wheel, and verifies that a 0.3.0
-read-only client can still read those records. A 0.3.0 export imports into 0.4.0,
-and a 0.4.0 format-1 archive imports with 0.3.0. The format-1/2 golden files and
-export-v1 fixture are retained unchanged. This read-compatibility check is not a
-promise that arbitrary future downgrades or concurrent old/new writers are safe.
+**Workspace 1.0.0 cannot open format 3.** It uses the Vector 0.2.0 reader. Keep
+files at format 2 when inspecting them with that Workspace release. Its reader
+upgrade and UI/refresh integration are separate future work. Published-reader
+checks cover old-format reads, upgraded backups, explicit rejection and portable
+export-v1 transfer back to an older engine; they do not establish Workspace UI
+support for format 3.
 
-Server identity and collection generations persist across normal restart.
-Snapshots and live cursor sessions do not survive restart. A stale handle cannot
-write into a recreated collection; migration resume rechecks database identity,
-creation tokens, generations and previously acknowledged records.
+The single-node HTTP server owns its database. Stop it before replacing its
+snapshot/WAL or changing engine versions. HTTP/profile/export v1 remain stable;
+credentials, deployment and backend-specific features need explicit configuration.
 
-## What release checks establish
+## Measurements and operating limits
 
-The release workflow builds and tests five native platforms, their Node packages
-and Python wheels. Tests install/extract the artifacts rather than relying on an
-editable checkout. The full three-language, three-backend profile and verified
-private-CA TLS run against the packaged server, Rust example and installed Node
-package; the external provider is authenticated Qdrant 1.19.2. Source-distribution
-builds and packaged Rust crates are checked separately before PyPI publication.
+The [reproducible measurements](../bench/releases/0.5.0-dev.1/README.md) were run
+against the 0.5.0-dev.1 engine source. Its engine implementation is retained for
+0.5.0; raw samples, hashes and plots keep their actual development-build
+provenance. These are not fresh measurements of every distributed release
+binary. Historical 0.4.0 data remains separate.
 
-The workflow is dispatched on `main`, with publication explicitly enabled after
-local validation. Every required package/platform/upgrade job must succeed before
-trusted PyPI publication. Registry uploads and the GitHub tag/release use that
-same source commit; the website documentation is generated from it afterwards.
-Release assets have a shared SHA-256 manifest. No registry credential is embedded
-in client binaries, archives or migration journals.
+Format-3 saves encode changed records and HNSW neighbours. Open/checkpoint still
+process the full image; database, graph and cached pages must fit in RAM. Page
+padding can dominate file size. Full GloVe int8 reached **15.21 GiB** process peak
+RSS in this run. Int8 reduces vector payload, without guaranteeing lower total
+process peaks or faster searches. The native benchmark disables automatic
+checkpoint scheduling and uses warm caches; it is not an HTTP capacity test.
 
-The server remains single-node: data and index fit in RAM and saves still encode
-and compare a full image. It does not add replication, sharding, tenant RBAC,
-a managed service or the 0.5.0 incremental-encoding/checkpoint work. Qdrant batches
-are not declared atomic and its portable pages are not a consistent export
-snapshot. See [limits](limitations.md), [server operations](server.md) and
-[migration guarantees](migration.md).
+See [persistence, failure behavior and recovery checks](persistence-0.5.md),
+[byte layout](file-format.md) and [remaining limits](limitations.md). This release
+is single-node; clustering, replication and high availability are not included.

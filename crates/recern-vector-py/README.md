@@ -2,7 +2,7 @@
 
 Python bindings for [Recern Vector](https://github.com/recerndata/recern-vector), a single-file, embedded, inspectable vector database.
 
-> **Version 0.4.0.** Adds the remote backend for Recern HTTP, snapshot leases and verified migration across embedded Recern, Recern HTTP and Qdrant. Stable format 2 and format-1 readers are retained.
+> **Version 0.5.0.** Incremental encoding, paged format 3, automatic WAL checkpoints and explicit storage upgrades. Readers retain formats 1/2; HTTP/profile/export contracts remain v1. Workspace 1.0.0 cannot open format 3.
 
 ```sh
 pip install recern-vector
@@ -28,13 +28,12 @@ with rv.Database.open_or_create("docs.rvec") as db:          # saves on clean ex
 
 Benchmarks against faiss, LanceDB and sqlite-vec: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks).
 
-## 0.5.0 development
+## Persistence in 0.5.0
 
-The source version is **0.5.0-dev.1** (Python distribution **0.5.0.dev1**).
 Automatic checkpoints, `set_checkpoint_policy`, `checkpoint_policy` and
 `persistence_stats`, paged format 3, `format_version` and explicit
-`upgrade_storage` are described in the [persistence guide](../../docs/persistence-0.5.md).
-Published 0.4.0 wheels do not include these additions.
+`upgrade_storage` are described in the [persistence guide](https://recern.net/vector/docs/persistence-0.5).
+Existing format-2 files remain at format 2 until an explicit upgrade with a backup.
 
 ## Remote backend (0.4.0)
 

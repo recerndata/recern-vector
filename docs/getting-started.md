@@ -63,7 +63,9 @@ A complete program: [`quickstart.rs`](../crates/recern-vector/examples/quickstar
 
 ## Node.js
 
-Native builds for Linux x64, macOS arm64 and Windows x64 are attached to the 0.3.0 release. The package is not yet on npm. See [Node.js](nodejs.md) for download links, setup and an asynchronous search example.
+Install `@recern/vector@0.5.0` from npm. The loader selects Linux x64/ARM64 (glibc), macOS Intel/Apple silicon or Windows x64. Keep optional dependencies enabled. See [Node.js](nodejs.md) for download links, setup and an asynchronous search example.
+
+New files use format 3, which Workspace 1.0.0 cannot open. Existing format-2 files retain format 2 on ordinary saves. See [release compatibility](release.md).
 
 ## Command line
 
