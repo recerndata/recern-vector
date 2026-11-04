@@ -9,7 +9,9 @@ use crate::metric::Metric;
 use crate::rng::SplitMix64;
 
 const MAGIC: &[u8; 4] = b"RVEC";
-pub const FORMAT_VERSION: u32 = 2;
+/// Highest supported snapshot version and the layout used for new databases.
+/// Existing format-2 files retain their layout until an explicit storage upgrade.
+pub const FORMAT_VERSION: u32 = 3;
 const NO_ENTRY: u32 = u32::MAX;
 
 pub(crate) fn encode(
@@ -19,7 +21,7 @@ pub(crate) fn encode(
 ) -> Vec<u8> {
     let mut w = Writer::default();
     w.bytes(MAGIC);
-    w.u32(FORMAT_VERSION);
+    w.u32(2);
     w.bytes(&identity.to_le_bytes());
     w.u64(sequence);
     w.u32(collections.len() as u32);
@@ -31,7 +33,35 @@ pub(crate) fn encode(
     w.buf
 }
 
+/// Advances an encoded format-2 image without encoding collections twice.
+pub(crate) fn set_sequence(bytes: &mut [u8], sequence: u64) {
+    debug_assert_eq!(&bytes[4..8], &2u32.to_le_bytes());
+    bytes[24..32].copy_from_slice(&sequence.to_le_bytes());
+    let end = bytes.len() - 4;
+    let crc = crc32(&bytes[..end]);
+    bytes[end..].copy_from_slice(&crc.to_le_bytes());
+}
+
 fn encode_collection(w: &mut Writer, c: &Collection) {
+    encode_collection_header(w, c);
+    let graph = &c.graph;
+    for &x in &c.vectors.data {
+        w.bytes(&x.to_le_bytes());
+    }
+    if c.config.quantization == Quantization::Int8 {
+        for &scale in &c.vectors.scales {
+            w.bytes(&scale.to_le_bytes());
+        }
+        for &code in &c.vectors.codes {
+            w.u8(code as u8);
+        }
+    }
+    for node in 0..graph.len() {
+        encode_node(w, c, node);
+    }
+}
+
+pub(crate) fn encode_collection_header(w: &mut Writer, c: &Collection) {
     let graph = &c.graph;
     w.str(&c.name);
     w.u32(c.config.dim as u32);
@@ -48,34 +78,25 @@ fn encode_collection(w: &mut Writer, c: &Collection) {
     w.u32(graph.len() as u32);
     w.u32(graph.entry.unwrap_or(NO_ENTRY));
     w.u32(graph.max_level as u32);
-    for &x in &c.vectors.data {
-        w.bytes(&x.to_le_bytes());
+}
+
+pub(crate) fn encode_node(w: &mut Writer, c: &Collection, node: usize) {
+    let graph = &c.graph;
+    w.str(&c.ids[node]);
+    w.u8(c.deleted[node] as u8);
+    match &c.metadata[node] {
+        Some(value) => {
+            w.u8(1);
+            w.str(&value.to_string());
+        }
+        None => w.u8(0),
     }
-    if c.config.quantization == Quantization::Int8 {
-        for &scale in &c.vectors.scales {
-            w.bytes(&scale.to_le_bytes());
-        }
-        for &code in &c.vectors.codes {
-            w.u8(code as u8);
-        }
-    }
-    for node in 0..graph.len() {
-        w.str(&c.ids[node]);
-        w.u8(c.deleted[node] as u8);
-        match &c.metadata[node] {
-            Some(value) => {
-                w.u8(1);
-                w.str(&value.to_string());
-            }
-            None => w.u8(0),
-        }
-        let layers = &graph.links[node];
-        w.u8(layers.len() as u8);
-        for links in layers {
-            w.u32(links.len() as u32);
-            for &link in links {
-                w.u32(link);
-            }
+    let layers = &graph.links[node];
+    w.u8(layers.len() as u8);
+    for links in layers {
+        w.u32(links.len() as u32);
+        for &link in links {
+            w.u32(link);
         }
     }
 }
@@ -88,7 +109,10 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<BTreeMap<String, Collection>> {
         return Err(Error::Corrupt("file is truncated".into()));
     }
     let version = u32::from_le_bytes(bytes[4..8].try_into().unwrap());
-    if version != 1 && version != FORMAT_VERSION {
+    if version == 3 {
+        return crate::paged::decode(bytes);
+    }
+    if version != 1 && version != 2 {
         return Err(Error::UnsupportedVersion(version));
     }
     let (body, tail) = bytes.split_at(bytes.len() - 4);
@@ -117,7 +141,7 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<BTreeMap<String, Collection>> {
     Ok(collections)
 }
 
-fn decode_collection(r: &mut Reader, version: u32) -> Result<Collection> {
+pub(crate) fn decode_collection(r: &mut Reader, version: u32) -> Result<Collection> {
     let name = r.str()?;
     let dim = r.u32()? as usize;
     let metric = Metric::from_code(r.u8()?).ok_or_else(|| corrupt(&name, "unknown metric"))?;
@@ -229,6 +253,7 @@ fn decode_collection(r: &mut Reader, version: u32) -> Result<Collection> {
     }
 
     let graph = Graph {
+        changes: crate::changes::Changes::new(),
         params: hnsw,
         links,
         entry,
@@ -243,60 +268,60 @@ fn corrupt(collection: &str, reason: &str) -> Error {
 }
 
 #[derive(Default)]
-struct Writer {
-    buf: Vec<u8>,
+pub(crate) struct Writer {
+    pub buf: Vec<u8>,
 }
 
 impl Writer {
-    fn bytes(&mut self, b: &[u8]) {
+    pub(crate) fn bytes(&mut self, b: &[u8]) {
         self.buf.extend_from_slice(b);
     }
-    fn u8(&mut self, v: u8) {
+    pub(crate) fn u8(&mut self, v: u8) {
         self.buf.push(v);
     }
-    fn u32(&mut self, v: u32) {
+    pub(crate) fn u32(&mut self, v: u32) {
         self.bytes(&v.to_le_bytes());
     }
-    fn u64(&mut self, v: u64) {
+    pub(crate) fn u64(&mut self, v: u64) {
         self.bytes(&v.to_le_bytes());
     }
-    fn str(&mut self, s: &str) {
+    pub(crate) fn str(&mut self, s: &str) {
         self.u32(s.len() as u32);
         self.bytes(s.as_bytes());
     }
 }
 
-struct Reader<'a> {
-    buf: &'a [u8],
-    pos: usize,
+pub(crate) struct Reader<'a> {
+    pub buf: &'a [u8],
+    pub pos: usize,
 }
 
 impl<'a> Reader<'a> {
-    fn remaining(&self) -> usize {
+    pub(crate) fn remaining(&self) -> usize {
         self.buf.len() - self.pos
     }
-    fn take(&mut self, n: usize) -> Result<&'a [u8]> {
+    pub(crate) fn take(&mut self, n: usize) -> Result<&'a [u8]> {
         let end = self.pos.checked_add(n).filter(|&end| end <= self.buf.len());
         let end = end.ok_or_else(|| Error::Corrupt("unexpected end of file".into()))?;
         let slice = &self.buf[self.pos..end];
         self.pos = end;
         Ok(slice)
     }
-    fn u8(&mut self) -> Result<u8> {
+    pub(crate) fn u8(&mut self) -> Result<u8> {
         Ok(self.take(1)?[0])
     }
-    fn u32(&mut self) -> Result<u32> {
+    pub(crate) fn u32(&mut self) -> Result<u32> {
         Ok(u32::from_le_bytes(self.take(4)?.try_into().unwrap()))
     }
-    fn u64(&mut self) -> Result<u64> {
+    pub(crate) fn u64(&mut self) -> Result<u64> {
         Ok(u64::from_le_bytes(self.take(8)?.try_into().unwrap()))
     }
-    fn str(&mut self) -> Result<String> {
+    pub(crate) fn str(&mut self) -> Result<String> {
         let len = self.u32()? as usize;
         String::from_utf8(self.take(len)?.to_vec())
             .map_err(|_| Error::Corrupt("invalid UTF-8 string".into()))
     }
-    fn f32s(&mut self, n: usize) -> Result<Vec<f32>> {
+    pub(crate) fn f32s(&mut self, n: usize) -> Result<Vec<f32>> {
         let bytes = self.take(
             n.checked_mul(4)
                 .ok_or_else(|| Error::Corrupt("overflow".into()))?,
@@ -310,36 +335,50 @@ impl<'a> Reader<'a> {
     }
 }
 
-pub(crate) fn crc32(data: &[u8]) -> u32 {
-    const TABLE: [u32; 256] = {
-        let mut table = [0u32; 256];
-        let mut i = 0;
-        while i < 256 {
-            let mut c = i as u32;
-            let mut k = 0;
-            while k < 8 {
-                c = if c & 1 != 0 {
-                    0xEDB8_8320 ^ (c >> 1)
-                } else {
-                    c >> 1
-                };
-                k += 1;
-            }
-            table[i] = c;
-            i += 1;
-        }
-        table
-    };
-    let mut crc = !0u32;
-    for &byte in data {
-        crc = TABLE[((crc ^ byte as u32) & 0xFF) as usize] ^ (crc >> 8);
+pub(crate) struct Crc32(u32);
+impl Crc32 {
+    pub fn new() -> Self {
+        Self(!0)
     }
-    !crc
+    pub fn update(&mut self, data: &[u8]) {
+        const TABLE: [u32; 256] = {
+            let mut table = [0u32; 256];
+            let mut i = 0;
+            while i < 256 {
+                let mut c = i as u32;
+                let mut k = 0;
+                while k < 8 {
+                    c = if c & 1 != 0 {
+                        0xEDB8_8320 ^ (c >> 1)
+                    } else {
+                        c >> 1
+                    };
+                    k += 1;
+                }
+                table[i] = c;
+                i += 1;
+            }
+            table
+        };
+        for &byte in data {
+            self.0 = TABLE[((self.0 ^ byte as u32) & 0xFF) as usize] ^ (self.0 >> 8);
+        }
+    }
+    pub fn finish(self) -> u32 {
+        !self.0
+    }
+}
+pub(crate) fn crc32(data: &[u8]) -> u32 {
+    let mut c = Crc32::new();
+    c.update(data);
+    c.finish()
 }
 
 /// Reads only a header previously validated by `decode`.
 pub(crate) fn header(bytes: &[u8]) -> (u128, u64) {
-    if bytes.get(4..8) == Some(&2u32.to_le_bytes()) && bytes.len() >= 36 {
+    if matches!(bytes.get(4..8), Some(v) if v == 2u32.to_le_bytes() || v == 3u32.to_le_bytes())
+        && bytes.len() >= 36
+    {
         (
             u128::from_le_bytes(bytes[8..24].try_into().unwrap()),
             u64::from_le_bytes(bytes[24..32].try_into().unwrap()),

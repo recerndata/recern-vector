@@ -1,4 +1,5 @@
 use clap::Parser;
+use recern_vector::CheckpointPolicy;
 use recern_vector_server::{
     http::{self, App},
     store::{Limits, Store},
@@ -29,6 +30,12 @@ struct Args {
     max_snapshots: usize,
     #[arg(long, default_value_t = 300000)]
     snapshot_ttl_ms: u64,
+    /// Checkpoint after this many WAL bytes; 0 disables this trigger.
+    #[arg(long, default_value_t = 67108864)]
+    checkpoint_wal_bytes: u64,
+    /// Checkpoint after this many commits; 0 disables this trigger.
+    #[arg(long, default_value_t = 1000)]
+    checkpoint_commits: u64,
     #[arg(long, default_value_t = 10000)]
     request_timeout_ms: u64,
 }
@@ -58,7 +65,12 @@ async fn main() {
         default_timeout_ms: args.request_timeout_ms,
         ..Limits::default()
     };
-    let store = Store::open(&args.database).unwrap_or_else(|e| fail(e.reason));
+    let policy = CheckpointPolicy {
+        max_wal_bytes: (args.checkpoint_wal_bytes != 0).then_some(args.checkpoint_wal_bytes),
+        max_commits: (args.checkpoint_commits != 0).then_some(args.checkpoint_commits),
+    };
+    let store = Store::open_with_checkpoint_policy(&args.database, policy)
+        .unwrap_or_else(|e| fail(e.reason));
     let app = App::new(store, key, limits).unwrap_or_else(|e| fail(e.reason));
     let listener = tokio::net::TcpListener::bind(args.listen)
         .await

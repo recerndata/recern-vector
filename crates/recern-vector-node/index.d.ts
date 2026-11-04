@@ -5,18 +5,25 @@ export interface Hit { id: string; distance: number; metadata: Json }
 export interface Record { id: string; vector: number[]; metadata: Json }
 export interface SearchReport { hits: Hit[]; strategy: 'hnsw' | 'exact' | 'filtered_exact'; ef: number | null; visited: number; distanceComputations: number; filterSelectivity: number | null; elapsedMs: number }
 export interface Stats { name: string; dim: number; metric: string; quantization: string; live: number; deleted: number; vectorBytes: number; graphBytes: number; metadataBytes: number; unreachable: number; nodesPerLayer: number[] }
+export interface CheckpointPolicy { maxWalBytes?: number; maxCommits?: number }
+export interface PersistenceStats { walBytes: number; walCommits: number; automaticCheckpoints: number; lastCheckpointError: string | null; lastEncodedRecords: number; lastWrittenPages: number; lastValidatedBytes: number }
 export class Database {
   constructor(path: string);
   static create(path: string): Database;
   static openOrCreate(path: string): Database;
   static openReadOnly(path: string): Database;
   readonly readOnly: boolean;
+  readonly formatVersion: number;
+  readonly checkpointPolicy: { maxWalBytes: number | null; maxCommits: number | null };
+  setCheckpointPolicy(policy: CheckpointPolicy): void;
+  persistenceStats(): PersistenceStats;
   createCollection(name: string, options: CollectionOptions): Collection;
   collection(name: string): Collection;
   collectionNames(): string[];
   dropCollection(name: string): void;
   save(): void;
   checkpoint(): void;
+  upgradeStorage(): string | null;
 }
 export class Collection {
   private constructor();

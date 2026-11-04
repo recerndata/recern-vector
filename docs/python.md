@@ -1,5 +1,9 @@
 # Python API
 
+> Development **0.5.0-dev.1** adds paged format 3, incremental saves, explicit storage upgrades and automatic checkpoints.
+> See [policy, statistics, examples and failure behavior](persistence-0.5.md).
+> Published 0.4.0 packages do not include these additions.
+
 ```sh
 pip install recern-vector
 ```
@@ -22,13 +26,13 @@ A database file and its collections. Everything is held in memory; changes reach
 | `rv.Database.create(path)` | Create a new, empty file. Raises `FileExistsError` if it exists |
 | `rv.Database.open_or_create(path)` | Open the file, or create it if missing |
 | `db.path` | The file path, as a `pathlib.Path` |
-| `db.identity` | Added in 0.3.0: stable format-2 database identity as 32 hex characters; legacy files return zero until migrated by a save |
+| `db.identity` | Added in 0.3.0: stable format-2/3 database identity as 32 hex characters; legacy files return zero until migrated by a save |
 | `db.create_collection(name, dim, metric="cosine", m=16, ef_construction=200, ef_search=64)` | Create a collection and return it. Raises `ValueError` if it exists or a setting is invalid. See [Concepts](concepts.md#collections) |
 | `db.collection(name)`, `db[name]` | An existing collection. Raises `KeyError` if missing |
 | `name in db` | Whether a collection exists |
 | `db.collection_names()` | Names of all collections |
 | `db.drop_collection(name)` | Delete a collection |
-| `db.save()` | Commit pending changes to the WAL and fsync |
+| `db.save()` | Commit pending changes to the WAL and fsync; development 0.5.0 then attempts due checkpoint maintenance |
 | `db.checkpoint()` | Merge pending changes and WAL into a portable snapshot |
 | `rv.Database.open_read_only(path)` | Read snapshot + WAL without allowing mutation |
 | `db.read_only` | Whether this handle is read-only |
@@ -97,7 +101,7 @@ All result objects are read-only.
 | `OSError` | The file cannot be read or written |
 | `rv.CorruptDatabaseError` | The file is not a Recern Vector database, is damaged, or was written by a newer format version. Subclass of `rv.RecernVectorError` |
 
-`rv.FORMAT_VERSION` is the file format version this build writes.
+`rv.FORMAT_VERSION` is the highest file format this build supports (3 in 0.5 development). `db.format_version` reports the actual file format. Existing format-2 files stay at 2 until an explicit `db.upgrade_storage()` with a format-2 backup; published 0.4.0 has no such upgrade API.
 
 ## Threads
 

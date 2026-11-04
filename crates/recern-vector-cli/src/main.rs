@@ -103,6 +103,8 @@ enum Command {
     },
     /// Merge WAL into a portable, standalone snapshot
     Checkpoint { file: PathBuf },
+    /// Explicitly upgrade format 2 to paged format 3, keeping a format-2 backup
+    UpgradeStorage { file: PathBuf },
     /// Rebuild a collection without deleted records
     Compact { file: PathBuf, collection: String },
 }
@@ -284,6 +286,14 @@ fn run(command: Command) -> CliResult {
             Database::open(&file)?.checkpoint()?;
             println!("checkpointed {}", file.display());
         }
+        Command::UpgradeStorage { file } => match Database::open(&file)?.upgrade_storage()? {
+            Some(backup) => println!(
+                "upgraded {}; format-2 backup: {}",
+                file.display(),
+                backup.display()
+            ),
+            None => println!("{} already uses format 3", file.display()),
+        },
         Command::Compact { file, collection } => {
             let mut db = Database::open(&file)?;
             let removed = db.collection_mut(&collection)?.compact();

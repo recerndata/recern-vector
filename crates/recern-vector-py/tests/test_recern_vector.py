@@ -243,4 +243,66 @@ def test_v2_int8_wal_logical_filters_and_read_only(tmp_path):
         stale.save()
     db.checkpoint()
     assert len(rv.Database(path)["q"]) == 1
-    assert rv.FORMAT_VERSION == 2
+    assert rv.FORMAT_VERSION == 3
+
+
+def test_automatic_checkpoint_policy_and_reopened_commit_count(path):
+    db = rv.Database.create(path)
+    assert db.checkpoint_policy == {"max_wal_bytes": 64 * 1024 * 1024, "max_commits": 1000}
+    db.set_checkpoint_policy(max_commits=2)
+    db.create_collection("c", dim=2).upsert("a", [1.0, 0.0])
+    db.save()
+    assert db.persistence_stats()["wal_commits"] == 1
+    reopened = rv.Database(path)
+    assert reopened.persistence_stats()["wal_commits"] == 1
+    reopened.set_checkpoint_policy(max_commits=2)
+    reopened["c"].upsert("b", [0.0, 1.0])
+    reopened.save()
+    assert {k: reopened.persistence_stats()[k] for k in ("wal_bytes", "wal_commits", "automatic_checkpoints", "last_checkpoint_error")} == {
+        "wal_bytes": 24, "wal_commits": 0,
+        "automatic_checkpoints": 1, "last_checkpoint_error": None,
+    }
+    assert len(rv.Database(path)["c"]) == 2
+    reopened.set_checkpoint_policy()
+    assert reopened.checkpoint_policy == {"max_wal_bytes": None, "max_commits": None}
+    reopened["c"].upsert("c", [1.0, 1.0])
+    reopened.save()
+    assert reopened.persistence_stats()["wal_commits"] == 1
+    with pytest.raises(ValueError, match="positive"):
+        reopened.set_checkpoint_policy(max_commits=0)
+    assert reopened.checkpoint_policy == {"max_wal_bytes": None, "max_commits": None}
+    with pytest.raises(ValueError, match="read-only"):
+        rv.Database.open_read_only(path).set_checkpoint_policy(max_commits=1)
+
+
+def test_paged_save_counters_and_explicit_legacy_upgrade(tmp_path):
+    from pathlib import Path
+    import shutil
+    path = tmp_path / 'paged.rvec'
+    db = rv.Database.create(path)
+    assert db.format_version == 3
+    assert db.upgrade_storage() is None
+    c = db.create_collection('c', 2)
+    c.upsert_many([str(i) for i in range(30)], [[i, 1] for i in range(30)])
+    db.checkpoint()
+    c.delete('3')
+    db.save()
+    stats = db.persistence_stats()
+    assert stats['last_encoded_records'] == 1
+    assert stats['last_written_pages'] == 2
+    assert stats['last_validated_bytes'] == 4124
+    db.save()
+    assert db.persistence_stats()['last_encoded_records'] == 0
+    fixture = Path(__file__).resolve().parents[2] / 'recern-vector/tests/fixtures/v2-0.2.0.rvec'
+    legacy = tmp_path / 'legacy.rvec'
+    shutil.copyfile(fixture, legacy)
+    before = legacy.read_bytes()
+    old = rv.Database(legacy)
+    assert old.format_version == 2
+    backup = old.upgrade_storage()
+    assert isinstance(backup, Path) and backup.read_bytes() == before
+    assert old.format_version == 3
+    assert rv.Database.open_read_only(backup).format_version == 2
+    assert rv.Database(legacy)['int8'].get('alpha').id == 'alpha'
+    with pytest.raises(ValueError, match='read-only'):
+        rv.Database.open_read_only(legacy).upgrade_storage()

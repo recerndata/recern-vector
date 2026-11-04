@@ -1,4 +1,8 @@
-# Recern Vector for Node.js — 0.4.0
+# Recern Vector for Node.js
+
+> Source **0.5.0-dev.1** adds `setCheckpointPolicy`, `checkpointPolicy` and
+> `persistenceStats`, paged format 3, `formatVersion` and explicit `upgradeStorage`. See the [policy guide](../../docs/persistence-0.5.md).
+> The published 0.4.0 tarballs below do not include these additions.
 
 The native API is retained. Version 0.4.0 adds an asynchronous `./portable` entry point for embedded Recern, Recern HTTP and Qdrant; see the [portable clients guide](../../docs/portable-clients.md). Platform-specific npm tarballs are attached to the 0.4.0 GitHub release. Install the matching archive with `npm install <archive URL>`; see [release packages](https://recern.net/vector/docs/release).
 

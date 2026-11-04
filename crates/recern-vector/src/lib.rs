@@ -18,12 +18,14 @@
 //! # Ok::<(), recern_vector::Error>(())
 //! ```
 
+mod changes;
 mod collection;
 mod database;
 mod error;
 mod filter;
 mod hnsw;
 mod metric;
+mod paged;
 mod rng;
 mod storage;
 mod wal;
@@ -32,7 +34,7 @@ pub use collection::{
     Collection, CollectionConfig, CollectionStats, Quantization, RecallOptions, RecallPoint,
     RecallReport, Record, RecordPage, SearchHit, SearchOptions, SearchReport, Strategy,
 };
-pub use database::Database;
+pub use database::{CheckpointPolicy, Database, PersistenceStats};
 pub use error::{Error, Result};
 pub use filter::Filter;
 pub use hnsw::HnswParams;

@@ -4,7 +4,9 @@ use crate::{
 };
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use hmac::{Hmac, Mac};
-use recern_vector::{Collection, CollectionConfig, Database, Metric, SearchOptions};
+use recern_vector::{
+    CheckpointPolicy, Collection, CollectionConfig, Database, Metric, SearchOptions,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::Sha256;
@@ -46,6 +48,8 @@ pub struct Snapshot {
 }
 pub struct Store {
     live: View,
+    checkpoint_policy: CheckpointPolicy,
+    checkpoint_warning_active: bool,
     boot: String,
     key: Vec<u8>,
     _owner: File,
@@ -178,6 +182,10 @@ fn descriptor(entry: &Entry) -> Value {
 
 impl Store {
     pub fn open(path: &Path) -> Result<Self> {
+        Self::open_with_checkpoint_policy(path, CheckpointPolicy::default())
+    }
+    pub fn open_with_checkpoint_policy(path: &Path, policy: CheckpointPolicy) -> Result<Self> {
+        CheckpointPolicy::new(policy.max_wal_bytes, policy.max_commits)?;
         // Canonicalize the parent before creating the ownership sidecar, so
         // symlink aliases cannot acquire a second writer lock for the same file.
         let path = if path.exists() {
@@ -203,6 +211,7 @@ impl Store {
             .try_lock()
             .map_err(|_| ApiError::conflict("database_owned"))?;
         let mut db = Database::open_or_create(&path)?;
+        db.set_checkpoint_policy(policy)?;
         if db.collections().count() == 0 {
             let key = [
                 Uuid::new_v4().as_bytes().as_slice(),
@@ -223,7 +232,8 @@ impl Store {
             db.save()?;
         }
         drop(db);
-        let live = View::load(&path, false)?;
+        let mut live = View::load(&path, false)?;
+        live.db.set_checkpoint_policy(policy)?;
         // A recovered complete WAL frame may have been written before a
         // previous fsync error. Establish a fresh durability barrier before
         // advertising readiness or durable no-op acknowledgements.
@@ -236,6 +246,8 @@ impl Store {
         }
         Ok(Self {
             live,
+            checkpoint_policy: policy,
+            checkpoint_warning_active: false,
             boot: Uuid::new_v4().simple().to_string(),
             key,
             _owner: owner,
@@ -276,6 +288,20 @@ impl Store {
                 .db
                 .save()
                 .map_err(|e| ApiError::from(e).unknown())?;
+            let checkpoint_failed = self
+                .live
+                .db
+                .persistence_stats()
+                .last_checkpoint_error
+                .is_some();
+            if checkpoint_failed && !self.checkpoint_warning_active {
+                // Do not log database paths, records or credentials. The WAL
+                // acknowledgement remains valid if later maintenance fails.
+                eprintln!(
+                    "Recern Vector server: checkpoint maintenance deferred; WAL commit is durable."
+                );
+            }
+            self.checkpoint_warning_active = checkpoint_failed;
             #[cfg(test)]
             if self.fail_after_save {
                 self.fail_after_save = false;
@@ -284,11 +310,15 @@ impl Store {
             Ok(result)
         })();
         if result.is_err() {
-            match View::load(self.live.db.path(), false).and_then(|view| {
+            match View::load(self.live.db.path(), false).and_then(|mut view| {
+                view.db.set_checkpoint_policy(self.checkpoint_policy)?;
                 view.db.checkpoint().map_err(ApiError::from)?;
                 Ok(view)
             }) {
-                Ok(view) => self.live = view,
+                Ok(view) => {
+                    self.live = view;
+                    self.checkpoint_warning_active = false;
+                }
                 Err(_) => self.ready = false,
             }
         }
@@ -703,6 +733,47 @@ mod tests {
         );
         json!({"name":"docs","identity":value["collection"]["identity"]})
     }
+    #[test]
+    fn automatic_checkpoints_keep_wire_sequences_and_policy_after_error_reload() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("auto.rvec");
+        let policy = CheckpointPolicy::new(None, Some(1)).unwrap();
+        let mut store = Store::open_with_checkpoint_policy(&path, policy).unwrap();
+        let reference = collection(&mut store);
+        assert_eq!(store.live.db.persistence_stats().automatic_checkpoints, 1);
+        assert_eq!(store.live.db.persistence_stats().wal_commits, 0);
+        let before = store.live.db.sequence();
+        call(
+            &mut store,
+            "/v1/records/upsert",
+            json!({"collection":reference,"records":[{"id":"a","vector":[1,0],"metadata_json":"null"}]}),
+        );
+        assert_eq!(store.live.db.sequence(), before + 1);
+        assert_eq!(store.live.db.persistence_stats().wal_commits, 0);
+        assert_eq!(store.live.db.persistence_stats().automatic_checkpoints, 2);
+        assert!(
+            store
+                .dispatch(
+                    "/v1/collections/create",
+                    json!({"spec":{"name":"docs","dim":2}}),
+                    &Limits::default()
+                )
+                .is_err()
+        );
+        assert_eq!(store.live.db.checkpoint_policy(), policy);
+        drop(store);
+        let reopened = Store::open_with_checkpoint_policy(&path, policy).unwrap();
+        assert_eq!(reopened.live.db.sequence(), before + 1);
+        assert!(
+            reopened
+                .live
+                .db
+                .collection(reference["identity"].as_str().unwrap())
+                .unwrap()
+                .contains("a")
+        );
+    }
+
     #[test]
     fn failed_commit_reloads_authoritative_state_and_lost_ack_preserves_new_state() {
         let temp = tempfile::tempdir().unwrap();

@@ -15,7 +15,7 @@ try {
   fs.copyFileSync(archive,path.join(dir,'archive.tgz'));
   execFileSync('tar',['-xzf','archive.tgz'],{cwd:dir});
   const manifest=JSON.parse(fs.readFileSync(path.join(dir,'package/package.json'),'utf8'));
-  assert.equal(manifest.version,process.env.RECERN_EXPECT_VERSION || '0.4.0');
+  assert.equal(manifest.version,process.env.RECERN_EXPECT_VERSION || require('../crates/recern-vector-node/package.json').version);
   for(const file of ['portable/index.js','portable/index.d.ts','recern_vector.node']) assert.ok(fs.existsSync(path.join(dir,'package',file)));
   const dbPath=path.join(dir,'package.rvec');
   // Keep the native DLL in the child so Windows can remove it after child exit.

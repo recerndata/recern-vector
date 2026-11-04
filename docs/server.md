@@ -1,5 +1,9 @@
 # Single-node server (0.4.0)
 
+> Development **0.5.0-dev.1** adds configurable automatic checkpoints.
+> See [policy, statistics, examples and failure behavior](persistence-0.5.md).
+> Published 0.4.0 packages do not include this addition.
+
 **Recern Vector 0.4.0.** Install `recern-vector-server` from crates.io or
 use a verified native archive from the [0.4.0 release](release.md). Python,
 Rust and Node portable clients use the [HTTP v1 contract](http-api.md).
@@ -124,14 +128,14 @@ aliases resolve to that path. Hard links, file replacement, network filesystems
 and native writers bypassing the server are unsupported. The existing native
 stale-writer check is retained as a final error boundary.
 
-The server keeps its catalog and physical collections in **one format-2 database**.
+The server keeps its catalog and physical collections in **one native database** (format 2 in published 0.4.0; new development 0.5 files use format 3).
 Logical names map to opaque physical collection generations. Catalog updates and
 user mutations share one native WAL commit, so a crash cannot leave a generation
 in a separate, inconsistent metadata sidecar. The catalog also retains cursor
 authentication material. Server-managed files contain these internal records;
 do not inspect/edit them as if they were ordinary native application collections.
 Workspace integration remains follow-up. Logical export through the remote SDK
-is now available. Existing format-1/2 and migration-v1 fixtures are unchanged.
+is now available. Existing format-1/2 and migration-v1 fixtures are unchanged. Existing format-2 server files retain that format. To opt into 3, stop the server and use the native CLI `upgrade-storage`; retain its format-2 backup.
 
 SIGINT and, on Unix, SIGTERM stop new admissions and drain started blocking
 operations before releasing ownership. Native CPU/IO work cannot be forcibly

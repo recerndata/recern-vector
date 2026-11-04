@@ -100,11 +100,14 @@ jobs:
           (cd crates/recern-vector-node && npm pack --pack-destination "$GITHUB_WORKSPACE/dist")
           python - <<'PY'
           from pathlib import Path
+          import json
           p=next(Path('dist').glob('recern-vector-*.tgz'))
-          p.rename(p.with_name('recern-vector-0.4.0-node-${{ matrix.platform }}.tgz'))
+          version=json.loads(Path('crates/recern-vector-node/package.json').read_text())['version']
+          p.rename(p.with_name(f'recern-vector-{version}-node-${{ matrix.platform }}.tgz'))
           PY
-          node tests/node-package.cjs 'dist/recern-vector-0.4.0-node-${{ matrix.platform }}.tgz'
-          npm install --ignore-scripts --no-audit --no-fund --prefix "$GITHUB_WORKSPACE/installed-node" "$GITHUB_WORKSPACE/dist/recern-vector-0.4.0-node-${{ matrix.platform }}.tgz"
+          version=$(python scripts/release_version.py)
+          node tests/node-package.cjs "dist/recern-vector-$version-node-${{ matrix.platform }}.tgz"
+          npm install --ignore-scripts --no-audit --no-fund --prefix "$GITHUB_WORKSPACE/installed-node" "$GITHUB_WORKSPACE/dist/recern-vector-$version-node-${{ matrix.platform }}.tgz"
           mkdir -p test-tools
           cp target/release/examples/portable${{ matrix.suffix }} test-tools/
       - uses: actions/upload-artifact@v4
@@ -159,7 +162,7 @@ jobs:
           python -m pip wheel --no-deps dist/*.tar.gz --wheel-dir source-wheel
           python -m pip install --no-index --find-links source-wheel recern-vector
           python -m pip install pytest numpy -r api/requirements.txt
-          python -c 'import importlib.metadata; assert importlib.metadata.version("recern-vector") == "0.4.0"'
+          python scripts/release_version.py --check-installed
           python -m pytest crates/recern-vector-py/tests api/tests -q
       - uses: actions/upload-artifact@v4
         with:
@@ -228,15 +231,16 @@ jobs:
           shutil.copytree(folder,'installed-native',dirs_exist_ok=True)
           PY
           chmod +x test-tools/* installed-native/bin/*
-          npm install --ignore-scripts --no-audit --no-fund --prefix "$GITHUB_WORKSPACE/installed-node" "$GITHUB_WORKSPACE/native-dist/recern-vector-0.4.0-node-${{ matrix.platform }}.tgz"
+          version=$(python scripts/release_version.py)
+          npm install --ignore-scripts --no-audit --no-fund --prefix "$GITHUB_WORKSPACE/installed-node" "$GITHUB_WORKSPACE/native-dist/recern-vector-$version-node-${{ matrix.platform }}.tgz"
           python -m pip install pytest numpy -r api/requirements.txt
           python -m pip install --no-index --find-links dist recern-vector
-          python -c 'import importlib.metadata,recern_vector; assert importlib.metadata.version("recern-vector")=="0.4.0"; print(recern_vector.__file__)'
+          python scripts/release_version.py --check-installed
           python -m pytest crates/recern-vector-py/tests api/tests -q
           python tests/interop.py
 
   portable-contract:
-    name: Release interoperability and 0.3 upgrade
+    name: Release interoperability and previous-release upgrades
     needs: [wheels, native]
     runs-on: ubuntu-22.04
     services:
@@ -277,15 +281,18 @@ jobs:
         shell: bash
         run: |
           mkdir installed-native
-          tar -xzf native-dist/recern-vector-0.4.0-linux-x64.tar.gz --strip-components=1 -C installed-native
+          version=$(python scripts/release_version.py)
+          tar -xzf "native-dist/recern-vector-$version-linux-x64.tar.gz" --strip-components=1 -C installed-native
           chmod +x test-tools/* installed-native/bin/*
-          npm install --ignore-scripts --no-audit --no-fund --prefix "$GITHUB_WORKSPACE/installed-node" "$GITHUB_WORKSPACE/native-dist/recern-vector-0.4.0-node-linux-x64.tgz"
+          npm install --ignore-scripts --no-audit --no-fund --prefix "$GITHUB_WORKSPACE/installed-node" "$GITHUB_WORKSPACE/native-dist/recern-vector-$version-node-linux-x64.tgz"
           python -m pip install pytest numpy -r api/requirements.txt
           python -m pip install --no-index --find-links dist recern-vector
           python -m pytest crates/recern-vector-py/tests api/tests -q
-          python -m venv "$RUNNER_TEMP/vector-03"
-          "$RUNNER_TEMP/vector-03/bin/python" -m pip install recern-vector==0.3.0
-          python scripts/release_compatibility.py --old-python "$RUNNER_TEMP/vector-03/bin/python" --new-python "$(command -v python)" --work "$RUNNER_TEMP/release-upgrade"
+          for previous in 0.3.0 0.4.0; do
+            python -m venv "$RUNNER_TEMP/vector-$previous"
+            "$RUNNER_TEMP/vector-$previous/bin/python" -m pip install "recern-vector==$previous"
+            python scripts/release_compatibility.py --old-version "$previous" --old-python "$RUNNER_TEMP/vector-$previous/bin/python" --new-python "$(command -v python)" --work "$RUNNER_TEMP/release-upgrade-$previous"
+          done
 
   publish:
     if: inputs.publish

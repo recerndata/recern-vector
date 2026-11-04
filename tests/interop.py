@@ -3,11 +3,14 @@ from importlib.metadata import version
 from pathlib import Path
 import os
 import subprocess
+import sys
 import tempfile
 import tomllib
 import recern_vector as rv
 
 root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(root / 'scripts'))
+from release_version import python_version
 expected_version = tomllib.loads((root / 'Cargo.toml').read_text())['workspace']['package']['version']
 cli = Path(os.getenv('RECERN_TEST_CLI_BIN', str(root / 'target/release' / ('recern-vector.exe' if os.name == 'nt' else 'recern-vector'))))
 node_package = os.getenv('RECERN_NATIVE_NODE', str(root / 'crates/recern-vector-node'))
@@ -30,5 +33,5 @@ with tempfile.TemporaryDirectory(prefix='recern-interop-') as directory:
     assert rv.Database(path)['q'].get('node').metadata['source'] == 'node'
     subprocess.run([str(cli), 'checkpoint', str(path)], check=True)
     assert len(rv.Database.open_read_only(path)['q']) == 2
-    assert version('recern-vector') == expected_version
+    assert version('recern-vector') == python_version()
     print(f'PASS: Python -> Node -> Rust CLI -> Python share int8, WAL and checkpoint ({expected_version})')

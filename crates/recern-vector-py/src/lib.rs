@@ -361,6 +361,46 @@ impl Database {
         self.read(py, |db| db.checkpoint()).py_err()
     }
 
+    fn upgrade_storage(&self, py: Python<'_>) -> PyResult<Option<PathBuf>> {
+        self.read(py, |db| db.upgrade_storage()).py_err()
+    }
+
+    #[getter]
+    fn format_version(&self, py: Python<'_>) -> u32 {
+        self.read(py, |db| db.format_version())
+    }
+
+    /// Omitted thresholds are disabled; calling with no arguments selects manual checkpoints.
+    #[pyo3(signature = (*, max_wal_bytes=None, max_commits=None))]
+    fn set_checkpoint_policy(
+        &self,
+        py: Python<'_>,
+        max_wal_bytes: Option<u64>,
+        max_commits: Option<u64>,
+    ) -> PyResult<()> {
+        self.write(py, |db| {
+            db.set_checkpoint_policy(rv::CheckpointPolicy {
+                max_wal_bytes,
+                max_commits,
+            })
+        })
+        .py_err()
+    }
+
+    #[getter]
+    fn checkpoint_policy(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let policy = self.read(py, |db| db.checkpoint_policy());
+        from_json(py, &serde_json::json!({"max_wal_bytes":policy.max_wal_bytes,"max_commits":policy.max_commits})).map(Bound::unbind)
+    }
+
+    fn persistence_stats(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let stats = self.read(py, |db| db.persistence_stats());
+        from_json(py, &serde_json::json!({"wal_bytes":stats.wal_bytes,"wal_commits":stats.wal_commits,
+            "automatic_checkpoints":stats.automatic_checkpoints,"last_checkpoint_error":stats.last_checkpoint_error,
+            "last_encoded_records":stats.last_encoded_records,"last_written_pages":stats.last_written_pages,
+            "last_validated_bytes":stats.last_validated_bytes})).map(Bound::unbind)
+    }
+
     #[getter]
     fn read_only(&self, py: Python<'_>) -> bool {
         self.read(py, |db| db.is_read_only())
@@ -433,7 +473,7 @@ impl Database {
         })
     }
 
-    /// Writes the database to disk atomically.
+    /// Makes pending changes durable in WAL, then attempts due checkpoint maintenance.
     fn save(&self, py: Python<'_>) -> PyResult<()> {
         self.read(py, |db| db.save()).py_err()
     }

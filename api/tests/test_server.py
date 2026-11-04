@@ -132,7 +132,7 @@ def test_auth_discovery_and_contract_routes(server):
     info = server.call("/v1/info")[1]
     assert info["profile"] == "recern-vector/1"
     assert info["capabilities"]["atomic_batches"]
-    assert info["server_version"] == "0.4.0"
+    assert info["server_version"] == subprocess.check_output([BIN, "--version"], text=True).split()[-1]
     assert server.call("/v1/info?key=ignored", schema=False)[0] == 400
     assert server.call("/missing", schema=False)[0] == 404
     status, _, headers = server.call("/v1/search", method="GET", schema=False)
@@ -343,3 +343,27 @@ def test_incomplete_request_body_obeys_deadline(server):
     assert reply.startswith(b'HTTP/1.1 408')
     value=json.loads(reply.split(b'\r\n\r\n',1)[1])
     assert value['error']['write_outcome']=='not_committed'
+
+
+def test_checkpoint_policy_flags_preserve_records_and_wire_sequences(tmp_path):
+    for options in [("--checkpoint-commits", "1"), ("--checkpoint-wal-bytes", "1"),
+                    ("--checkpoint-wal-bytes", "0", "--checkpoint-commits", "0")]:
+        instance = Server(tmp_path / ("policy-" + str(len(list(tmp_path.iterdir())))), *options)
+        try:
+            reference, _ = instance.create("docs")
+            status, ack, _ = instance.call("/v1/records/upsert", {"collection": reference, "records": [
+                {"id": "durable", "vector": [1, 0], "metadata_json": "null"}]})
+            assert status == 200
+            seq = instance.call("/v1/info")[1]["sequence"]
+            wal = Path(str(instance.database) + ".wal")
+            if options[-1] == "0":
+                assert wal.stat().st_size > 24
+            else:
+                assert wal.stat().st_size == 24
+            instance.stop(kill=True)
+            instance.start()
+            status, row, _ = instance.call("/v1/records/get", {"collection": reference, "id": "durable"})
+            assert status == 200 and row["record"]["id"] == "durable"
+            assert instance.call("/v1/info")[1]["sequence"] == seq
+        finally:
+            instance.stop()

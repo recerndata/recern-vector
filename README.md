@@ -20,6 +20,15 @@ Release: [v0.4.0](https://github.com/recerndata/recern-vector/releases/tag/v0.4.
 
 Recern Vector stores vectors, JSON metadata and an HNSW index in a local snapshot with a WAL for incremental commits. A checkpoint produces a standalone database file. Its internals are part of the API: every query can explain how it was executed, every collection reports its graph structure and memory, and recall can be measured against exact search at any time.
 
+## 0.5.0 development
+
+The published release remains **0.4.0**. Current source is **0.5.0-dev.1**:
+incremental record/HNSW encoding, a stable page directory and automatic WAL
+checkpoints. New files use format 3; existing format-2 files keep their layout
+until an explicit upgrade with a format-2 backup. Readers retain 1/2; old readers
+reject 3. WAL/portable contracts stay unchanged. Persistence benchmarks and npm
+publication remain release gates; see the [0.5 implementation status](docs/persistence-0.5.md).
+
 ## Quick start (CLI)
 
 ```sh
@@ -149,7 +158,7 @@ What this says about the prototype:
 - `$and`, `$or`, `$not` filters with cost-based exact/HNSW selection and adaptive candidate budgets.
 - [Native Node.js bindings](crates/recern-vector-node/README.md), including asynchronous search.
 
-A database now uses a snapshot plus WAL. Call `checkpoint()` before copying a standalone `.rvec`. `save()` makes pending changes durable; it does not checkpoint. See the [format and durability contract](docs/file-format.md) and [current limitations](docs/limitations.md). Historical benchmark results above describe the pre-0.2 f32 engine and have not been rerun for int8.
+A database now uses a snapshot plus WAL. Call `checkpoint()` before copying a standalone `.rvec`. `save()` makes pending changes durable. Published 0.4.0 checkpoints manually; 0.5.0 development also attempts automatic maintenance when due (see the [policy](docs/persistence-0.5.md)). See the [format and durability contract](docs/file-format.md) and [current limitations](docs/limitations.md). Historical benchmark results above describe the pre-0.2 f32 engine and have not been rerun for int8.
 
 **0.4.0** adds the [HTTP/OpenAPI v1 contract](docs/http-api.md), a separate
 [single-node server](docs/server.md), and [portable Python, Rust and Node clients](docs/portable-clients.md)
@@ -163,7 +172,7 @@ platform-specific npm tarballs in the GitHub release; public npm distribution
 remains planned for 0.5.0. The HTTP server is single-node and owns its database;
 its RAM and O(database size) save-encoding limits remain.
 
-Next: Vector **0.5.0 → 1.0.0**, then Workspace **1.0.0**. Incremental encoding,
+Next: Vector **0.5.0 → 1.0.0**. Workspace **1.0.0** is published separately. Incremental encoding,
 automatic checkpoints and current f32/int8 benchmarks belong to 0.5.0; API and
 migration/deprecation policy stabilization belong to 1.0.0. See the
 [roadmap](docs/limitations.md#planned-api-portability-and-migration).

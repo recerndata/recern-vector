@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::Value;
 
+use crate::changes::Changes;
 use crate::error::{Error, Result};
 use crate::filter::Filter;
 use crate::hnsw::{Candidate, Counters, Graph, HnswParams, Vectors};
@@ -217,6 +218,7 @@ pub struct RecallReport {
 }
 
 pub struct Collection {
+    pub(crate) changes: Changes,
     pub(crate) name: String,
     pub(crate) config: CollectionConfig,
     pub(crate) vectors: Vectors,
@@ -231,6 +233,7 @@ impl Collection {
     pub(crate) fn new(name: &str, config: CollectionConfig) -> Result<Self> {
         config.validate()?;
         Ok(Self {
+            changes: Changes::new(),
             name: name.to_owned(),
             config,
             vectors: Vectors::with_encoding(config.dim, config.quantization, config.metric),
@@ -264,6 +267,7 @@ impl Collection {
             }
         }
         Ok(Self {
+            changes: Changes::new(),
             name,
             config,
             vectors,
@@ -304,6 +308,7 @@ impl Collection {
         }
         if let Some(&old) = self.index.get(id) {
             self.deleted[old as usize] = true;
+            self.changes.mark(old);
         }
         let node = self.append(id.to_owned(), &vector, metadata);
         self.graph.insert(node, &self.vectors, self.config.metric);
@@ -349,6 +354,7 @@ impl Collection {
             };
             if let Some(&old) = self.index.get(&id) {
                 self.deleted[old as usize] = true;
+                self.changes.mark(old);
                 replaced.push((id.clone(), old));
             }
             self.append(id, &vector, metadata);
@@ -370,6 +376,7 @@ impl Collection {
         match self.index.remove(id) {
             Some(node) => {
                 self.deleted[node as usize] = true;
+                self.changes.mark(node);
                 true
             }
             None => false,
@@ -705,6 +712,7 @@ impl Collection {
         self.metadata.push(metadata);
         self.deleted.push(false);
         self.index.insert(id, node);
+        self.changes.mark(node);
         node
     }
 

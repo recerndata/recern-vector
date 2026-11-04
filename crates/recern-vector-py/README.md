@@ -28,6 +28,14 @@ with rv.Database.open_or_create("docs.rvec") as db:          # saves on clean ex
 
 Benchmarks against faiss, LanceDB and sqlite-vec: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks).
 
+## 0.5.0 development
+
+The source version is **0.5.0-dev.1** (Python distribution **0.5.0.dev1**).
+Automatic checkpoints, `set_checkpoint_policy`, `checkpoint_policy` and
+`persistence_stats`, paged format 3, `format_version` and explicit
+`upgrade_storage` are described in the [persistence guide](../../docs/persistence-0.5.md).
+Published 0.4.0 wheels do not include these additions.
+
 ## Remote backend (0.4.0)
 
 `Client.remote(url, api_key=key, timeout=10.0, ca_file=None)` is available in

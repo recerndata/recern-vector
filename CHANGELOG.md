@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.5.0-dev.1 — in development
+
+- Add automatic checkpoint triggers at 64 MiB of valid WAL or 1,000 commits,
+  configurable per native handle and with HTTP server flags. Recover counts on
+  reopen; read-only handles never maintain files.
+- Sync WAL before automatic maintenance. Keep successful mutation acknowledgements
+  when a checkpoint fails, expose maintenance statistics and retry on a later
+  save without duplicating a no-op commit. Add Python/Node policy and statistics
+  APIs; preserve server policy on error reload and log one redacted warning per
+  failure episode.
+- Add format-3 paged snapshots for new files: a stable, self-describing page
+  directory, free-page reuse, per-page CRCs and incremental checksum-tree updates.
+  Serialize only changed records and HNSW neighbors (including parallel builds),
+  stream checkpoints from cached pages and validate the writer position without
+  reading the full image. Preserve exact int8 codes/scales.
+- Keep existing format-2 writes and format-1 migration to 2. Add explicit native
+  and CLI storage upgrades to 3 with a standalone format-2 backup; old readers
+  reject 3 explicitly. Keep WAL 1, HTTP/profile/export v1 unchanged.
+- Expose the actual file format, explicit upgrade and save-work counters in
+  Rust/Python/Node. Legacy format-2 encoding reuses its buffer to advance sequence.
+- Cover thresholds, reopened/torn WALs, read-only and stale handles, maintenance
+  I/O failure and subprocess exit at WAL write/sync and four checkpoint boundaries.
+  Verify graph/vector equality, rollback, page reuse, malformed directories,
+  stale writers after equal-sized WAL replacement, explicit upgrade recovery and
+  released-reader compatibility. Retain frozen fixtures and document remaining
+  benchmark/package release gates.
+
 ## 0.4.0 — 2026-10-29
 
 - Release HTTP API v1 in `api/openapi.json` and `docs/http-api.md`, mapping

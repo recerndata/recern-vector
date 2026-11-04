@@ -8,9 +8,10 @@
 //! code runs on a plain `&mut` graph (single inserts, queries) and on a graph
 //! with one mutex per node (parallel batch build, as in hnswlib).
 
+use crate::changes::Changes;
 use std::cell::RefCell;
 use std::cmp::{Ordering, Reverse};
-use std::collections::BinaryHeap;
+use std::collections::{BTreeSet, BinaryHeap};
 use std::ops::Range;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering as AtomicOrdering};
 use std::sync::{Mutex, MutexGuard, PoisonError};
@@ -293,7 +294,7 @@ impl ReadLinks for [Vec<Vec<u32>>] {
 }
 
 /// Exclusive access for sequential inserts.
-struct Exclusive<'a>(&'a mut [Vec<Vec<u32>>]);
+struct Exclusive<'a>(&'a mut [Vec<Vec<u32>>], &'a mut Changes);
 
 impl ReadLinks for Exclusive<'_> {
     fn with_neighbors<R>(&self, node: u32, layer: usize, f: impl FnOnce(&[u32]) -> R) -> R {
@@ -312,6 +313,7 @@ impl Links for Exclusive<'_> {
         _: Metric,
     ) {
         // Sequential inserts: nothing can have linked to `node` yet.
+        self.1.mark(node);
         self.0[node as usize][layer] = neighbors;
     }
 
@@ -324,6 +326,7 @@ impl Links for Exclusive<'_> {
         vectors: &Vectors,
         metric: Metric,
     ) {
+        self.1.mark(node);
         push_and_prune(
             &mut self.0[node as usize][layer],
             node,
@@ -336,10 +339,11 @@ impl Links for Exclusive<'_> {
 }
 
 /// Shared access for parallel inserts: one lock per node.
-#[derive(Clone, Copy)]
 struct Shared<'a> {
     links: &'a [Mutex<Vec<Vec<u32>>>],
     ready: &'a [AtomicBool],
+    tracking: bool,
+    changed: BTreeSet<u32>,
 }
 
 impl Shared<'_> {
@@ -370,6 +374,9 @@ impl Links for Shared<'_> {
         vectors: &Vectors,
         metric: Metric,
     ) {
+        if self.tracking {
+            self.changed.insert(node);
+        }
         let mut links = self.lock(node);
         let list = &mut links[layer];
         if list.is_empty() {
@@ -393,11 +400,15 @@ impl Links for Shared<'_> {
         vectors: &Vectors,
         metric: Metric,
     ) {
+        if self.tracking {
+            self.changed.insert(node);
+        }
         push_and_prune(&mut self.lock(node)[layer], node, new, max, vectors, metric);
     }
 }
 
 pub(crate) struct Graph {
+    pub(crate) changes: Changes,
     pub(crate) params: HnswParams,
     /// `links[node][layer]` lists the neighbors of `node` on `layer`.
     pub(crate) links: Vec<Vec<Vec<u32>>>,
@@ -409,6 +420,7 @@ pub(crate) struct Graph {
 impl Graph {
     pub(crate) fn new(params: HnswParams, seed: u64) -> Self {
         Self {
+            changes: Changes::new(),
             params,
             links: Vec::new(),
             entry: None,
@@ -447,6 +459,9 @@ impl Graph {
     ) {
         debug_assert_eq!(nodes.start as usize, self.links.len());
         let levels: Vec<usize> = nodes.clone().map(|_| self.random_level()).collect();
+        for node in nodes.clone() {
+            self.changes.mark(node);
+        }
         for &level in &levels {
             self.links.push(vec![Vec::new(); level + 1]);
         }
@@ -465,7 +480,7 @@ impl Graph {
                 for node in rest {
                     let level = level_of(node);
                     let entry = self.entry.expect("entry is set above");
-                    let mut links = Exclusive(&mut self.links);
+                    let mut links = Exclusive(&mut self.links, &mut self.changes);
                     link_node(
                         &mut links,
                         &params,
@@ -495,12 +510,16 @@ impl Graph {
         let ready: Vec<AtomicBool> = (0..locked.len())
             .map(|node| AtomicBool::new(node < rest.start as usize))
             .collect();
+        let tracking = *self.changes.tracking.get_mut();
+        let changed = &self.changes.nodes;
         std::thread::scope(|scope| {
             for _ in 0..threads {
                 scope.spawn(|| {
                     let mut links = Shared {
                         links: &locked,
                         ready: &ready,
+                        tracking,
+                        changed: BTreeSet::new(),
                     };
                     let mut visited = Visited::default();
                     loop {
@@ -542,6 +561,7 @@ impl Graph {
                         }
                         ready[node as usize].store(true, AtomicOrdering::Release);
                     }
+                    changed.lock().unwrap().extend(links.changed);
                 });
             }
         });
@@ -595,12 +615,14 @@ impl Graph {
                 };
                 let mut linked = false;
                 for candidate in found.iter().take(self.params.m) {
+                    self.changes.mark(candidate.id);
                     let list = &mut self.links[candidate.id as usize][0];
                     push_and_prune(list, candidate.id, orphan, max, vectors, metric);
                     linked |= list.contains(&orphan);
                 }
                 if !linked && let Some(nearest) = found.first() {
                     // The heuristic rejected every link; keep one anyway.
+                    self.changes.mark(nearest.id);
                     self.links[nearest.id as usize][0].push(orphan);
                 }
             }

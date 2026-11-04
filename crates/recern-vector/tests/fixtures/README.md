@@ -8,3 +8,10 @@ SHA-256:
 - `v2-0.2.0.rvec`: `ed8f98623a32c5f5dc2d4dcf03d384bcf2000425660731cd920dcaf09063a206`
 - `v2-0.2.0.rvec.wal`: `b39d038b6d1d9ed4ed69fbd78be82b2b70d60de6a7e17c66031bfbf1c83603b2`
 - `v2-0.2.0.wal`: `45382e4a6b8904627d9d87f6564313aba9ce44d7f723f0ff38048e8b23b670a6`
+
+Format 3 is frozen separately by `generate_v3.py` using the 0.5.0-dev.1 engine.
+It contains f32/int8 vectors, a tombstone, an empty collection and multi-page
+Unicode metadata. Its WAL adds `journal` to int8. Tests never run the producer.
+
+- `v3-0.5.0-dev.1.rvec`: `80f8416d14bc6d9556fbb5e32058e1d7343c1f18edbe29390101df84f36ef1d3`
+- `v3-0.5.0-dev.1.wal`: `a7e2fd073f82f78fa40f56a0b2944a45938a5a9fbbb16d04d72679563c3730f4`

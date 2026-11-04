@@ -109,6 +109,35 @@ jobs:
           crates/recern-vector-py/.venv/bin/python -m pytest api/tests/test_sdk_interop.py -q
           node tests/node-package.cjs
 
+  compatibility:
+    name: Published readers and benchmark smoke (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build optimized installed Python package
+        run: |
+          python -m pip install "maturin>=1.9,<2" numpy
+          python -m maturin build --release --manifest-path crates/recern-vector-py/Cargo.toml --out dist
+          python -m pip install --no-index --find-links dist recern-vector
+      - name: Verify published 0.2, 0.3 and 0.4 readers
+        run: |
+          for previous in 0.2.0 0.3.0 0.4.0; do
+            python -m venv "$RUNNER_TEMP/reader-$previous"
+            "$RUNNER_TEMP/reader-$previous/bin/python" -m pip install "recern-vector==$previous" numpy
+          done
+          python tests/legacy_reader.py --reader-python "$RUNNER_TEMP/reader-0.2.0/bin/python" --work "$RUNNER_TEMP/legacy-02"
+          for previous in 0.3.0 0.4.0; do
+            python scripts/release_compatibility.py --old-version "$previous" --old-python "$RUNNER_TEMP/reader-$previous/bin/python" --new-python "$(command -v python)" --work "$RUNNER_TEMP/upgrade-$previous"
+          done
+      - name: Smoke-test persistence benchmark on optimized builds
+        run: |
+          python bench/vector_050_bench.py persistence --current-python "$(command -v python)" --baseline-python "$RUNNER_TEMP/reader-0.4.0/bin/python" --sizes 64,256 --commits 2 --repeats 1 --output "$RUNNER_TEMP/persistence-smoke.json" --work "$RUNNER_TEMP/persistence-smoke"
+
+
   cli-example:
     runs-on: ubuntu-latest
     steps:

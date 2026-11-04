@@ -13,6 +13,23 @@ pub struct Database {
     inner: Shared,
 }
 #[napi(object)]
+pub struct CheckpointPolicyOptions {
+    pub max_wal_bytes: Option<f64>,
+    pub max_commits: Option<f64>,
+}
+fn checkpoint_threshold(value: Option<f64>) -> Result<Option<u64>> {
+    value
+        .map(|n| {
+            if !n.is_finite() || n.fract() != 0.0 || !(1.0..=9_007_199_254_740_991.0).contains(&n) {
+                return Err(error(
+                    "checkpoint thresholds must be positive safe integers or omitted",
+                ));
+            }
+            Ok(n as u64)
+        })
+        .transpose()
+}
+#[napi(object)]
 pub struct CollectionOptions {
     pub dim: u32,
     pub metric: Option<String>,
@@ -135,6 +152,46 @@ impl Database {
             .map_err(error)?
             .checkpoint()
             .map_err(error)
+    }
+    #[napi]
+    pub fn upgrade_storage(&self) -> Result<Option<String>> {
+        self.inner
+            .read()
+            .map_err(error)?
+            .upgrade_storage()
+            .map(|backup| backup.map(|p| p.to_string_lossy().into_owned()))
+            .map_err(error)
+    }
+    #[napi(getter)]
+    pub fn format_version(&self) -> Result<u32> {
+        Ok(self.inner.read().map_err(error)?.format_version())
+    }
+    #[napi]
+    pub fn set_checkpoint_policy(&self, options: CheckpointPolicyOptions) -> Result<()> {
+        let policy = rv::CheckpointPolicy {
+            max_wal_bytes: checkpoint_threshold(options.max_wal_bytes)?,
+            max_commits: checkpoint_threshold(options.max_commits)?,
+        };
+        self.inner
+            .write()
+            .map_err(error)?
+            .set_checkpoint_policy(policy)
+            .map_err(error)
+    }
+    #[napi(getter)]
+    pub fn checkpoint_policy(&self) -> Result<Value> {
+        let policy = self.inner.read().map_err(error)?.checkpoint_policy();
+        Ok(json!({"maxWalBytes":policy.max_wal_bytes,"maxCommits":policy.max_commits}))
+    }
+    #[napi]
+    pub fn persistence_stats(&self) -> Result<Value> {
+        let stats = self.inner.read().map_err(error)?.persistence_stats();
+        Ok(
+            json!({"walBytes":stats.wal_bytes,"walCommits":stats.wal_commits,
+            "automaticCheckpoints":stats.automatic_checkpoints,"lastCheckpointError":stats.last_checkpoint_error,
+            "lastEncodedRecords":stats.last_encoded_records,"lastWrittenPages":stats.last_written_pages,
+            "lastValidatedBytes":stats.last_validated_bytes}),
+        )
     }
     #[napi(getter)]
     pub fn read_only(&self) -> Result<bool> {

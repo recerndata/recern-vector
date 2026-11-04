@@ -4,6 +4,10 @@ Recern Vector 0.4.0 is an embedded vector database with a local snapshot and a W
 
 > **Version 0.4.0.** HTTP server, portable Python/Rust/Node clients and checked migration across embedded Recern, Recern HTTP and Qdrant. Format 2, format-1 readers and export v1 are retained.
 
+> Source development: **0.5.0-dev.1** adds paged format 3, incremental encoding and automatic checkpoints. See the
+> [implementation status and remaining gates](persistence-0.5.md). The published
+> packages described in the release guide remain **0.4.0**.
+
 ## When it fits
 
 - Semantic search, RAG retrieval or recommendations **inside an application**: a desktop app, a script, a notebook, a backend process that owns its data.
