@@ -1,7 +1,9 @@
 # Recern portable Rust client
 
-**Version 0.4.0.** Supports embedded files, the Recern HTTP v1 server and
-portable Qdrant 1.19.2 collections. Install with `cargo add recern-vector-client@0.4.0`.
+**Version 0.5.0.** Supports embedded files, the Recern HTTP v1 server and
+portable Qdrant 1.19.2 collections. Install with `cargo add recern-vector-client@0.5.0`.
+
+New embedded files use format 3; existing format-2 files retain their format on ordinary saves. HTTP/profile/export contracts remain v1. Workspace 1.0.0 cannot open format 3. See [persistence and compatibility](https://recern.net/vector/docs/release).
 
 ```rust,no_run
 use recern_vector_client::{Client, CollectionSpec, HttpOptions, Record};

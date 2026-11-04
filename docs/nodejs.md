@@ -32,7 +32,7 @@ Alternatively, choose a self-contained archive from the [0.5.0 release](https://
 | macOS Apple silicon | [recern-vector-0.5.0-node-darwin-arm64.tgz](https://github.com/recerndata/recern-vector/releases/download/v0.5.0/recern-vector-0.5.0-node-darwin-arm64.tgz) |
 | Windows x64 | [recern-vector-0.5.0-node-win32-x64.tgz](https://github.com/recerndata/recern-vector/releases/download/v0.5.0/recern-vector-0.5.0-node-win32-x64.tgz) |
 
-Each archive contains a `package` directory with the native binary, loader, types and package metadata. Verify its checksum against the release's [SHA256SUMS](https://github.com/recerndata/recern-vector/releases/download/v0.5.0/SHA256SUMS), extract it, and load the directory with `require('@recern/vector')`. These are platform-specific builds, not a universal binary. On other platforms, build from source.
+Each archive contains a `package` directory with the native binary, loader, types and package metadata. Verify its checksum against the release's [SHA256SUMS](https://github.com/recerndata/recern-vector/releases/download/v0.5.0/SHA256SUMS), extract it, and load the directory with `require('./package')`. These are platform-specific builds, not a universal binary. On other platforms, build from source.
 
 ## First database
 

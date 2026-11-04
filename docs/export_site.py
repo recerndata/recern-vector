@@ -23,7 +23,7 @@ PAGES = [
     ("", "README.md", "Recern Vector 0.5.0 documentation: embedded and HTTP operation, portable Python/Rust/Node clients and verified migration."),
     ("release", "release.md", "Recern Vector 0.5.0 packages, native release artifacts, supported platforms, checksums and upgrade compatibility."),
     ("getting-started", "getting-started.md", "Install Recern Vector and create a first vector database from Python, Rust, Node.js or the command line."),
-    ("semantic-search", "semantic-search.md", "A complete first vector search in Python: create a collection, filter results, inspect the query and open the checkpointed file in Workspace."),
+    ("semantic-search", "semantic-search.md", "A complete first vector search in Python: create a collection, filter results, inspect the query and understand Workspace format compatibility."),
     ("concepts", "concepts.md", "Databases, collections, records, distance metrics, the HNSW index, saving and threads in Recern Vector."),
     ("filters", "filters.md", "Metadata filter syntax in Recern Vector and how filtered vector searches are planned."),
     ("inspection", "inspection.md", "Use explain, stats and estimate_recall to see how Recern Vector searches run and to choose ef."),
