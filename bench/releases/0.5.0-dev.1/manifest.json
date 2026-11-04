@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "source_commit": "b806ef1c2524d7ad296797ee016c71575b2ce832",
+  "source": {
+    "base_commit": "b806ef1c2524d7ad296797ee016c71575b2ce832",
+    "harness_sha256": "bd5a894ec4fdf3c1c635aad64d54137a04f4a335636438068bb36502ffc203c0",
+    "engine_files_sha256": {
+      "crates/recern-vector/src/changes.rs": "ced25fdae64b3502ae4cfd677c53c7bd04eef822fb02a863d566947c4817864e",
+      "crates/recern-vector/src/collection.rs": "ba8e4a920a22d58f069d6fdd94a18dff83cea1df48e009bdcabb2a039a05d9bf",
+      "crates/recern-vector/src/database/paged_tests.rs": "b43c2033cab7a5f3cc1e58c0f888a6134781b75d3e61be4263ffa8e1c2ad9f28",
+      "crates/recern-vector/src/database/tests.rs": "c8e20ae8dee0202f8350f77a1327cc3d506e31c6578e940684b72e42f9c58f5d",
+      "crates/recern-vector/src/database.rs": "b7a4f446bac5d23ccf2e1a4cee7a89537bade5fef0249d1529ac57d96c197cd7",
+      "crates/recern-vector/src/error.rs": "da5a840b2c73df91d95c29e083885e73e2dfe2eb17195c64ad8a903ddf601f85",
+      "crates/recern-vector/src/filter.rs": "828b5c603307692d18544b20b9153bd2dbab314e03a357def80a108601bcbe00",
+      "crates/recern-vector/src/hnsw.rs": "e8db5e709254294bfd49319d6d255bc30e29a97e538377decb26882d23ff6914",
+      "crates/recern-vector/src/lib.rs": "31da93fa3c2e3673e3a22ea839c851f3312a84f28a3e9faec53802520634df0a",
+      "crates/recern-vector/src/metric.rs": "49c2a9aedc7bcb28da2d2b7e93f675798eb1960142b37927962b98b686e4c4cd",
+      "crates/recern-vector/src/paged.rs": "3b4ac2679c65d384fa5c7605055f0dfbe3d7805fd0575fbd05e04dec71349f27",
+      "crates/recern-vector/src/rng.rs": "9d4dccc55f3a7a188cb45094d3a980a5b36fc9a187d2850c57a5185e2a6adf53",
+      "crates/recern-vector/src/storage.rs": "4aa3d59d926ad80702c4ba7e615d2dfa82cd16f040ae8f12a6b2b9eea2e0d5c1",
+      "crates/recern-vector/src/wal.rs": "467154fdee703db409a31d85f1d4c18116f50ae11008e94859512a877097b90d",
+      "Cargo.toml": "514d00addef1bb5f4a7d67b3d85add6608f27719f9265f3c1a53bf032161fc1e",
+      "Cargo.lock": "99d3b2f5e29cf59be87bdc71e1cfb6d982edbbd4bfc33ca75d077713e099aa75"
+    }
+  },
+  "reports": {
+    "persistence.json": "55bf134f3b13c3edd009a2fd61b80b9c29af3e9e9e49f91c532f65fa0c123ae0",
+    "sift.json": "cc4351bb87a5df20b5fe4891e27e951d159969b71f915d4e0ac6a2e0373f9de3",
+    "glove.json": "304ab5b7d379691ca912719e909d17337cb455bc69fa955d55a6432a1adfdbce",
+    "summary.json": "9ac824404bd57543ccf78688cad2fb07324f3719c2b754120f5812808c3234ed"
+  },
+  "reporter_sha256": "e25986f3b10f74e4d690b3aaaa19e62d8e714db883fa1cead69360e6f2fc47c9",
+  "matplotlib_version": "3.11.2",
+  "validated": true,
+  "persistence_cases": 54,
+  "ann_records": {
+    "sift": 1000000,
+    "glove": 1183514
+  }
+}

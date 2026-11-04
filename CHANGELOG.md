@@ -26,6 +26,14 @@
   stale writers after equal-sized WAL replacement, explicit upgrade recovery and
   released-reader compatibility. Retain frozen fixtures and document remaining
   benchmark/package release gates.
+- Add reproducible release-build persistence measurements against the published
+  0.4.0 engine and the retained format-2 path, full SIFT1M/GloVe-100 f32/int8
+  recall/throughput sweeps, process peak RSS, raw samples and validated plots.
+  Disclose manual scheduling, warm caches, full-image costs and quantization
+  tradeoffs rather than implying whole-process RAM or query-speed savings.
+- Verify real authenticated Qdrant locally and in Linux CI. Add ordinary CI gates
+  for published 0.2/0.3/0.4 readers and the benchmark protocol alongside native,
+  HTTP and Node checks on Linux, Windows and macOS.
 
 ## 0.4.0 — 2026-10-29
 

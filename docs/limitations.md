@@ -36,7 +36,7 @@ Milvus is the next candidate external adapter after Qdrant proves the contract. 
 Current source is **0.5.0-dev.1**. Incremental encoding, paged format 3, explicit
 upgrades, automatic checkpoints and native APIs are implemented with compatibility
 and recovery tests. Legacy format-2 saves remain compatible with old readers.
-Revised persistence benchmarks and npm publication remain open release gates. See the [detailed status](persistence-0.5.md).
+Release-build persistence and full-dataset f32/int8 measurements are [available](../bench/releases/0.5.0-dev.1/README.md), with their full-image memory and padding costs. npm publication and release artifact installation remain open release gates. See the [detailed status](persistence-0.5.md).
 
 ### 0.4.0 implementation and release scope
 

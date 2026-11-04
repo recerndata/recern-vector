@@ -1,0 +1,5 @@
+# Build the current Recern wheel from source separately with --release.
+maturin==1.16.0
+numpy==2.5.3
+h5py==3.16.0
+matplotlib==3.11.2

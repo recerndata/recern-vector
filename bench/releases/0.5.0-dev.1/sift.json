@@ -1,0 +1,659 @@
+{
+  "schema": 1,
+  "scope": "full ANN dataset",
+  "date": "2026-11-04T11:46:39.312054+00:00",
+  "mode": "ann",
+  "machine": {
+    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+    "architecture": "arm64",
+    "cpu": "Apple M3 Max",
+    "memory_bytes": 38654705664,
+    "physical_cores": 14
+  },
+  "source": {
+    "base_commit": "b806ef1c2524d7ad296797ee016c71575b2ce832",
+    "harness_sha256": "bd5a894ec4fdf3c1c635aad64d54137a04f4a335636438068bb36502ffc203c0",
+    "engine_files_sha256": {
+      "crates/recern-vector/src/changes.rs": "ced25fdae64b3502ae4cfd677c53c7bd04eef822fb02a863d566947c4817864e",
+      "crates/recern-vector/src/collection.rs": "ba8e4a920a22d58f069d6fdd94a18dff83cea1df48e009bdcabb2a039a05d9bf",
+      "crates/recern-vector/src/database/paged_tests.rs": "b43c2033cab7a5f3cc1e58c0f888a6134781b75d3e61be4263ffa8e1c2ad9f28",
+      "crates/recern-vector/src/database/tests.rs": "c8e20ae8dee0202f8350f77a1327cc3d506e31c6578e940684b72e42f9c58f5d",
+      "crates/recern-vector/src/database.rs": "b7a4f446bac5d23ccf2e1a4cee7a89537bade5fef0249d1529ac57d96c197cd7",
+      "crates/recern-vector/src/error.rs": "da5a840b2c73df91d95c29e083885e73e2dfe2eb17195c64ad8a903ddf601f85",
+      "crates/recern-vector/src/filter.rs": "828b5c603307692d18544b20b9153bd2dbab314e03a357def80a108601bcbe00",
+      "crates/recern-vector/src/hnsw.rs": "e8db5e709254294bfd49319d6d255bc30e29a97e538377decb26882d23ff6914",
+      "crates/recern-vector/src/lib.rs": "31da93fa3c2e3673e3a22ea839c851f3312a84f28a3e9faec53802520634df0a",
+      "crates/recern-vector/src/metric.rs": "49c2a9aedc7bcb28da2d2b7e93f675798eb1960142b37927962b98b686e4c4cd",
+      "crates/recern-vector/src/paged.rs": "3b4ac2679c65d384fa5c7605055f0dfbe3d7805fd0575fbd05e04dec71349f27",
+      "crates/recern-vector/src/rng.rs": "9d4dccc55f3a7a188cb45094d3a980a5b36fc9a187d2850c57a5185e2a6adf53",
+      "crates/recern-vector/src/storage.rs": "4aa3d59d926ad80702c4ba7e615d2dfa82cd16f040ae8f12a6b2b9eea2e0d5c1",
+      "crates/recern-vector/src/wal.rs": "467154fdee703db409a31d85f1d4c18116f50ae11008e94859512a877097b90d",
+      "Cargo.toml": "514d00addef1bb5f4a7d67b3d85add6608f27719f9265f3c1a53bf032161fc1e",
+      "Cargo.lock": "99d3b2f5e29cf59be87bdc71e1cfb6d982edbbd4bfc33ca75d077713e099aa75"
+    }
+  },
+  "method": {
+    "profile": "release",
+    "threads": 4,
+    "precision_modes": [
+      "f32",
+      "int8"
+    ],
+    "memory": "process lifetime high-water RSS, including inputs, bindings, graph, encoded pages and recovery buffers; stage values are cumulative, not phase deltas",
+    "cache": "warm OS cache; no disk cache eviction",
+    "automatic_checkpoints": false,
+    "latency": "single Python query through returned IDs, recall calculation excluded",
+    "builds_per_case": 1,
+    "k": 10,
+    "queries": 1000,
+    "query_repeats": 3,
+    "warmup_queries": 100,
+    "m": 16,
+    "ef_construction": 200,
+    "ef_sweep": [
+      10,
+      20,
+      40,
+      80,
+      160,
+      320,
+      640,
+      1280
+    ],
+    "truth": "published ANN-Benchmarks neighbors from original f32 vectors"
+  },
+  "results": [
+    {
+      "case": {
+        "dataset": "sift",
+        "precision": "f32",
+        "queries": 1000,
+        "repeats": 3,
+        "subset": null,
+        "version": "0.5.0.dev1",
+        "mode": "ann",
+        "threads": 4
+      },
+      "package": {
+        "version": "0.5.0.dev1",
+        "native_sha256": "ffe41e0b58430539a0a774fc0c5fbdf64c41b99aac43ecd8b8f6013db4cf671e",
+        "python": "3.13.15",
+        "numpy": "2.5.3",
+        "native_module": "_native.abi3.so"
+      },
+      "records": 1000000,
+      "dim": 128,
+      "metric": "l2",
+      "format": 3,
+      "build_ms": 103142.667542,
+      "save_ms": 22605.873959,
+      "checkpoint_ms": 3631.62375,
+      "warm_open_ms": 47046.541125,
+      "snapshot_bytes": 4096008196,
+      "collection_stats": {
+        "name": "bench",
+        "dim": 128,
+        "metric": "l2",
+        "quantization": "f32",
+        "m": 16,
+        "ef_construction": 200,
+        "ef_search": 64,
+        "live": 1000000,
+        "deleted": 0,
+        "nodes_per_layer": [
+          1000000,
+          62198,
+          3827,
+          218,
+          16,
+          1
+        ],
+        "avg_degree_layer0": 32.0,
+        "unreachable": 0,
+        "vector_bytes": 512000000,
+        "graph_bytes": 181830752,
+        "metadata_bytes": 0
+      },
+      "runs": [
+        {
+          "ef": 10,
+          "recall": 0.7534000000000001,
+          "p50_ms": 0.025667,
+          "p95_ms": 0.035294049999999993,
+          "qps": 38065.235439190976,
+          "qps_min": 35381.16446913075,
+          "qps_max": 38175.25051172014,
+          "repetitions": [
+            {
+              "recall": 0.7534000000000001,
+              "p50_ms": 0.027125,
+              "p95_ms": 0.0393351,
+              "qps": 35381.16446913075
+            },
+            {
+              "recall": 0.7534000000000001,
+              "p50_ms": 0.025521,
+              "p95_ms": 0.0350851,
+              "qps": 38175.25051172014
+            },
+            {
+              "recall": 0.7534000000000001,
+              "p50_ms": 0.025667,
+              "p95_ms": 0.035294049999999993,
+              "qps": 38065.235439190976
+            }
+          ]
+        },
+        {
+          "ef": 20,
+          "recall": 0.8635,
+          "p50_ms": 0.048333,
+          "p95_ms": 0.0643771,
+          "qps": 20551.96029838076,
+          "qps_min": 20496.924569698327,
+          "qps_max": 23862.602190997317,
+          "repetitions": [
+            {
+              "recall": 0.8635,
+              "p50_ms": 0.0407295,
+              "p95_ms": 0.05550624999999999,
+              "qps": 23862.602190997317
+            },
+            {
+              "recall": 0.8635,
+              "p50_ms": 0.048333,
+              "p95_ms": 0.0643771,
+              "qps": 20551.96029838076
+            },
+            {
+              "recall": 0.8635,
+              "p50_ms": 0.0484375,
+              "p95_ms": 0.06604615,
+              "qps": 20496.924569698327
+            }
+          ]
+        },
+        {
+          "ef": 40,
+          "recall": 0.9432,
+          "p50_ms": 0.0719795,
+          "p95_ms": 0.09492225,
+          "qps": 13736.790753524376,
+          "qps_min": 13541.799587893247,
+          "qps_max": 14772.017762642303,
+          "repetitions": [
+            {
+              "recall": 0.9432,
+              "p50_ms": 0.0719795,
+              "p95_ms": 0.09492225,
+              "qps": 13736.790753524376
+            },
+            {
+              "recall": 0.9432,
+              "p50_ms": 0.067875,
+              "p95_ms": 0.08187915,
+              "qps": 14772.017762642303
+            },
+            {
+              "recall": 0.9432,
+              "p50_ms": 0.07218749999999999,
+              "p95_ms": 0.09711314999999998,
+              "qps": 13541.799587893247
+            }
+          ]
+        },
+        {
+          "ef": 80,
+          "recall": 0.9829000000000001,
+          "p50_ms": 0.12031249999999999,
+          "p95_ms": 0.13833720000000002,
+          "qps": 8514.354904366339,
+          "qps_min": 7908.778691358591,
+          "qps_max": 8517.7206920137,
+          "repetitions": [
+            {
+              "recall": 0.9829,
+              "p50_ms": 0.1279795,
+              "p95_ms": 0.15750415,
+              "qps": 7908.778691358591
+            },
+            {
+              "recall": 0.9829000000000001,
+              "p50_ms": 0.1202915,
+              "p95_ms": 0.13833720000000002,
+              "qps": 8517.7206920137
+            },
+            {
+              "recall": 0.9829000000000001,
+              "p50_ms": 0.12031249999999999,
+              "p95_ms": 0.13833720000000002,
+              "qps": 8514.354904366339
+            }
+          ]
+        },
+        {
+          "ef": 160,
+          "recall": 0.9955999999999999,
+          "p50_ms": 0.223854,
+          "p95_ms": 0.2645872,
+          "qps": 4573.691058786155,
+          "qps_min": 4398.099945176365,
+          "qps_max": 4684.884194909772,
+          "repetitions": [
+            {
+              "recall": 0.9955999999999999,
+              "p50_ms": 0.219083,
+              "p95_ms": 0.2531806,
+              "qps": 4684.884194909772
+            },
+            {
+              "recall": 0.9955999999999999,
+              "p50_ms": 0.2296455,
+              "p95_ms": 0.28880449999999996,
+              "qps": 4398.099945176365
+            },
+            {
+              "recall": 0.9956,
+              "p50_ms": 0.223854,
+              "p95_ms": 0.2645872,
+              "qps": 4573.691058786155
+            }
+          ]
+        },
+        {
+          "ef": 320,
+          "recall": 0.9986,
+          "p50_ms": 0.40566650000000004,
+          "p95_ms": 0.47375415,
+          "qps": 2532.2151257034,
+          "qps_min": 2527.0076277699973,
+          "qps_max": 2540.231410305844,
+          "repetitions": [
+            {
+              "recall": 0.9986,
+              "p50_ms": 0.407209,
+              "p95_ms": 0.47528125,
+              "qps": 2527.0076277699973
+            },
+            {
+              "recall": 0.9985999999999999,
+              "p50_ms": 0.40566650000000004,
+              "p95_ms": 0.47375415,
+              "qps": 2532.2151257034
+            },
+            {
+              "recall": 0.9986,
+              "p50_ms": 0.403625,
+              "p95_ms": 0.47215415,
+              "qps": 2540.231410305844
+            }
+          ]
+        },
+        {
+          "ef": 640,
+          "recall": 0.999,
+          "p50_ms": 0.744562,
+          "p95_ms": 0.88240625,
+          "qps": 1378.1431241324933,
+          "qps_min": 1370.140176164129,
+          "qps_max": 1380.7656813782808,
+          "repetitions": [
+            {
+              "recall": 0.999,
+              "p50_ms": 0.750167,
+              "p95_ms": 0.8867389499999999,
+              "qps": 1370.140176164129
+            },
+            {
+              "recall": 0.999,
+              "p50_ms": 0.744562,
+              "p95_ms": 0.8764576999999999,
+              "qps": 1378.1431241324933
+            },
+            {
+              "recall": 0.999,
+              "p50_ms": 0.744354,
+              "p95_ms": 0.88240625,
+              "qps": 1380.7656813782808
+            }
+          ]
+        },
+        {
+          "ef": 1280,
+          "recall": 0.9991,
+          "p50_ms": 1.428667,
+          "p95_ms": 1.79157535,
+          "qps": 705.9057498135393,
+          "qps_min": 655.8151328178482,
+          "qps_max": 710.400750269577,
+          "repetitions": [
+            {
+              "recall": 0.9991,
+              "p50_ms": 1.425521,
+              "p95_ms": 1.7616576999999998,
+              "qps": 710.400750269577
+            },
+            {
+              "recall": 0.9991,
+              "p50_ms": 1.428667,
+              "p95_ms": 1.79157535,
+              "qps": 705.9057498135393
+            },
+            {
+              "recall": 0.9990999999999999,
+              "p50_ms": 1.5356455,
+              "p95_ms": 1.9872127999999998,
+              "qps": 655.8151328178482
+            }
+          ]
+        }
+      ],
+      "peak_rss_bytes": 13938245632,
+      "cumulative_peak_rss_bytes_by_stage": {
+        "after_build": 2343370752,
+        "after_save": 12500074496,
+        "after_checkpoint": 12500074496,
+        "after_open": 13930741760
+      }
+    },
+    {
+      "case": {
+        "dataset": "sift",
+        "precision": "int8",
+        "queries": 1000,
+        "repeats": 3,
+        "subset": null,
+        "version": "0.5.0.dev1",
+        "mode": "ann",
+        "threads": 4
+      },
+      "package": {
+        "version": "0.5.0.dev1",
+        "native_sha256": "ffe41e0b58430539a0a774fc0c5fbdf64c41b99aac43ecd8b8f6013db4cf671e",
+        "python": "3.13.15",
+        "numpy": "2.5.3",
+        "native_module": "_native.abi3.so"
+      },
+      "records": 1000000,
+      "dim": 128,
+      "metric": "l2",
+      "format": 3,
+      "build_ms": 294838.978542,
+      "save_ms": 22211.351041,
+      "checkpoint_ms": 3442.509125,
+      "warm_open_ms": 47335.107417,
+      "snapshot_bytes": 4096008196,
+      "collection_stats": {
+        "name": "bench",
+        "dim": 128,
+        "metric": "l2",
+        "quantization": "int8",
+        "m": 16,
+        "ef_construction": 200,
+        "ef_search": 64,
+        "live": 1000000,
+        "deleted": 0,
+        "nodes_per_layer": [
+          1000000,
+          62198,
+          3827,
+          218,
+          16,
+          1
+        ],
+        "avg_degree_layer0": 32.0,
+        "unreachable": 0,
+        "vector_bytes": 132000000,
+        "graph_bytes": 181830752,
+        "metadata_bytes": 0
+      },
+      "runs": [
+        {
+          "ef": 10,
+          "recall": 0.7497,
+          "p50_ms": 0.086979,
+          "p95_ms": 0.13275625,
+          "qps": 11154.847781951104,
+          "qps_min": 9794.26854879469,
+          "qps_max": 11299.08341609347,
+          "repetitions": [
+            {
+              "recall": 0.7497,
+              "p50_ms": 0.096937,
+              "p95_ms": 0.15700174999999994,
+              "qps": 9794.26854879469
+            },
+            {
+              "recall": 0.7497,
+              "p50_ms": 0.086979,
+              "p95_ms": 0.13226459999999998,
+              "qps": 11154.847781951104
+            },
+            {
+              "recall": 0.7497,
+              "p50_ms": 0.08464550000000001,
+              "p95_ms": 0.13275625,
+              "qps": 11299.08341609347
+            }
+          ]
+        },
+        {
+          "ef": 20,
+          "recall": 0.8584,
+          "p50_ms": 0.12775,
+          "p95_ms": 0.1884274,
+          "qps": 7658.474085492803,
+          "qps_min": 7417.537235814397,
+          "qps_max": 7857.927476814222,
+          "repetitions": [
+            {
+              "recall": 0.8583999999999999,
+              "p50_ms": 0.13,
+              "p95_ms": 0.19523094999999996,
+              "qps": 7417.537235814397
+            },
+            {
+              "recall": 0.8584,
+              "p50_ms": 0.12775,
+              "p95_ms": 0.18300205,
+              "qps": 7658.474085492803
+            },
+            {
+              "recall": 0.8584,
+              "p50_ms": 0.1198745,
+              "p95_ms": 0.1884274,
+              "qps": 7857.927476814222
+            }
+          ]
+        },
+        {
+          "ef": 40,
+          "recall": 0.9352,
+          "p50_ms": 0.20718799999999998,
+          "p95_ms": 0.29615594999999995,
+          "qps": 4722.426468478769,
+          "qps_min": 4719.456464729636,
+          "qps_max": 4778.788860119412,
+          "repetitions": [
+            {
+              "recall": 0.9352,
+              "p50_ms": 0.20718799999999998,
+              "p95_ms": 0.29615594999999995,
+              "qps": 4722.426468478769
+            },
+            {
+              "recall": 0.9352,
+              "p50_ms": 0.20725,
+              "p95_ms": 0.2984202,
+              "qps": 4719.456464729636
+            },
+            {
+              "recall": 0.9352,
+              "p50_ms": 0.2053125,
+              "p95_ms": 0.2856417,
+              "qps": 4778.788860119412
+            }
+          ]
+        },
+        {
+          "ef": 80,
+          "recall": 0.9711000000000002,
+          "p50_ms": 0.3550415,
+          "p95_ms": 0.48725625,
+          "qps": 2793.7640136425193,
+          "qps_min": 2779.2572613397388,
+          "qps_max": 2827.1184073181926,
+          "repetitions": [
+            {
+              "recall": 0.9711000000000002,
+              "p50_ms": 0.3550415,
+              "p95_ms": 0.49253954999999994,
+              "qps": 2793.7640136425193
+            },
+            {
+              "recall": 0.9711000000000002,
+              "p50_ms": 0.349875,
+              "p95_ms": 0.48482499999999995,
+              "qps": 2827.1184073181926
+            },
+            {
+              "recall": 0.9711000000000002,
+              "p50_ms": 0.3595835,
+              "p95_ms": 0.48725625,
+              "qps": 2779.2572613397388
+            }
+          ]
+        },
+        {
+          "ef": 160,
+          "recall": 0.9846,
+          "p50_ms": 0.629042,
+          "p95_ms": 0.8746913499999999,
+          "qps": 1589.1959088249066,
+          "qps_min": 1575.5065450480647,
+          "qps_max": 1602.821879475219,
+          "repetitions": [
+            {
+              "recall": 0.9846000000000001,
+              "p50_ms": 0.6254795,
+              "p95_ms": 0.8656505999999999,
+              "qps": 1602.821879475219
+            },
+            {
+              "recall": 0.9846,
+              "p50_ms": 0.630375,
+              "p95_ms": 0.8831041999999999,
+              "qps": 1575.5065450480647
+            },
+            {
+              "recall": 0.9846,
+              "p50_ms": 0.629042,
+              "p95_ms": 0.8746913499999999,
+              "qps": 1589.1959088249066
+            }
+          ]
+        },
+        {
+          "ef": 320,
+          "recall": 0.9868000000000001,
+          "p50_ms": 1.128083,
+          "p95_ms": 1.5685183999999999,
+          "qps": 894.8272584656135,
+          "qps_min": 894.3766360574671,
+          "qps_max": 901.8311885194906,
+          "repetitions": [
+            {
+              "recall": 0.9867999999999999,
+              "p50_ms": 1.1296465,
+              "p95_ms": 1.5199,
+              "qps": 901.8311885194906
+            },
+            {
+              "recall": 0.9868000000000001,
+              "p50_ms": 1.1267295000000002,
+              "p95_ms": 1.5685183999999999,
+              "qps": 894.8272584656135
+            },
+            {
+              "recall": 0.9868000000000001,
+              "p50_ms": 1.128083,
+              "p95_ms": 1.58371665,
+              "qps": 894.3766360574671
+            }
+          ]
+        },
+        {
+          "ef": 640,
+          "recall": 0.987,
+          "p50_ms": 1.998521,
+          "p95_ms": 2.741917,
+          "qps": 509.6085198358165,
+          "qps_min": 508.58953716055333,
+          "qps_max": 510.3091428292421,
+          "repetitions": [
+            {
+              "recall": 0.987,
+              "p50_ms": 2.0063959999999996,
+              "p95_ms": 2.72074825,
+              "qps": 510.3091428292421
+            },
+            {
+              "recall": 0.9870000000000001,
+              "p50_ms": 1.998521,
+              "p95_ms": 2.741917,
+              "qps": 509.6085198358165
+            },
+            {
+              "recall": 0.987,
+              "p50_ms": 1.986458,
+              "p95_ms": 2.75793335,
+              "qps": 508.58953716055333
+            }
+          ]
+        },
+        {
+          "ef": 1280,
+          "recall": 0.987,
+          "p50_ms": 3.48,
+          "p95_ms": 4.73958125,
+          "qps": 292.44243213039243,
+          "qps_min": 291.9045947814583,
+          "qps_max": 293.2124817587347,
+          "repetitions": [
+            {
+              "recall": 0.987,
+              "p50_ms": 3.48,
+              "p95_ms": 4.77977295,
+              "qps": 293.2124817587347
+            },
+            {
+              "recall": 0.9870000000000001,
+              "p50_ms": 3.4829165,
+              "p95_ms": 4.6732643,
+              "qps": 292.44243213039243
+            },
+            {
+              "recall": 0.987,
+              "p50_ms": 3.4786665,
+              "p95_ms": 4.73958125,
+              "qps": 291.9045947814583
+            }
+          ]
+        }
+      ],
+      "peak_rss_bytes": 12832440320,
+      "cumulative_peak_rss_bytes_by_stage": {
+        "after_build": 1965735936,
+        "after_save": 12764676096,
+        "after_checkpoint": 12764676096,
+        "after_open": 12832440320
+      }
+    }
+  ],
+  "dataset": {
+    "name": "sift",
+    "file": "sift-128-euclidean.hdf5",
+    "sha256": "dd6f0a6ed6b7ebb8934680f861a33ed01ff33991eaee4fd60914d854a0ca5984"
+  },
+  "complete": true
+}

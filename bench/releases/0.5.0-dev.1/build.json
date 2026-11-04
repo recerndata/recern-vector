@@ -1,0 +1,12 @@
+{
+  "profile": "release",
+  "rustc": "1.99.1 (58cf8f9c3 2026-10-13), Homebrew",
+  "maturin": "1.16.0",
+  "build_command": "python -m maturin build --release --manifest-path crates/recern-vector-py/Cargo.toml",
+  "cargo_profile": {
+    "codegen-units": 1,
+    "lto": "thin"
+  },
+  "wheel": "recern_vector-0.5.0.dev1-cp311-abi3-macosx_11_0_arm64.whl",
+  "wheel_sha256": "b2274e9f91794a833637868b593532583151f001f08b437fae7aa2ff0a77882c"
+}

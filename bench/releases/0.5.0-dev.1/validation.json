@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "source_commit": "b806ef1c2524d7ad296797ee016c71575b2ce832",
+  "local": {
+    "platform": "macOS",
+    "architecture": "arm64",
+    "qdrant": "1.19.2",
+    "qdrant_mode": "official native binary, authenticated loopback, isolated temporary storage",
+    "python_api_sdk": {
+      "passed": 258,
+      "skipped": 6,
+      "skip_reason": "Qdrant-only assertions are inapplicable to embedded and remote parameters"
+    },
+    "node": {
+      "passed": 8,
+      "skipped": 0
+    },
+    "native_bindings_profile": "debug (functional tests); benchmarks use a separate optimized wheel"
+  },
+  "github": {
+    "run_id": 41819921501,
+    "url": "https://github.com/recerndata/recern-vector/actions/runs/41819921501",
+    "head_sha": "b806ef1c2524d7ad296797ee016c71575b2ce832",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "python",
+        "conclusion": "success"
+      },
+      {
+        "name": "Published readers and benchmark smoke (Linux)",
+        "conclusion": "success"
+      },
+      {
+        "name": "HTTP server (windows-latest)",
+        "conclusion": "success"
+      },
+      {
+        "name": "rust (ubuntu-latest)",
+        "conclusion": "success"
+      },
+      {
+        "name": "HTTP server (macos-latest)",
+        "conclusion": "success"
+      },
+      {
+        "name": "HTTP server (ubuntu-latest)",
+        "conclusion": "success"
+      },
+      {
+        "name": "node (macos-latest)",
+        "conclusion": "success"
+      },
+      {
+        "name": "rust (macos-latest)",
+        "conclusion": "success"
+      },
+      {
+        "name": "node (ubuntu-latest)",
+        "conclusion": "success"
+      },
+      {
+        "name": "rust (windows-latest)",
+        "conclusion": "success"
+      },
+      {
+        "name": "cli-example",
+        "conclusion": "success"
+      },
+      {
+        "name": "node (windows-latest)",
+        "conclusion": "success"
+      }
+    ]
+  }
+}

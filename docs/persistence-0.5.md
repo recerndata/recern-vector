@@ -168,10 +168,43 @@ Python/Node tests exercise the actual bindings. Real loopback HTTP tests verify
 both flags, disabled scheduling, unchanged durable sequences and process restart.
 Cross-platform CI and release-package checks remain required before publication.
 
-## Remaining 0.5.0 work
+## Release-build measurements
 
-1. Publish reproducible release-build commit latency and peak-memory results as
-   databases grow, plus current f32/int8 recall and memory measurements. Do not
-   extrapolate search-only 0.4.0 benchmarks to persistence or concurrent serving.
-2. Publish and verify Node packages for advertised targets. GitHub tarballs from
-   0.4.0 remain the public distribution until that release gate is completed.
+The [0.5 development measurements](../bench/releases/0.5.0-dev.1/README.md) include
+54 isolated persistence cases with three fresh builds per size/precision/control,
+full SIFT1M and GloVe-100 f32/int8 sweeps, process high-water RSS, raw repetitions,
+source/native-binary checksums and reproducible plots. Historical 0.4.0 results
+are unchanged. Scheduling is disabled in timed saves and caches are warm; these
+are native single-process observations, not default-policy or HTTP serving SLOs.
+
+At 100,000 synthetic f32 records, format-3 medians were 5.231 ms per replacement
+save, 4.905 ms per delete and 0.088 ms per clean save. In this protocol, 20
+replacements accumulate WAL before the delete/clean-save phases; legacy-format
+costs include replaying that history. Each format-3 delete appends 8268 WAL bytes
+and validates 4124 bytes at every measured size, encoding one record/two pages.
+
+The faster incremental path has substantial full-image costs. The SIFT1M f32
+case used a 3.81 GiB snapshot and reached 12.98 GiB process RSS, including inputs,
+index, cached pages and recovery buffers; its warm reopen took 47.05 seconds.
+Int8 reduced the vector payload from 488.3 to 125.9 MiB, while both snapshots
+remained 3.81 GiB. It did not improve query speed and its measured recall remained
+below 99% against original f32 neighbors. See the raw sweep and measured targets;
+these values do not establish a theoretical recall ceiling or a RAM budget for
+other machines/workloads. Full-image memory and padding remain explicit limits. GloVe-100 reached 12.55 GiB
+RSS for f32 and 15.21 GiB for int8 in this run: smaller vector payloads do not
+guarantee smaller total process peaks.
+
+The Linux compatibility CI checks published 0.2/0.3/0.4 readers and validates the
+small benchmark protocol. Rust, installed Python HTTP bindings and native Node
+checks pass on Linux, Windows and macOS; the Linux suite includes authenticated
+Qdrant. Local macOS Qdrant 1.19.2 checks passed 258 Python/API/SDK cases (six
+backend-inapplicable skips) and eight Node cases without skips. See the recorded
+[validation evidence](../bench/releases/0.5.0-dev.1/validation.json).
+
+## Remaining 0.5.0 release work
+
+Publish and verify Node packages for advertised targets, run the actual release
+artifact installation gates and retain the measured limits in release notes.
+GitHub tarballs from 0.4.0 remain the public distribution until that gate is
+completed. A Workspace reader upgrade/UI refresh check remains a separate
+handoff: Workspace 1.0.0 still rejects format 3 through its 0.2.0 reader.

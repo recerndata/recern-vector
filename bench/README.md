@@ -1,5 +1,7 @@
 # ANN benchmarks
 
+Development **0.5.0-dev.1** persistence, full-dataset f32/int8 and peak-RSS measurements are [published separately](releases/0.5.0-dev.1/README.md). They retain the historical reports below.
+
 Compares Recern Vector with faiss (reference HNSW), LanceDB and sqlite-vec on the standard [ANN-Benchmarks](http://ann-benchmarks.com) datasets. Results: [RESULTS.md](RESULTS.md). The public report page is built with `python3 bench/report_page.py` (template `report_template.html`, output `report.html`).
 
 ## Method

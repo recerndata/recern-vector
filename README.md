@@ -26,8 +26,9 @@ The published release remains **0.4.0**. Current source is **0.5.0-dev.1**:
 incremental record/HNSW encoding, a stable page directory and automatic WAL
 checkpoints. New files use format 3; existing format-2 files keep their layout
 until an explicit upgrade with a format-2 backup. Readers retain 1/2; old readers
-reject 3. WAL/portable contracts stay unchanged. Persistence benchmarks and npm
-publication remain release gates; see the [0.5 implementation status](docs/persistence-0.5.md).
+reject 3. WAL/portable contracts stay unchanged. Release-build persistence/ANN
+[measurements](bench/releases/0.5.0-dev.1/README.md) are available; npm publication
+and release artifact installation remain gates; see the [0.5 implementation status](docs/persistence-0.5.md).
 
 ## Quick start (CLI)
 

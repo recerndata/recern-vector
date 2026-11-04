@@ -136,6 +136,7 @@ jobs:
       - name: Smoke-test persistence benchmark on optimized builds
         run: |
           python bench/vector_050_bench.py persistence --current-python "$(command -v python)" --baseline-python "$RUNNER_TEMP/reader-0.4.0/bin/python" --sizes 64,256 --commits 2 --repeats 1 --output "$RUNNER_TEMP/persistence-smoke.json" --work "$RUNNER_TEMP/persistence-smoke"
+          python bench/report_050.py --check-persistence "$RUNNER_TEMP/persistence-smoke.json"
 
 
   cli-example:

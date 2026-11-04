@@ -1,0 +1,420 @@
+{
+  "current": "0.5.0.dev1",
+  "aggregation": "median of three per-process p50/p95/high-water measurements",
+  "persistence": [
+    {
+      "records": 1000,
+      "precision": "f32",
+      "version": "0.4.0",
+      "format": 2,
+      "peak_rss_bytes": 117374976,
+      "snapshot_bytes": 658025,
+      "vector_bytes": 522240,
+      "phases": {
+        "update": {
+          "p50_ms": 15.6035,
+          "p95_ms": 17.8655976
+        },
+        "delete": {
+          "p50_ms": 18.0660835,
+          "p95_ms": 19.60399585
+        },
+        "no_op": {
+          "p50_ms": 13.0068125,
+          "p95_ms": 13.19662915
+        }
+      }
+    },
+    {
+      "records": 1000,
+      "precision": "f32",
+      "version": "0.5.0.dev1",
+      "format": 2,
+      "peak_rss_bytes": 117981184,
+      "snapshot_bytes": 658025,
+      "vector_bytes": 522240,
+      "phases": {
+        "update": {
+          "p50_ms": 15.2871875,
+          "p95_ms": 18.26338125
+        },
+        "delete": {
+          "p50_ms": 17.9735005,
+          "p95_ms": 18.992044049999997
+        },
+        "no_op": {
+          "p50_ms": 13.081229,
+          "p95_ms": 13.182833
+        }
+      }
+    },
+    {
+      "records": 1000,
+      "precision": "f32",
+      "version": "0.5.0.dev1",
+      "format": 3,
+      "peak_rss_bytes": 64012288,
+      "snapshot_bytes": 4104196,
+      "vector_bytes": 522240,
+      "phases": {
+        "update": {
+          "p50_ms": 4.7836245,
+          "p95_ms": 5.933560100000002
+        },
+        "delete": {
+          "p50_ms": 4.101770999999999,
+          "p95_ms": 5.06112115
+        },
+        "no_op": {
+          "p50_ms": 0.06481200000000001,
+          "p95_ms": 0.0827518
+        }
+      }
+    },
+    {
+      "records": 1000,
+      "precision": "int8",
+      "version": "0.4.0",
+      "format": 2,
+      "peak_rss_bytes": 163414016,
+      "snapshot_bytes": 278025,
+      "vector_bytes": 134640,
+      "phases": {
+        "update": {
+          "p50_ms": 14.7205625,
+          "p95_ms": 20.23764585
+        },
+        "delete": {
+          "p50_ms": 20.98975,
+          "p95_ms": 21.66105595
+        },
+        "no_op": {
+          "p50_ms": 16.1868955,
+          "p95_ms": 16.5244997
+        }
+      }
+    },
+    {
+      "records": 1000,
+      "precision": "int8",
+      "version": "0.5.0.dev1",
+      "format": 2,
+      "peak_rss_bytes": 163479552,
+      "snapshot_bytes": 278025,
+      "vector_bytes": 134640,
+      "phases": {
+        "update": {
+          "p50_ms": 14.679832999999999,
+          "p95_ms": 20.270794350000003
+        },
+        "delete": {
+          "p50_ms": 20.097041500000003,
+          "p95_ms": 21.9375976
+        },
+        "no_op": {
+          "p50_ms": 15.705563,
+          "p95_ms": 16.507837799999997
+        }
+      }
+    },
+    {
+      "records": 1000,
+      "precision": "int8",
+      "version": "0.5.0.dev1",
+      "format": 3,
+      "peak_rss_bytes": 59228160,
+      "snapshot_bytes": 4104196,
+      "vector_bytes": 134640,
+      "phases": {
+        "update": {
+          "p50_ms": 5.105437,
+          "p95_ms": 5.903484750000003
+        },
+        "delete": {
+          "p50_ms": 4.0206040000000005,
+          "p95_ms": 4.966933650000002
+        },
+        "no_op": {
+          "p50_ms": 0.053771,
+          "p95_ms": 0.06149795000000001
+        }
+      }
+    },
+    {
+      "records": 10000,
+      "precision": "f32",
+      "version": "0.4.0",
+      "format": 2,
+      "peak_rss_bytes": 893927424,
+      "snapshot_bytes": 6592297,
+      "vector_bytes": 5130240,
+      "phases": {
+        "update": {
+          "p50_ms": 110.57025,
+          "p95_ms": 141.3156479
+        },
+        "delete": {
+          "p50_ms": 144.886125,
+          "p95_ms": 147.1127271
+        },
+        "no_op": {
+          "p50_ms": 123.2531455,
+          "p95_ms": 124.67760564999999
+        }
+      }
+    },
+    {
+      "records": 10000,
+      "precision": "f32",
+      "version": "0.5.0.dev1",
+      "format": 2,
+      "peak_rss_bytes": 991068160,
+      "snapshot_bytes": 6592297,
+      "vector_bytes": 5130240,
+      "phases": {
+        "update": {
+          "p50_ms": 108.450167,
+          "p95_ms": 137.57882055
+        },
+        "delete": {
+          "p50_ms": 141.5212495,
+          "p95_ms": 147.66549375000002
+        },
+        "no_op": {
+          "p50_ms": 122.452958,
+          "p95_ms": 126.96562469999999
+        }
+      }
+    },
+    {
+      "records": 10000,
+      "precision": "f32",
+      "version": "0.5.0.dev1",
+      "format": 3,
+      "peak_rss_bytes": 225230848,
+      "snapshot_bytes": 40968196,
+      "vector_bytes": 5130240,
+      "phases": {
+        "update": {
+          "p50_ms": 4.5757080000000006,
+          "p95_ms": 5.57507295
+        },
+        "delete": {
+          "p50_ms": 4.991729,
+          "p95_ms": 8.9134372
+        },
+        "no_op": {
+          "p50_ms": 0.07831250000000001,
+          "p95_ms": 0.0854854
+        }
+      }
+    },
+    {
+      "records": 10000,
+      "precision": "int8",
+      "version": "0.4.0",
+      "format": 2,
+      "peak_rss_bytes": 1333624832,
+      "snapshot_bytes": 2792297,
+      "vector_bytes": 1322640,
+      "phases": {
+        "update": {
+          "p50_ms": 106.8531875,
+          "p95_ms": 163.60446935000002
+        },
+        "delete": {
+          "p50_ms": 168.32414599999998,
+          "p95_ms": 174.49295834999998
+        },
+        "no_op": {
+          "p50_ms": 156.493708,
+          "p95_ms": 158.28432085
+        }
+      }
+    },
+    {
+      "records": 10000,
+      "precision": "int8",
+      "version": "0.5.0.dev1",
+      "format": 2,
+      "peak_rss_bytes": 1332641792,
+      "snapshot_bytes": 2792297,
+      "vector_bytes": 1322640,
+      "phases": {
+        "update": {
+          "p50_ms": 104.489063,
+          "p95_ms": 164.07456455000002
+        },
+        "delete": {
+          "p50_ms": 167.334521,
+          "p95_ms": 171.57666665
+        },
+        "no_op": {
+          "p50_ms": 155.390604,
+          "p95_ms": 160.03289855
+        }
+      }
+    },
+    {
+      "records": 10000,
+      "precision": "int8",
+      "version": "0.5.0.dev1",
+      "format": 3,
+      "peak_rss_bytes": 192577536,
+      "snapshot_bytes": 40968196,
+      "vector_bytes": 1322640,
+      "phases": {
+        "update": {
+          "p50_ms": 5.279646,
+          "p95_ms": 5.572941999999999
+        },
+        "delete": {
+          "p50_ms": 4.905291999999999,
+          "p95_ms": 5.07946315
+        },
+        "no_op": {
+          "p50_ms": 0.0771455,
+          "p95_ms": 0.08356190000000001
+        }
+      }
+    },
+    {
+      "records": 100000,
+      "precision": "f32",
+      "version": "0.4.0",
+      "format": 2,
+      "peak_rss_bytes": 6116573184,
+      "snapshot_bytes": 66037321,
+      "vector_bytes": 51210240,
+      "phases": {
+        "update": {
+          "p50_ms": 1092.9459165,
+          "p95_ms": 1387.6338518
+        },
+        "delete": {
+          "p50_ms": 1409.9598125,
+          "p95_ms": 1445.8218628500001
+        },
+        "no_op": {
+          "p50_ms": 1209.8925829999998,
+          "p95_ms": 1260.6185354499999
+        }
+      }
+    },
+    {
+      "records": 100000,
+      "precision": "f32",
+      "version": "0.5.0.dev1",
+      "format": 2,
+      "peak_rss_bytes": 6197706752,
+      "snapshot_bytes": 66037321,
+      "vector_bytes": 51210240,
+      "phases": {
+        "update": {
+          "p50_ms": 1072.9210005,
+          "p95_ms": 1384.85158155
+        },
+        "delete": {
+          "p50_ms": 1403.32175,
+          "p95_ms": 1449.7021270999999
+        },
+        "no_op": {
+          "p50_ms": 1242.4476665000002,
+          "p95_ms": 1294.8211910500002
+        }
+      }
+    },
+    {
+      "records": 100000,
+      "precision": "f32",
+      "version": "0.5.0.dev1",
+      "format": 3,
+      "peak_rss_bytes": 1658208256,
+      "snapshot_bytes": 409608196,
+      "vector_bytes": 51210240,
+      "phases": {
+        "update": {
+          "p50_ms": 5.231271,
+          "p95_ms": 6.2003937500000035
+        },
+        "delete": {
+          "p50_ms": 4.904542,
+          "p95_ms": 5.09707705
+        },
+        "no_op": {
+          "p50_ms": 0.0883545,
+          "p95_ms": 0.09394135
+        }
+      }
+    },
+    {
+      "records": 100000,
+      "precision": "int8",
+      "version": "0.4.0",
+      "format": 2,
+      "peak_rss_bytes": 7907000320,
+      "snapshot_bytes": 28037321,
+      "vector_bytes": 13202640,
+      "phases": {
+        "update": {
+          "p50_ms": 1033.0815415,
+          "p95_ms": 1602.40295205
+        },
+        "delete": {
+          "p50_ms": 1614.5448125,
+          "p95_ms": 1653.6357354499999
+        },
+        "no_op": {
+          "p50_ms": 1578.2242495,
+          "p95_ms": 1631.5937295
+        }
+      }
+    },
+    {
+      "records": 100000,
+      "precision": "int8",
+      "version": "0.5.0.dev1",
+      "format": 2,
+      "peak_rss_bytes": 9459695616,
+      "snapshot_bytes": 28037321,
+      "vector_bytes": 13202640,
+      "phases": {
+        "update": {
+          "p50_ms": 1028.815854,
+          "p95_ms": 1609.4759729000002
+        },
+        "delete": {
+          "p50_ms": 1663.6138335,
+          "p95_ms": 1899.94922085
+        },
+        "no_op": {
+          "p50_ms": 1581.285979,
+          "p95_ms": 1634.4537566
+        }
+      }
+    },
+    {
+      "records": 100000,
+      "precision": "int8",
+      "version": "0.5.0.dev1",
+      "format": 3,
+      "peak_rss_bytes": 1479147520,
+      "snapshot_bytes": 409608196,
+      "vector_bytes": 13202640,
+      "phases": {
+        "update": {
+          "p50_ms": 5.031083000000001,
+          "p95_ms": 8.9354744
+        },
+        "delete": {
+          "p50_ms": 4.94625,
+          "p95_ms": 5.0874375
+        },
+        "no_op": {
+          "p50_ms": 0.06,
+          "p95_ms": 0.06660900000000002
+        }
+      }
+    }
+  ]
+}
