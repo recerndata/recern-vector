@@ -2,6 +2,7 @@
 import json
 import threading
 import time
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
@@ -110,10 +111,54 @@ def test_qdrant_deadline_covers_a_slowly_streamed_body():
         thread.start()
         try:
             started = time.monotonic()
-            with pytest.raises(Unavailable, match='deadline'):
+            # A busy runner can hit the socket timeout before the caller's
+            # total deadline. Both must retain the public error category and
+            # bounded duration; diagnostic wording is not part of the API.
+            with pytest.raises(Unavailable, match='deadline|timed out'):
                 Client.qdrant(f'http://127.0.0.1:{http.server_port}', timeout=0.08)
             assert time.monotonic() - started < 0.5
             assert requests == ['/']
         finally:
             http.shutdown()
             thread.join()
+
+
+def test_qdrant_total_deadline_bounds_a_blocked_transport(monkeypatch):
+    """The total budget must work even when the transport never times out."""
+    entered, release, finished = (threading.Event() for _ in range(3))
+    requests = []
+
+    class Response:
+        sent = False
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            finished.set()
+
+        def read1(self, size):
+            if self.sent:
+                return b''
+            self.sent = True
+            entered.set()
+            # Fail safely if the caller deadline regresses: no hanging test.
+            release.wait(2)
+            return b'{"version":"1.19.2"}'
+
+    class Opener:
+        def open(self, request, timeout):
+            requests.append(request.full_url)
+            return Response()
+
+    monkeypatch.setattr(urllib.request, 'build_opener', lambda *args: Opener())
+    try:
+        started = time.monotonic()
+        with pytest.raises(Unavailable, match='total deadline'):
+            Client.qdrant('http://127.0.0.1:6333', timeout=0.08)
+        assert time.monotonic() - started < 1
+        assert entered.wait(1)
+        assert requests == ['http://127.0.0.1:6333/']
+    finally:
+        release.set()
+    assert finished.wait(2)
