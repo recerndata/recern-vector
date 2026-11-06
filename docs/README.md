@@ -43,6 +43,7 @@ Recern Vector 0.5.0 is an embedded vector database with a local snapshot and a W
 | [Command line](cli.md) | The `recern-vector` command |
 | [File format](file-format.md) | What is inside a `.rvec` file |
 | [Limitations and next work](limitations.md) | Current bounds and what comes next |
+| [Preparing 1.0](compatibility.md) | Public API stability, deprecation, HTTP version matrix and remaining release gates |
 
 Runnable examples are in [`examples/`](../examples/README.md). The [benchmark report](https://recern.net/vector/benchmarks) includes 0.5 development-engine persistence and full SIFT1M/GloVe-100 f32/int8 measurements, with the unchanged engine retained for 0.5.0. Historical 0.4.0/faiss results remain separately labeled. The earlier comparison with LanceDB and sqlite-vec is kept in the [historical report](https://recern.net/vector/benchmarks/historical).
 

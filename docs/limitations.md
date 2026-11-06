@@ -20,6 +20,9 @@ Working targets as of 4 November 2026. Version numbers are release scopes, not d
 
 Development now targets Recern Vector **1.0.0**, following 0.5.0. Workspace **1.0.0** with Microsoft SQL Server has shipped separately and still uses the published Vector 0.2.0 reader. This sequence does not require filling every intermediate minor version or expanding the agreed adapter scope.
 
+The [1.0 compatibility policy and release gates](compatibility.md) define the
+public surface, deprecation rules and the released/candidate HTTP test matrix.
+
 The goal is to take a prototype built with Recern Vector into production either on an external vector database or on a future Recern server. Applications using the portable API should retain their collection, record and search logic when the backend configuration changes. Data transfer, credentials, capacity planning and backend-specific features still require explicit setup.
 
 | Target | Scope | Release gate |

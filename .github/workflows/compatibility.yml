@@ -1,0 +1,62 @@
+name: Compatibility matrix
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main, 'codex/vector-1.0-*']
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_BUILD_JOBS: 2
+  PYTHONUTF8: '1'
+
+jobs:
+  http-matrix:
+    name: Released SDK and server matrix (${{ matrix.platform }})
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-22.04, platform: linux-x64, suffix: ''}
+          - {os: macos-14, platform: darwin-arm64, suffix: ''}
+          - {os: windows-latest, platform: win32-x64, suffix: '.exe'}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the candidate server and language packages
+        shell: bash
+        run: |
+          cargo build --locked --release -p recern-vector-server
+          npm run build --prefix crates/recern-vector-node
+          python -m pip install 'maturin>=1.9,<2'
+          python -m maturin build --locked --release --manifest-path crates/recern-vector-py/Cargo.toml --out dist
+      - name: Verify every released/candidate client and server pairing
+        shell: bash
+        run: |
+          python scripts/http_compatibility_matrix.py \
+            --platform '${{ matrix.platform }}' \
+            --work "$RUNNER_TEMP/http-compatibility" \
+            --source-wheel dist/*.whl \
+            --source-server 'target/release/recern-vector-server${{ matrix.suffix }}' \
+            --source-node crates/recern-vector-node
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: http-compatibility-${{ matrix.platform }}
+          path: |
+            ${{ runner.temp }}/http-compatibility/report.json
+            ${{ runner.temp }}/http-compatibility/**/results.xml
+            ${{ runner.temp }}/http-compatibility/**/*.log
+            ${{ runner.temp }}/http-compatibility/**/Cargo.lock

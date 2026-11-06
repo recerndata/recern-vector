@@ -1,0 +1,66 @@
+{
+  "0.4.0": {
+    "linux-x64": {
+      "native": {
+        "file": "recern-vector-0.4.0-linux-x64.tar.gz",
+        "sha256": "3680ef4cf023d632dccaff88e1da86ed1f8815abaad00e47e2de3e6b9409e598"
+      },
+      "node": {
+        "file": "recern-vector-0.4.0-node-linux-x64.tgz",
+        "sha256": "bb8ea32208fc224093c4c840c85f83ba04b1b19cc7fa3b83eb00440b5304977e"
+      }
+    },
+    "darwin-arm64": {
+      "native": {
+        "file": "recern-vector-0.4.0-darwin-arm64.tar.gz",
+        "sha256": "63851be6d6195c4e304e2e827859e32657fc6bec16a4f03d6b19df876882d5e2"
+      },
+      "node": {
+        "file": "recern-vector-0.4.0-node-darwin-arm64.tgz",
+        "sha256": "6ebf5d69f421c37a383952e73344ccab94502169038c1482cc650d904808a111"
+      }
+    },
+    "win32-x64": {
+      "native": {
+        "file": "recern-vector-0.4.0-win32-x64.zip",
+        "sha256": "fd6331ed27d1b9a7d4b46c3044be4ec3461f58b32a34da3df44a85f72e0cfaff"
+      },
+      "node": {
+        "file": "recern-vector-0.4.0-node-win32-x64.tgz",
+        "sha256": "b878d143aa2362f6cefcd980751d3844ea94858ed4111c8bff2cd9e01c7ad83f"
+      }
+    }
+  },
+  "0.5.0": {
+    "linux-x64": {
+      "native": {
+        "file": "recern-vector-0.5.0-linux-x64.tar.gz",
+        "sha256": "0cd46c731dc176df790ba82edb1ed83f92e412673ee48ce6501ab0556c157f0b"
+      },
+      "node": {
+        "file": "recern-vector-0.5.0-node-linux-x64.tgz",
+        "sha256": "d4e9aa5f694f5daf97af4b88db7a90149dcb38d1bfb9a8e564a4d652ab40943b"
+      }
+    },
+    "darwin-arm64": {
+      "native": {
+        "file": "recern-vector-0.5.0-darwin-arm64.tar.gz",
+        "sha256": "4790628f5c80480ec13b4751d9cb9d160ea2eaa170a73ced2d0eb55033a9c617"
+      },
+      "node": {
+        "file": "recern-vector-0.5.0-node-darwin-arm64.tgz",
+        "sha256": "022ae9baa131cc966e5c2fa3cdec49843b18d4fb4c1b0d271b5a762e33b84559"
+      }
+    },
+    "win32-x64": {
+      "native": {
+        "file": "recern-vector-0.5.0-win32-x64.zip",
+        "sha256": "55241edbf59c74155f5407cff73c92c1906b6e9ddf578ede4cb95cb150ef10a4"
+      },
+      "node": {
+        "file": "recern-vector-0.5.0-node-win32-x64.tgz",
+        "sha256": "0d188ac44c7b2f914f4039109fdae8f5c3d6a9760311788d99bad5f85474f354"
+      }
+    }
+  }
+}

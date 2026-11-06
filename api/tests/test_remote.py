@@ -127,10 +127,10 @@ def test_import_rechecks_database_identity_before_any_write(remote, tmp_path):
 
 @pytest.mark.parametrize("kind", ["redirect", "duplicate", "truncated", "request_id", "drip"])
 def test_remote_transport_is_bounded_and_does_not_retry(remote, kind):
-    _, real = remote
+    server, _ = remote
     # Discovery from a real server, then hostile proxy responses to the first
     # mutation. No API keys or proxy body text may escape through exceptions.
-    info = real._backend.transport.request("/v1/info")
+    info = server.call("/v1/info")[1]
     seen = []
     request_id = str(uuid.uuid4())
     class Handler(BaseHTTPRequestHandler):
