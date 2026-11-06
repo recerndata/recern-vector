@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased — Vector 1.0 preparation
+## 1.0.0 — 2026-11-06
 
+- Establish the supported 1.x public API, compatibility and deprecation policy.
+  Keep format 3, WAL 1, HTTP/profile/export v1 and the tested runtime floors.
+  Verify 0.5.0 and 1.0.0 file reads in both directions alongside 0.3/0.4 upgrades.
 - Audit the native, portable, HTTP and CLI public surfaces; retain external Rust
   and packed TypeScript consumers alongside the cross-version HTTP matrix.
 - Prevent stale Python/Node collection handles from accessing a replacement;

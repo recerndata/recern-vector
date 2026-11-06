@@ -4,7 +4,7 @@
 
 **A single-file vector database. Embedded, inspectable, boring in the best way.**
 
-> **Version 0.5.0:** incremental encoding and paged format 3, automatic WAL checkpoints, explicit storage upgrades and Node.js packages on npm. Readers retain formats 1/2; HTTP, portable and migration contracts remain v1.
+> **Version 1.0.0:** a stable public API for Rust, Python and Node.js, a documented compatibility policy, and stronger recovery and input validation. Snapshot formats 1/2/3, WAL 1, HTTP v1 and portable/export v1 remain compatible.
 
 ```sh
 pip install recern-vector           # Python
@@ -15,13 +15,20 @@ cargo install recern-vector-server  # HTTP server
 npm install @recern/vector          # Node.js native + portable APIs
 ```
 
-Release: [v0.5.0](https://github.com/recerndata/recern-vector/releases/tag/v0.5.0) ([PyPI](https://pypi.org/project/recern-vector/), [crates.io](https://crates.io/crates/recern-vector)) · Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
+Release: [v1.0.0](https://github.com/recerndata/recern-vector/releases/tag/v1.0.0) ([PyPI](https://pypi.org/project/recern-vector/), [crates.io](https://crates.io/crates/recern-vector)) · Project page: [recern.net/vector](https://recern.net/vector) · Benchmark report: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks)
 
 **Documentation:** [recern.net/vector/docs](https://recern.net/vector/docs) (sources in [`docs/`](docs/README.md)) · **Examples:** [`examples/`](examples/README.md) — quickstart, semantic search, RAG retrieval, tuning recall, CLI and Rust
 
 Recern Vector stores vectors, JSON metadata and an HNSW index in a local snapshot with a WAL for incremental commits. A checkpoint produces a standalone database file. Its internals are part of the API: every query can explain how it was executed, every collection reports its graph structure and memory, and recall can be measured against exact search at any time.
 
-## Version 0.5.0
+## Version 1.0.0
+
+The supported public API and deprecation policy are defined in the
+[compatibility contract](docs/compatibility.md). The
+[API and recovery audit](docs/api-audit-1.0.md) covers collection lifetimes,
+closed clients, input bounds, transport deadlines and interrupted persistence.
+Published 0.4/0.5 clients and the 1.0 candidate are checked against all three
+HTTP server versions on Linux, macOS and Windows.
 
 Save encodes changed records/HNSW neighbors into stable pages; new databases use
 format 3. Existing format-2 files retain their layout until an explicit upgrade
@@ -29,8 +36,8 @@ with a standalone format-2 backup. Automatic checkpoints default to 64 MiB of WA
 or 1,000 commits. See the [policy and recovery guide](docs/persistence-0.5.md).
 
 The [reproducible measurements](bench/releases/0.5.0-dev.1/README.md) retain their
-actual 0.5.0-dev.1 provenance; the measured engine implementation is unchanged in
-0.5.0. Full-image open/checkpoint costs, cached-page RAM and file padding remain.
+actual 0.5.0-dev.1 provenance. They are historical measurements, not new 1.0.0
+performance results. Full-image open/checkpoint costs, cached-page RAM and file padding remain.
 Int8 reduces vector payload, without guaranteeing faster queries or lower peak RSS.
 
 **Workspace 1.0.0 cannot open format 3.** Keep files at format 2 for its existing

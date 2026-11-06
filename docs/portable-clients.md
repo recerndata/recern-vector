@@ -1,6 +1,6 @@
 # Portable clients
 
-**Recern Vector 0.5.0.** Python, Rust and Node.js expose
+**Recern Vector 1.0.0.** Python, Rust and Node.js expose
 profile `recern-vector/1` against embedded Recern, the Recern HTTP v1 server and
 Qdrant 1.19.2. See [release packages and compatibility](release.md) for installation
 and verified platform archives. Recern does not provide a hosted Vector service.
@@ -12,7 +12,7 @@ native formats 1/2 and their frozen fixtures are unchanged.
 
 ## Python remote backend
 
-Install `pip install --upgrade recern-vector` (version 0.5.0), then use:
+Install `pip install --upgrade recern-vector` (version 1.0.0), then use:
 
 ```python
 import os
@@ -47,11 +47,11 @@ allowed. Closing a client rejects new requests and closes its live connections.
 
 ## Rust
 
-Install the `recern-vector-client` crate, version 0.5.0. It leaves the low-level
+Install the `recern-vector-client` crate, version 1.0.0. It leaves the low-level
 `recern_vector::Database` API unchanged.
 
 ```sh
-cargo add recern-vector-client@0.5.0
+cargo add recern-vector-client@1.0.0
 ```
 
 ```rust,no_run
@@ -94,11 +94,11 @@ Install the platform-selecting [npm package](release.md).
 For example, on Linux x64 with glibc:
 
 ```sh
-npm install @recern/vector@0.5.0
+npm install @recern/vector@1.0.0
 ```
 
 The native API is `@recern/vector`; the portable entry point is
-`@recern/vector/portable`. Version 0.5.0 selects the exact-version native package
+`@recern/vector/portable`. Version 1.0.0 selects the exact-version native package
 for the host platform. Keep npm optional dependencies enabled; see the
 [supported platforms](release.md#platforms-and-artifacts).
 
@@ -172,5 +172,5 @@ Qdrant plus Python/Rust/Node interoperability matrix on Linux. Check the current
 commit's CI results before treating that platform matrix as passed.
 
 The published artifacts and supported upgrade path are documented in the
-[release guide](release.md). Version 0.5.0 does not include
+[release guide](release.md). Version 1.0.0 does not include
 clustering, a managed service or RBAC. HTTP/profile/export contracts remain v1.

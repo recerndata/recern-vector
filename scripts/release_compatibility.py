@@ -11,7 +11,7 @@ from release_version import python_version
 
 p=argparse.ArgumentParser()
 p.add_argument('--old-python',required=True)
-p.add_argument('--old-version',default='0.4.0')
+p.add_argument('--old-version',default='0.5.0')
 p.add_argument('--new-version',default=python_version())
 p.add_argument('--new-python',required=True)
 p.add_argument('--work',required=True)
@@ -26,6 +26,7 @@ from recern_vector.portable import Client,Record,export_snapshot,import_snapshot
 work=Path(sys.argv[1])
 root=Path(sys.argv[2])
 old_version,new_version=sys.argv[3:5]
+old_has_format_3 = tuple(map(int, old_version.split('.')[:2])) >= (0, 5)
 metadata={"u64":2**64-1,"i64":-(2**63),"float":[1.0],"integer":[1],"nested":{"country":"JP"}}
 assert not Path(__import__('recern_vector').__file__).is_relative_to(root)
 '''
@@ -65,17 +66,20 @@ restored=Client.embedded(work/'imported.rvec')
 assert import_snapshot(work/'export-previous',restored)['verified']
 assert all(restored.collection(n).count()==2 for n in restored.list_collections())
 export_snapshot(client,work/'export-current')
-# New default and explicitly migrated format 3 are separate from the format-2
-# fixture above, which must stay writable/readable by published older engines.
+# New default and explicitly migrated format 3 are checked separately from the
+# original file, which retains the published writer's format (2 or 3).
 assert Database(work/'imported.rvec').format_version == 3
 paged=work/'paged-upgrade.rvec'
 shutil=__import__('shutil')
 shutil.copyfile(work/'upgrade.rvec',paged)
 shutil.copyfile(work/'upgrade.rvec.wal',str(paged)+'.wal')
 converted=Database(paged)
-assert converted.format_version == 2
+assert converted.format_version == (3 if old_has_format_3 else 2)
 backup=converted.upgrade_storage()
-assert backup is not None and Database.open_read_only(backup).format_version == 2
+if old_has_format_3:
+ assert backup is None  # Already paged: no redundant conversion or backup.
+else:
+ assert backup is not None and Database.open_read_only(backup).format_version == 2
 assert converted.format_version == 3
 export_snapshot(Client.embedded(paged,read_only=True),work/'export-paged')
 
@@ -112,20 +116,25 @@ assert all(restored.collection(n).count()==(5 if n=='cosine-f32' else 4 if n=='l
 assert client.collection('cosine-f32').get('after-checkpoint-wal').metadata==metadata
 assert client.collection('l2-int8').get('auto-checkpoint').metadata==metadata
 
-# A reader predating format 3 must fail explicitly without modifying files.
+# Older readers reject format 3; 0.5+ must read current writes unchanged.
 import hashlib
 for name in ['imported.rvec','paged-upgrade.rvec']:
  path=work/name
  files=[path]+([Path(str(path)+'.wal')] if Path(str(path)+'.wal').exists() else [])
  before=[hashlib.sha256(f.read_bytes()).hexdigest() for f in files]
- try: Database(path)
- except CorruptDatabaseError as error: assert 'version' in str(error).lower() and '3' in str(error),str(error)
- else: raise AssertionError('old reader accepted format 3')
+ if old_has_format_3:
+  previous=Database.open_read_only(path)
+  assert previous.format_version == 3
+  assert previous['cosine-f32'].get('merchant/東京\n\0').metadata==metadata
+ else:
+  try: Database(path)
+  except CorruptDatabaseError as error: assert 'version' in str(error).lower() and '3' in str(error),str(error)
+  else: raise AssertionError('old reader accepted format 3')
  assert before==[hashlib.sha256(f.read_bytes()).hexdigest() for f in files]
 restored3=Client.embedded(work/'backward-paged-import.rvec')
 assert import_snapshot(work/'export-paged',restored3)['verified']
 assert all(restored3.collection(n).count()==(5 if n=='cosine-f32' else 4 if n=='l2-int8' else 3) for n in restored3.list_collections())
-print(json.dumps({'old_reader_after_current_writes':True,'format_3_rejected_without_mutation':True,'format_3_export_backward_import':True,'export_v1_backward_import':True}))
+print(json.dumps({'old_reader_after_current_writes':True,'format_3_readable':old_has_format_3,'format_3_rejected_without_mutation':not old_has_format_3,'format_3_export_backward_import':True,'export_v1_backward_import':True}))
 '''
 for executable,phase in [(a.old_python,create),(a.new_python,upgrade),(a.old_python,backward)]:
  result=subprocess.run([str(Path(executable).absolute()),'-c',common+phase,str(work),str(root),a.old_version,a.new_version],cwd=work,env=os.environ.copy(),text=True,capture_output=True,timeout=120)

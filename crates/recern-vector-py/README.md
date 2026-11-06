@@ -2,7 +2,7 @@
 
 Python bindings for [Recern Vector](https://github.com/recerndata/recern-vector), a single-file, embedded, inspectable vector database.
 
-> **Version 0.5.0.** Incremental encoding, paged format 3, automatic WAL checkpoints and explicit storage upgrades. Readers retain formats 1/2; HTTP/profile/export contracts remain v1. Workspace 1.0.0 cannot open format 3.
+> **Version 1.0.0.** Stable public APIs with audited collection lifetimes, input validation and crash recovery. Incremental encoding, paged format 3 and automatic WAL checkpoints remain compatible with 0.5.0. Readers retain formats 1/2; HTTP/profile/export contracts remain v1. Workspace 1.0.0 cannot open format 3.
 
 ```sh
 pip install recern-vector
@@ -28,17 +28,17 @@ with rv.Database.open_or_create("docs.rvec") as db:          # saves on clean ex
 
 Benchmarks against faiss, LanceDB and sqlite-vec: [recern.net/vector/benchmarks](https://recern.net/vector/benchmarks).
 
-## Persistence in 0.5.0
+## Persistence in 1.0.0
 
 Automatic checkpoints, `set_checkpoint_policy`, `checkpoint_policy` and
 `persistence_stats`, paged format 3, `format_version` and explicit
 `upgrade_storage` are described in the [persistence guide](https://recern.net/vector/docs/persistence-0.5).
 Existing format-2 files remain at format 2 until an explicit upgrade with a backup.
 
-## Remote backend (0.4.0)
+## Remote backend
 
-`Client.remote(url, api_key=key, timeout=10.0, ca_file=None)` is available in
-0.4.0 wheels and the source distribution.
+`Client.remote(url, api_key=key, timeout=10.0, ca_file=None)` has been available
+since 0.4.0 in wheels and the source distribution.
 It uses verified TLS, bounded deadlines and generation-bound handles, and
 supports the same Python snapshot export/resumable import workflow against
 the Recern HTTP server. Use context managers to release snapshot leases. See

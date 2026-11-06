@@ -1,7 +1,7 @@
 # Public API and recovery audit for Vector 1.0
 
-Status: source candidate, not a published 1.0 release. The stable packages remain
-0.5.0. The fixes below retain snapshot formats 1/2/3, WAL 1, HTTP v1, portable
+Scope: Recern Vector 1.0.0. The fixes below retain snapshot formats 1/2/3,
+WAL 1, HTTP v1, portable
 profile v1 and export v1. Released fixtures and artifacts are not rewritten.
 
 ## Scope and evidence
@@ -20,7 +20,7 @@ The audit covers the boundaries in [the compatibility policy](compatibility.md):
 | Files and migrations | Frozen readers, checksums, bounds, pending changes, WAL tails, upgrades/backups, resumed imports | Native recovery tests, released-reader checks, export-v1 fixtures and migration tests |
 
 `recern-vector-server` exposes implementation modules for its binary and tests;
-they are not an embeddable server SDK covered by the proposed 1.x client API.
+they are not an embeddable server SDK covered by the 1.x client API.
 `PortableSession` is likewise an internal bridge. Neither changes the public
 HTTP contract. Native APIs retain explicit `save()`; portable mutations save
 before success. Qdrant acknowledgements retain Qdrant's own durability semantics.
@@ -123,7 +123,7 @@ power-loss durability. See Microsoft's
    an older supported target. Installing an older executable does not downgrade
    format 3. Workspace 1.0.0's existing embedded reader still accepts only 1/2.
 
-## Gates retained before release
+## Release validation boundary
 
 The ordinary CI workflow exercises Rust and HTTP on Linux/macOS/Windows, Python
 native/remote operations on those hosts, Node and packed TypeScript on those
@@ -131,8 +131,10 @@ hosts, and authenticated Qdrant 1.19.2 on Linux. The separate compatibility
 workflow runs all 27 released/candidate HTTP client/server cells. Its wheel is
 built outside the checkout so the source provenance remains clean.
 
-The final 1.0 release still needs its actual platform distributions, release
-notes and compatibility evidence checked at the release commit. Existing 0.5
+The [release workflow](https://github.com/recerndata/recern-vector/actions/workflows/release.yml)
+checks the actual platform distributions, minimum Rust version, installed
+Python wheels/source distribution, npm packages and migration from 0.3/0.4/0.5.
+The [release guide](release.md) lists the supported builds. Existing 0.5
 measurements do not establish new performance or hardware power-loss guarantees.
 This audit does not claim that arbitrary applications or all possible crash
 schedules have been exhaustively verified.

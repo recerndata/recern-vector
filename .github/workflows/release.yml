@@ -329,7 +329,7 @@ jobs:
           python -m pip install pytest numpy -r api/requirements.txt
           python -m pip install --no-index --find-links dist recern-vector
           python -m pytest crates/recern-vector-py/tests api/tests -q
-          for previous in 0.3.0 0.4.0; do
+          for previous in 0.3.0 0.4.0 0.5.0; do
             python -m venv "$RUNNER_TEMP/vector-$previous"
             "$RUNNER_TEMP/vector-$previous/bin/python" -m pip install "recern-vector==$previous"
             python scripts/release_compatibility.py --old-version "$previous" --old-python "$RUNNER_TEMP/vector-$previous/bin/python" --new-python "$(command -v python)" --work "$RUNNER_TEMP/release-upgrade-$previous"

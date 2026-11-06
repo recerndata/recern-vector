@@ -1,18 +1,17 @@
 # Recern Vector for Node.js
 
-> **0.5.0** adds `setCheckpointPolicy`, `checkpointPolicy` and
-> `persistenceStats`, paged format 3, `formatVersion` and explicit `upgradeStorage`. See the [policy guide](../../docs/persistence-0.5.md).
+> **1.0.0** establishes the [public API stability policy](https://recern.net/vector/docs/compatibility), with audited collection lifetimes, input validation and crash recovery. It retains format 3, WAL 1 and the HTTP v1 contract from earlier releases. See the [persistence guide](https://recern.net/vector/docs/persistence-0.5).
 
 The native API and asynchronous `./portable` entry point support embedded Recern,
 Recern HTTP and Qdrant. See the [portable clients guide](https://recern.net/vector/docs/portable-clients).
 
 ```sh
-npm install @recern/vector@0.5.0
+npm install @recern/vector@1.0.0
 ```
 
 npm chooses the exact-version native addon for Linux x64/ARM64 (glibc 2.35+),
 macOS Intel/Apple silicon or Windows x64. Keep optional dependencies enabled.
-Self-contained archives are also attached to the [0.5.0 GitHub release](https://github.com/recerndata/recern-vector/releases/tag/v0.5.0).
+Self-contained archives are also attached to the [1.0.0 GitHub release](https://github.com/recerndata/recern-vector/releases/tag/v1.0.0).
 See [release packages and compatibility](https://recern.net/vector/docs/release).
 New files use format 3, which Workspace 1.0.0 cannot read; existing format-2 files
 retain their format until an explicit storage upgrade.

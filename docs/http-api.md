@@ -1,15 +1,15 @@
-# HTTP API v1 contract for 0.4.0
+# HTTP API v1 contract
 
 **Released with Recern Vector 0.4.0, 29 October 2026.** The separate
 [HTTP server](server.md) and [Python, Rust and Node clients](portable-clients.md)
-implement this versioned contract. Existing native APIs remain available.
+implement this versioned contract, retained unchanged in Recern Vector 1.0.0. Existing native APIs remain available.
 
 The machine-readable source is [`api/openapi.json`](../api/openapi.json), using
 [OpenAPI 3.1.1](https://spec.openapis.org/oas/v3.1.1.html) and
 [JSON Schema 2020-12](https://json-schema.org/draft/2020-12/json-schema-core).
 The HTTP paths use `/v1`; application semantics use portable profile
 `recern-vector/1`. These version numbers are independent of the package version,
-`.rvec` storage versions (1/2/3 in 0.5.0), and migration archive format 1.
+`.rvec` storage versions (1/2/3 in 1.0.0), and migration archive format 1.
 
 This page supplies normative rules which schemas cannot express, such as
 UTF-8 byte limits, vector norms and durable acknowledgement. Schema validation

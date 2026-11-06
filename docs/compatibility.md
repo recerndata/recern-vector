@@ -1,9 +1,9 @@
-# API stability and the Vector 1.0 release gate
+# Public API stability and compatibility in Vector 1.x
 
-**Status: preparation for 1.0.0; the current stable release is 0.5.0.**
-This document defines the intended 1.x compatibility policy and the evidence
-required before publishing 1.0. It does not announce a 1.0 release or turn an
-untested server/platform combination into a supported one.
+**Applies from Recern Vector 1.0.0.** This document defines the supported
+public surface, compatibility and deprecation policy, and validation required
+for each release. Platform/provider support follows the tested release matrix;
+a compatible version string alone does not establish support.
 
 ## Supported public surface
 
@@ -50,7 +50,7 @@ observable effects in release notes.
 
 Minimum runtimes and supported platforms are part of each tested release matrix.
 Do not raise their floors silently in a patch. A proposed change requires an
-explicit migration plan and updated installation tests. The 0.5 baseline is
+explicit migration plan and updated installation tests. The 1.0 baseline is
 Rust 1.89+, CPython 3.11+ and Node.js 22+; the [release page](release.md) lists the
 actual platform builds and operating-system requirements.
 
@@ -114,15 +114,15 @@ the workflow shows the complete build commands. A successful run writes
 
 ## API and recovery audit
 
-The [source-candidate audit](api-audit-1.0.md) records the reviewed surface,
+The [API and recovery audit](api-audit-1.0.md) records the reviewed surface,
 confirmed fixes, external consumers, recovery procedure and physical-durability
-limits. Changes remain unreleased until the final distribution gate passes.
+limits. The [release guide](release.md) lists the distributed packages and platforms.
 
-## Remaining gates before 1.0
+## Gates for every release
 
 1. Review the [API audit evidence](api-audit-1.0.md) at the release commit and
    retain the external Rust/TypeScript consumers. Resolve any proposed breaking
-   changes before declaring the final 1.0 API frozen.
+   changes without breaking the supported 1.x API.
 2. Pass the HTTP version matrix and the existing shared embedded/HTTP/Qdrant
    contract suite on the exact supported Qdrant version. Later Qdrant versions
    passing a version check are not automatically tested or supported.
@@ -130,7 +130,8 @@ limits. Changes remain unreleased until the final distribution gate passes.
    standalone checkpoint backups, matched snapshot/WAL restoration, export-v1
    transfers and both migration destinations. Verify restored data and explicit
    rejection by incompatible readers; never rewrite frozen fixtures.
-4. Publish measured memory/latency bounds and tested recovery procedures.
+4. Keep measured memory/latency bounds and tested recovery procedures current;
+   retain the provenance of historical benchmarks.
    Incremental saves do not remove full-image open/checkpoint costs or the
    single-writer boundary.
 5. Validate the actual Rust/Python/Node distributions and CLI/server artifacts

@@ -1,6 +1,6 @@
 # Limitations and next work
 
-Recern Vector 0.5.0 includes a stable versioned format, WAL, int8, logical filters, adaptive filtered planning and Rust/Python/Node.js APIs, plus a [portable Python API](portable-api.md) and [verified export/import](migration.md) for embedded Recern and Qdrant.
+Recern Vector 1.0.0 includes a stable versioned format, WAL, int8, logical filters, adaptive filtered planning and Rust/Python/Node.js APIs, plus a [portable Python API](portable-api.md) and [verified export/import](migration.md) for embedded Recern and Qdrant.
 
 - The database and index must fit in RAM. Save/open also allocate encoded snapshot buffers.
 - Legacy format-2 writes encode/compare a full image. Format 3 encodes changed records/HNSW neighbors into stable pages; open/checkpoint still process a full image and cached pages add RAM and storage padding. Version 0.5.0 adds configurable automatic triggers, with limits described in [persistence work](persistence-0.5.md).
@@ -9,28 +9,28 @@ Recern Vector 0.5.0 includes a stable versioned format, WAL, int8, logical filte
 - Filter planning is a heuristic using a sampled selectivity and an operation-count estimate. There is no metadata index, string range comparison or array membership operator. HNSW remains approximate.
 - Node.js provides native bindings and an asynchronous search method. Other operations are synchronous; use worker threads for large builds or saves. Version 0.5.0 ships `@recern/vector` on npm with exact-version native platform dependencies and self-contained archives on GitHub.
 - Filesystem durability requires local locks and atomic rename. Network filesystems and external file edits are unsupported.
-- Portable Qdrant batches are not declared atomic. Its pages are not a consistent snapshot during writes, so portable export is supported only by embedded Recern and the 0.4.0 HTTP server; importing into Qdrant is supported. The adapter owns its collection metadata and point envelopes and does not adopt arbitrary existing Qdrant collections.
+- Portable Qdrant batches are not declared atomic. Its pages are not a consistent snapshot during writes, so portable export is supported only by embedded Recern and the HTTP v1 server; importing into Qdrant is supported. The adapter owns its collection metadata and point envelopes and does not adopt arbitrary existing Qdrant collections.
 - Migration requires an immutable archive and exclusive ownership of new destination collections. It has resume and read-back verification, but no live change capture, transactional cutover or automatic remote rollback. Int8 exports contain stored/dequantized vectors, and imports use f32 with possible cosine renormalization.
 
-Reproducible persistence/quantization benchmarks retain their 0.5.0-dev.1 provenance; their full-image memory and padding costs remain limits. Metadata indexes require workload justification. API/migration/deprecation policy stabilization and the operational compatibility matrix remain 1.0 work. The [single-node HTTP server](server.md) is a separate package around the embedded engine; sharding, replication and hosted operation are not current capabilities.
+Reproducible persistence/quantization benchmarks retain their 0.5.0-dev.1 provenance; their full-image memory and padding costs remain limits. Metadata indexes require workload justification. The supported 1.x API, migration/deprecation policy and operational compatibility matrix are documented in the [compatibility policy](compatibility.md). The [single-node HTTP server](server.md) is a separate package around the embedded engine; sharding, replication and hosted operation are not current capabilities.
 
-## Planned API portability and migration
+## API portability and migration roadmap
 
-Working targets as of 4 November 2026. Version numbers are release scopes, not delivery dates. Version 0.4.0 includes the HTTP server and portable Python/Rust/Node clients, with release-artifact, migration and upgrade validation. Version 0.5.0 adds paged incremental persistence and npm packages; 1.0 remains planned.
+Release scopes as of 6 November 2026. Version numbers are release scopes, not delivery dates. Version 0.4.0 includes the HTTP server and portable Python/Rust/Node clients, with release-artifact, migration and upgrade validation. Version 0.5.0 added paged incremental persistence and npm packages; 1.0.0 stabilizes the public API and recovery behavior.
 
-Development now targets Recern Vector **1.0.0**, following 0.5.0. Workspace **1.0.0** with Microsoft SQL Server has shipped separately and still uses the published Vector 0.2.0 reader. This sequence does not require filling every intermediate minor version or expanding the agreed adapter scope.
+Recern Vector **1.0.0** follows 0.5.0 with the supported API and compatibility policy. Workspace **1.0.0** with Microsoft SQL Server has shipped separately and still uses the published Vector 0.2.0 reader. This sequence does not require filling every intermediate minor version or expanding the agreed adapter scope.
 
 The [1.0 compatibility policy and release gates](compatibility.md) define the
 public surface, deprecation rules and the released/candidate HTTP test matrix.
 
-The goal is to take a prototype built with Recern Vector into production either on an external vector database or on a future Recern server. Applications using the portable API should retain their collection, record and search logic when the backend configuration changes. Data transfer, credentials, capacity planning and backend-specific features still require explicit setup.
+The goal is to take a prototype built with Recern Vector into production either on an external vector database or on the single-node Recern server. Applications using the portable API should retain their collection, record and search logic when the backend configuration changes. Data transfer, credentials, capacity planning and backend-specific features still require explicit setup.
 
 | Target | Scope | Release gate |
 |---|---|---|
 | **0.3.0 (available)** | Python portable profile v1; embedded and Qdrant 1.19.2 adapters; consistent embedded export and resumable import into either backend. Rust/Python share filter fixtures; export v1 has a frozen fixture. | Same example and contract suite on embedded and authenticated Qdrant. Logical IDs, JSON metadata, distances and filters are checked; interruption/lost-ack recovery and read-back verification are tested. Existing native APIs and format-1/2 fixtures must continue passing. Cross-platform/package CI remains a release gate. |
 | **0.4.0 (available)** | Separate, single-node Recern server and a remote backend for the same portable client. Publish a versioned HTTP/OpenAPI contract, authentication, TLS deployment guidance, timeouts and explicit write/read guarantees. Extend portable Rust/Node clients against the shared suite. | The same portable example and contract tests run on embedded Recern, remote Recern and Qdrant. Reconnect, restart recovery and unsupported-capability cases are covered. Writes respect the engine's single-writer boundary. |
 | **0.5.0 (available)** | Improve write performance with incremental encoding and a page directory; add an automatic checkpoint policy, current f32/int8 memory and recall benchmarks, and published Node packages for supported platforms. | Measure commit cost and peak memory as databases grow. Exercise crash recovery at WAL/checkpoint boundaries, verify the actual published language packages, and document recall/precision tradeoffs on reproducible datasets. Metadata indexes remain a separate optimization until workloads justify them. |
-| **1.0.0** | Stabilize the supported public API, migration format and compatibility/deprecation policy after both migration paths are proven. | Document the tested client/server/provider version matrix, pass upgrade and migration suites, and publish the operational limits. This milestone does not imply clustering, high availability or every vendor's API. |
+| **1.0.0 (available)** | Stabilize the supported public API, migration format and compatibility/deprecation policy after both migration paths are proven. | Document the tested client/server/provider version matrix, pass upgrade and migration suites, and publish the operational limits. This milestone does not imply clustering, high availability or every vendor's API. |
 
 Milvus is the next candidate external adapter after Qdrant proves the contract. Its implementation should follow an actual integration need, without making support for many providers a prerequisite for 1.0. A first Recern server is an intermediate step towards enterprise deployment; replication, sharding, tenant isolation, RBAC/SSO and service guarantees require their own scoped work.
 
@@ -55,10 +55,10 @@ on saves; those performance limits were not removed by adding an HTTP endpoint.
 
 The released 0.4.0 server remains subject to the embedded engine's RAM and O(database size) save-encoding limits. The 0.4.0 documentation and benchmarks must disclose them; the incremental persistence work belongs to 0.5.0. A remote endpoint alone is not evidence of enterprise availability or scalability.
 
-### Completion and Workspace compatibility gates
+### Ongoing validation and Workspace compatibility
 
 - **0.5.0:** incremental encoding/page-directory work and automatic checkpoints pass crash-injection and recovery checks. Publish reproducible commit-latency, peak-memory and f32/int8 recall measurements, and verify the distributed Node packages on their advertised targets. A storage-layout change requires an explicit format version and upgrade path.
-- **Vector 1.0.0:** freeze the supported API and migration contract with a documented deprecation policy. Test upgrades from released fixtures, backup/restore, both migration destinations and the supported client/server version matrix. Record operational limits and recovery procedures; resolve known data-loss and compatibility defects before release.
+- **Vector 1.x:** preserve the supported API and migration contract with a documented deprecation policy. Test upgrades from released fixtures, backup/restore, both migration destinations and the supported client/server version matrix. Record operational limits and recovery procedures; resolve known data-loss and compatibility defects before release.
 - **Workspace handoff:** verify how the released Workspace 1.0.0 file reader handles files from the new Vector versions. It currently uses the 0.2.0 engine API, so shared format numbers alone do not prove compatibility. Test read-only opening, snapshot/WAL refresh and unsupported-format errors. Plan any required reader upgrade and the remote-server connection as explicit future Workspace work.
 
 ### Contract defined for 0.3.0
