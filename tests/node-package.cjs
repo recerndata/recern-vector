@@ -6,7 +6,12 @@ const path=require('node:path');
 const assert=require('node:assert/strict');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'recern-node-package-'));
 try {
-  const result=process.argv[2] ? [{filename:path.resolve(process.argv[2])}] : JSON.parse(execFileSync('npm',['pack','--json','--pack-destination',dir],{cwd:path.resolve(__dirname,'../crates/recern-vector-node'),encoding:'utf8'}));
+  // Windows ships npm as npm.cmd, which execFileSync cannot launch directly.
+  // Run its JS entry point with Node, keeping paths out of a command shell.
+  const npm=process.platform==='win32'
+    ? [process.execPath,process.env.npm_execpath || path.join(path.dirname(process.execPath),'node_modules/npm/bin/npm-cli.js')]
+    : ['npm'];
+  const result=process.argv[2] ? [{filename:path.resolve(process.argv[2])}] : JSON.parse(execFileSync(npm[0],[...npm.slice(1),'pack','--json','--pack-destination',dir],{cwd:path.resolve(__dirname,'../crates/recern-vector-node'),encoding:'utf8'}));
   const files=result[0].files?.map(f=>f.path);
   for (const file of ['index.js','index.d.ts','portable/index.js','portable/index.d.ts','recern_vector.node']) if(files) assert.ok(files.includes(file),file);
   const archive=process.argv[2] ? path.resolve(process.argv[2]) : path.join(dir,result[0].filename);
