@@ -56,3 +56,34 @@ test('paged counters and explicit legacy upgrade retain a readable backup',()=>{
   assert.throws(()=>Database.openReadOnly(path).upgradeStorage(),/read-only/);
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
+
+test('stale handles including async searches cannot reach a replacement collection', async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'recern-node-generation-'));
+ try {
+  const db=Database.create(join(dir,'db.rvec')); const old=db.createCollection('c',{dim:2}); const other=db.collection('c');
+  db.dropCollection('c'); const current=db.createCollection('c',{dim:2});current.upsert('keep',f([1,0]));
+  for(const stale of [old,other]) {
+   for(const run of [()=>stale.upsert('bad',f([1,0])),()=>stale.upsertMany([]),()=>stale.delete('keep'),()=>stale.get('keep'),()=>stale.search(f([1,0]),1),()=>stale.explain(f([1,0]),1),()=>stale.compact(),()=>stale.stats()]) assert.throws(run,/not found/);
+   await assert.rejects(stale.searchAsync(f([1,0]),1),/not found/);
+  }
+  assert.equal(current.stats().live,1); assert.equal(current.get('keep').id,'keep');
+ } finally {rmSync(dir,{recursive:true,force:true});}
+});
+
+test('numeric options reject fractional and overflowing JS numbers before any mutation',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'recern-node-integers-'));
+ try {
+  const db=Database.create(join(dir,'db.rvec'));
+  for(const field of ['dim','m','efConstruction','efSearch']) for(const value of [NaN,Infinity,-1,0,1.5,2**32,2**32+1]) {
+   assert.throws(()=>db.createCollection('bad',{dim:2,[field]:value}),/integer/);assert.deepEqual(db.collectionNames(),[]);
+  }
+  const c=db.createCollection('c',{dim:2});c.upsert('keep',f([1,0]));
+  for(const value of [NaN,Infinity,-1,0,1.5,2**32,2**32+1]) {
+   for(const method of ['search','explain','searchAsync']) {
+    assert.throws(()=>c[method](f([1,0]),value),/integer/);
+    assert.throws(()=>c[method](f([1,0]),1,{ef:value}),/integer/);
+   }
+  }
+  assert.equal(c.stats().live,1);
+ } finally {rmSync(dir,{recursive:true,force:true});}
+});

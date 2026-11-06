@@ -18,35 +18,56 @@ class RecernVectorError(Exception): ...
 class CorruptDatabaseError(RecernVectorError): ...
 
 class Hit:
-    id: str
-    distance: float
-    metadata: Metadata | None
+    @property
+    def id(self) -> str: ...
+    @property
+    def distance(self) -> float: ...
+    @property
+    def metadata(self) -> Metadata | None: ...
 
 class Record:
-    id: str
-    vector: list[float]
-    metadata: Metadata | None
+    @property
+    def id(self) -> str: ...
+    @property
+    def vector(self) -> list[float]: ...
+    @property
+    def metadata(self) -> Metadata | None: ...
 
 class SearchReport:
-    hits: list[Hit]
-    strategy: Literal["hnsw", "exact", "filtered_exact"]
-    ef: int | None
-    visited: int
-    distance_computations: int
-    filter_selectivity: float | None
-    elapsed_ms: float
+    @property
+    def hits(self) -> list[Hit]: ...
+    @property
+    def strategy(self) -> Literal["hnsw", "exact", "filtered_exact"]: ...
+    @property
+    def ef(self) -> int | None: ...
+    @property
+    def visited(self) -> int: ...
+    @property
+    def distance_computations(self) -> int: ...
+    @property
+    def filter_selectivity(self) -> float | None: ...
+    @property
+    def elapsed_ms(self) -> float: ...
 
 class RecallPoint:
-    ef: int
-    recall: float
-    p50_ms: float
-    p95_ms: float
+    @property
+    def ef(self) -> int: ...
+    @property
+    def recall(self) -> float: ...
+    @property
+    def p50_ms(self) -> float: ...
+    @property
+    def p95_ms(self) -> float: ...
 
 class RecallReport:
-    k: int
-    sample: int
-    exact_p50_ms: float
-    points: list[RecallPoint]
+    @property
+    def k(self) -> int: ...
+    @property
+    def sample(self) -> int: ...
+    @property
+    def exact_p50_ms(self) -> float: ...
+    @property
+    def points(self) -> list[RecallPoint]: ...
 
 class Database:
     """A database file. Changes stay in memory until `save()` or a clean `with` exit."""

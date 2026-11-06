@@ -2,19 +2,35 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
+from functools import wraps
 from os import PathLike
+import threading
 from typing import Any, Literal
 
 from .filters import validate_filter
 from .model import (
-    Capabilities, CollectionSpec, Hit, InvalidArgument, MAX_BATCH, Metric, Page, Record, Unsupported,
+    Capabilities, CollectionSpec, Hit, InvalidArgument, MAX_BATCH, Metric, Page, Record, Unsupported, Unavailable,
     integer, validate_text, validated_records, vector_value,
 )
+
+
+def _open(operation):
+    @wraps(operation)
+    def checked(self, *args, **kwargs):
+        client = self if isinstance(self, Client) else self.client
+        # An operation that already holds this lock finishes before close().
+        with client._lock:
+            if client._closed:
+                raise Unavailable("client is closed")
+            return operation(self, *args, **kwargs)
+    return checked
 
 
 class Client:
     def __init__(self, backend):
         self._backend = backend
+        self._closed = False
+        self._lock = threading.RLock()
 
     @classmethod
     def embedded(cls, path: str | PathLike[str], *, read_only: bool = False) -> Client:
@@ -34,10 +50,15 @@ class Client:
         return cls(RemoteBackend(url, api_key=api_key, timeout=timeout, ca_file=ca_file))
 
     def close(self) -> None:
-        close = getattr(self._backend, "close", None)
-        if close is not None:
-            close()
+        with self._lock:
+            if self._closed:
+                return
+            self._closed = True
+            close = getattr(self._backend, "close", None)
+            if close is not None:
+                close()
 
+    @_open
     def __enter__(self) -> Client:
         return self
 
@@ -57,9 +78,11 @@ class Client:
         """A destination identity; contains no credentials."""
         return self._backend.identity
 
+    @_open
     def list_collections(self) -> list[str]:
         return self._backend.list_collections()
 
+    @_open
     def create_collection(self, name: str, dim: int, metric: Metric = "cosine", *,
                           quantization: Literal["f32", "int8"] = "f32") -> Collection:
         spec = CollectionSpec(name, dim, metric, quantization)
@@ -68,15 +91,18 @@ class Client:
         created_spec, generation = self._backend.create(spec)
         return Collection(self, created_spec, generation)
 
+    @_open
     def collection(self, name: str) -> Collection:
         validate_text(name, "collection name", 255, nonempty=True)
         spec, generation = self._backend.describe(name)
         return Collection(self, spec, generation)
 
+    @_open
     def drop_collection(self, name: str) -> None:
         validate_text(name, "collection name", 255, nonempty=True)
         self._backend.drop(name)
 
+    @_open
     def snapshot(self) -> Client:
         if not self.capabilities.consistent_export:
             raise Unsupported("this backend cannot supply a consistent portable export; use its native snapshot tools")
@@ -94,24 +120,28 @@ class Collection:
     def name(self) -> str:
         return self.spec.name
 
+    @_open
     def upsert(self, id: str, vector: Iterable[float], metadata: Any = None) -> None:
         self.upsert_many([Record(id, vector, metadata)])
 
+    @_open
     def upsert_many(self, records: Iterable[Record]) -> int:
         records = validated_records(records, self.spec)
-        if not records and not hasattr(self._backend, "bind"):
-            return 0
         return self._backend.upsert(self.name, records)
 
+    @_open
     def get(self, id: str) -> Record | None:
         return self._backend.get(self.name, validate_text(id))
 
+    @_open
     def delete(self, id: str) -> bool:
         return self._backend.delete(self.name, validate_text(id))
 
+    @_open
     def count(self) -> int:
         return self._backend.count(self.name)
 
+    @_open
     def page(self, *, limit: int = 100, cursor: str | None = None) -> Page:
         integer(limit, "page limit", 1, MAX_BATCH)
         return self._backend.page(self.name, limit, cursor)
@@ -125,6 +155,7 @@ class Collection:
                 break
             cursor = page.next_cursor
 
+    @_open
     def search(self, query: Iterable[float], k: int = 10, *,
                filter: dict[str, Any] | None = None, exact: bool = False) -> list[Hit]:
         integer(k, "k", 1, 10_000)

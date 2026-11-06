@@ -112,11 +112,17 @@ Use `linux-x64` or `win32-x64` on the corresponding host. Pass `--source-wheel`,
 the workflow shows the complete build commands. A successful run writes
 `report.json` with actual versions, source commit, scope and test counts.
 
+## API and recovery audit
+
+The [source-candidate audit](api-audit-1.0.md) records the reviewed surface,
+confirmed fixes, external consumers, recovery procedure and physical-durability
+limits. Changes remain unreleased until the final distribution gate passes.
+
 ## Remaining gates before 1.0
 
-1. Audit the full native and portable API against this boundary and retain
-   external source/TypeScript consumers. Resolve any proposed breaking changes
-   before declaring the final 1.0 API frozen.
+1. Review the [API audit evidence](api-audit-1.0.md) at the release commit and
+   retain the external Rust/TypeScript consumers. Resolve any proposed breaking
+   changes before declaring the final 1.0 API frozen.
 2. Pass the HTTP version matrix and the existing shared embedded/HTTP/Qdrant
    contract suite on the exact supported Qdrant version. Later Qdrant versions
    passing a version check are not automatically tested or supported.

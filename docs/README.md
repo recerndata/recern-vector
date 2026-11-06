@@ -21,6 +21,9 @@ Recern Vector 0.5.0 is an embedded vector database with a local snapshot and a W
 - Data much larger than memory. The whole database is loaded on open.
 - You need a larger-than-memory engine or bounded latency regardless of maintenance. Format-3 saves encode changed records, but open/checkpoint still process a full image and cached pages add RAM and padding. Format-2 saves retain full-image encoding (see [Limitations and next work](limitations.md)).
 
+The [1.0 API and recovery audit](api-audit-1.0.md) describes source-candidate fixes
+and their validation boundary; the published release remains 0.5.0.
+
 ## Contents
 
 | Page | What it covers |

@@ -116,6 +116,7 @@ def _export_snapshot(snapshot, destination, collections, batch_size):
             raise Unsupported("export manifest exceeds 4 MiB; export fewer collections")
         _atomic_json(destination / "manifest.json", manifest)
         _sync_dir(destination)
+        _sync_dir(destination.parent)
         return manifest
     except Exception:
         # Only this newly created directory is removed, never an existing export.

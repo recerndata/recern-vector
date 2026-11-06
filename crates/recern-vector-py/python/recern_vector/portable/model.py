@@ -118,9 +118,14 @@ def validate_text(value, label="id", limit=65_536, *, nonempty=False):
     return value
 
 
-def json_value(value, depth=0):
+def json_value(value, depth=0, remaining=None):
+    if remaining is None:
+        remaining = [1_000_000]
     if depth > 64:
         raise InvalidArgument("JSON nesting exceeds 64")
+    if remaining[0] == 0:
+        raise InvalidArgument("JSON value count exceeds 1000000")
+    remaining[0] -= 1
     if value is None or type(value) is bool:
         return value
     if type(value) is str:
@@ -132,9 +137,9 @@ def json_value(value, depth=0):
     if type(value) is float and math.isfinite(value):
         return value
     if type(value) is list:
-        return [json_value(v, depth + 1) for v in value]
+        return [json_value(v, depth + 1, remaining) for v in value]
     if type(value) is dict:
-        return {validate_text(k, "JSON key", MAX_JSON_BYTES): json_value(v, depth + 1) for k, v in value.items()}
+        return {validate_text(k, "JSON key", MAX_JSON_BYTES): json_value(v, depth + 1, remaining) for k, v in value.items()}
     raise InvalidArgument("metadata must contain finite JSON values")
 
 

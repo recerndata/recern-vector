@@ -298,6 +298,7 @@ fn upgrade_interruption_keeps_a_complete_old_or_new_snapshot() {
     for phase in [
         CheckpointBoundary::SnapshotWritten,
         CheckpointBoundary::SnapshotSynced,
+        CheckpointBoundary::SnapshotPublished,
         CheckpointBoundary::SnapshotRenamed,
         CheckpointBoundary::WalReset,
     ] {
@@ -329,14 +330,29 @@ fn upgrade_interruption_keeps_a_complete_old_or_new_snapshot() {
                 .any(|e| e.path().extension().is_some_and(|s| s == "bak")
                     && fs::read(e.path()).unwrap() == before)
         );
-        db.upgrade_storage().unwrap();
-        verify(&db);
+        if phase == CheckpointBoundary::SnapshotPublished {
+            // Rename succeeded, but its durability barrier failed before the
+            // handle could adopt the new format. Reopen after this ambiguous error.
+            assert!(db.upgrade_storage().is_err());
+            reopened.upgrade_storage().unwrap();
+            reopened.checkpoint().unwrap();
+            verify(&reopened);
+        } else {
+            db.upgrade_storage().unwrap();
+            verify(&db);
+        }
     }
 }
 
 #[test]
 fn process_exit_during_explicit_upgrade_preserves_backup_and_recovery() {
-    for (phase, format) in [("written", 2), ("synced", 2), ("renamed", 3), ("reset", 3)] {
+    for (phase, format) in [
+        ("written", 2),
+        ("synced", 2),
+        ("published", 3),
+        ("renamed", 3),
+        ("reset", 3),
+    ] {
         let file = Temp::new();
         let db = legacy(&file);
         let before = exact_image(&db);
@@ -391,4 +407,84 @@ fn new_data_files_are_private_and_checkpoints_upgrades_preserve_permissions() {
         fs::metadata(&old.0).unwrap().permissions().mode() & 0o777,
         0o600
     );
+}
+
+#[test]
+fn torn_second_commit_keeps_the_last_acknowledgement_in_both_formats() {
+    for format in [2, 3] {
+        let file = Temp::new();
+        let db = seeded(&file, 1);
+        if format == 2 {
+            let bytes = exact_image(&db);
+            drop(db);
+            fs::write(&file.0, bytes).unwrap();
+        } else {
+            drop(db);
+        }
+        let mut db = Database::open(&file.0).unwrap();
+        db.set_checkpoint_policy(CheckpointPolicy::disabled())
+            .unwrap();
+        db.collection_mut("c")
+            .unwrap()
+            .upsert("acknowledged", &[2., 3.], None)
+            .unwrap();
+        db.save().unwrap();
+        let base = fs::read(&file.0).unwrap();
+        let acknowledged = fs::read(file.wal()).unwrap();
+        let sequence = db.sequence();
+        db.collection_mut("c")
+            .unwrap()
+            .upsert("incomplete", &[3., 4.], None)
+            .unwrap();
+        db.save().unwrap();
+        let full = fs::read(file.wal()).unwrap();
+        drop(db);
+        let mut cuts: Vec<_> = (acknowledged.len()..full.len()).step_by(512).collect();
+        cuts.extend(acknowledged.len()..(acknowledged.len() + 16).min(full.len()));
+        cuts.extend(full.len().saturating_sub(16)..full.len());
+        cuts.sort_unstable();
+        cuts.dedup();
+        for cut in cuts {
+            fs::write(&file.0, &base).unwrap();
+            fs::write(file.wal(), &full[..cut]).unwrap();
+            let mut recovered = Database::open(&file.0).unwrap();
+            assert_eq!(recovered.format_version(), format);
+            assert_eq!(recovered.sequence(), sequence, "format {format}, cut {cut}");
+            let col = recovered.collection_mut("c").unwrap();
+            assert!(col.contains("acknowledged"));
+            assert!(!col.contains("incomplete"));
+            col.upsert("continued", &[4., 5.], None).unwrap();
+            recovered.save().unwrap();
+            assert_eq!(
+                Database::open_read_only(&file.0)
+                    .unwrap()
+                    .collection("c")
+                    .unwrap()
+                    .len(),
+                3
+            );
+        }
+        // Restore a matched base+WAL pair at another path, then make it standalone.
+        let restored = Temp::new();
+        fs::write(&restored.0, &base).unwrap();
+        fs::write(restored.wal(), &acknowledged).unwrap();
+        let recovered = Database::open(&restored.0).unwrap();
+        assert_eq!(recovered.sequence(), sequence);
+        recovered.checkpoint().unwrap();
+        fs::remove_file(restored.wal()).unwrap();
+        assert_eq!(
+            Database::open_read_only(&restored.0)
+                .unwrap()
+                .collection("c")
+                .unwrap()
+                .len(),
+            2
+        );
+        // A WAL belonging to a different database must never be applied.
+        let foreign = Temp::new();
+        let other = seeded(&foreign, 1);
+        drop(other);
+        fs::write(foreign.wal(), acknowledged).unwrap();
+        assert!(matches!(Database::open(&foreign.0), Err(Error::Corrupt(_))));
+    }
 }

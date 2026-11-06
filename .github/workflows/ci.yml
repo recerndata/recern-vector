@@ -39,6 +39,8 @@ jobs:
           python -m maturin build --release --manifest-path crates/recern-vector-py/Cargo.toml --out dist
           python -m pip install --no-index --find-links dist recern-vector
       - run: python -m pytest api/tests -q
+      - name: Native and portable Python API on the host OS
+        run: python -m pytest crates/recern-vector-py/tests -q -k "not qdrant"
 
   rust:
     runs-on: ${{ matrix.os }}
@@ -54,6 +56,13 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test
       - run: cargo run --release --example quickstart
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: External Rust consumer against the release and candidate
+        run: |
+          python scripts/check_native_consumer.py --released 0.5.0
+          python scripts/check_native_consumer.py
 
   python:
     runs-on: ubuntu-latest
@@ -165,6 +174,11 @@ jobs:
         working-directory: crates/recern-vector-node
       - run: npm test
         working-directory: crates/recern-vector-node
+      - name: Check TypeScript consumers against the packed npm exports
+        shell: bash
+        run: |
+          npm install --prefix "$RUNNER_TEMP/recern-typescript" --ignore-scripts --no-audit --no-fund typescript@6.0.3
+          RECERN_TSC_BIN="$RUNNER_TEMP/recern-typescript/node_modules/typescript/bin/tsc" node tests/node-package.cjs
       - uses: actions/upload-artifact@v4
         with:
           name: node-${{ runner.os }}-${{ runner.arch }}

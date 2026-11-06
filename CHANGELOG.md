@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased — Vector 1.0 preparation
+
+- Audit the native, portable, HTTP and CLI public surfaces; retain external Rust
+  and packed TypeScript consumers alongside the cross-version HTTP matrix.
+- Prevent stale Python/Node collection handles from accessing a replacement;
+  enforce Python portable close semantics and Qdrant generation checks.
+- Reject truncated/overflowing Node numeric options, unpersistable HNSW settings,
+  zero ef values and native vectors whose distances can overflow float32.
+- Bound Python metadata/filter conversion to reject cycles, excessive nesting
+  and exponentially shared objects before modifying records.
+- Bound Python Qdrant requests with total deadlines; align TypeScript error and
+  disposal declarations and Python read-only result properties with runtime.
+- Propagate Unix directory-sync failures, retain WAL on failed checkpoint
+  publication, and sync recovered data before a successful no-op save. Sync the
+  parent directory of newly published migration archives.
+- Extend interrupted checkpoint/upgrade, short-write, ambiguous commit, matched
+  backup/WAL restore and continued-write tests. Keep all published file, HTTP,
+  profile and export versions unchanged. See [audit scope and recovery limits](docs/api-audit-1.0.md).
+
 ## 0.5.0 — 2026-11-04
 
 - Add automatic checkpoint triggers at 64 MiB of valid WAL or 1,000 commits,

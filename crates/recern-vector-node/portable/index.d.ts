@@ -1,3 +1,4 @@
+/// <reference lib="esnext.disposable" />
 export type Metric = 'cosine' | 'l2' | 'dot';
 export type Quantization = 'f32' | 'int8';
 export interface Spec { readonly name: string; readonly dim: number; readonly metric: Metric; readonly quantization: Quantization }
@@ -14,6 +15,9 @@ export interface Hit { id: string; distance: number; metadataJson: string }
 export interface Page { records: Record[]; nextCursor: string | null }
 export interface HttpOptions { apiKey?: string; timeoutMs?: number; caFile?: string }
 export class PortableError extends Error {
+  constructor(value: {
+    code: PortableError['code']; request_id: string | null; write_outcome: PortableError['writeOutcome'];
+  });
   readonly code: 'InvalidArgument' | 'NotFound' | 'AlreadyExists' | 'Conflict' | 'Unsupported' | 'Unavailable' | 'PermissionDenied' | 'CorruptData';
   readonly requestId: string | null; readonly writeOutcome: 'not_applicable' | 'not_committed' | 'unknown';
 }
@@ -29,6 +33,7 @@ export class Client {
   dropCollection(name: string): Promise<void>;
   snapshot(): Promise<Client>;
   close(): Promise<void>;
+  [Symbol.asyncDispose](): Promise<void>;
 }
 export class Collection {
   private constructor();

@@ -418,3 +418,77 @@ def test_approximate_search_quality_and_filter_contract(client):
         total += len(reference)
     # A regression check on this seeded dataset, not a workload benchmark.
     assert matched / total >= 0.9
+
+
+def test_stale_collection_never_targets_its_replacement(client):
+    original = client.create_collection("replace", 2)
+    second = client.collection("replace")
+    client.drop_collection("replace")
+    for handle in (original, second):
+        with pytest.raises(NotFound):
+            handle.count()
+    replacement = client.create_collection("replace", 2)
+    replacement.upsert("keep", [1., 0.])
+    for handle in (original, second):
+        for operation in (
+            lambda: handle.upsert("bad", [1., 0.]),
+            lambda: handle.upsert_many([]), lambda: handle.get("keep"),
+            lambda: handle.delete("keep"), lambda: handle.count(),
+            lambda: handle.page(), lambda: handle.search([1., 0.]),
+        ):
+            with pytest.raises(Conflict):
+                operation()
+    assert replacement.count() == 1
+    assert replacement.get("keep") is not None
+
+
+def test_embedded_close_rejects_existing_handles_and_noop_batches(tmp_path):
+    client = Client.embedded(tmp_path / "closed.rvec")
+    col = client.create_collection("c", 2)
+    col.upsert("keep", [1., 0.])
+    snapshot = client.snapshot()
+    nested = snapshot.snapshot()
+    client.close()
+    client.close()
+    for operation in (
+        lambda: client.__enter__(), lambda: client.list_collections(),
+        lambda: client.collection("c"), lambda: client.create_collection("new", 2),
+        lambda: client.drop_collection("c"), lambda: client.snapshot(),
+        lambda: col.upsert("bad", [1., 0.]), lambda: col.upsert_many([]),
+        lambda: col.get("keep"), lambda: col.delete("keep"), lambda: col.count(),
+        lambda: col.page(), lambda: col.search([1., 0.]),
+    ):
+        with pytest.raises(Unavailable):
+            operation()
+    assert snapshot.collection("c").count() == 1
+    snapshot.close()
+    assert nested.collection("c").get("keep") is not None
+    nested.close()
+
+
+def test_embedded_failed_save_invalidates_handles_and_discards_uncommitted_data(tmp_path):
+    path = tmp_path / "conflict.rvec"
+    a = Client.embedded(path)
+    old = a.create_collection("c", 2)
+    b = Client.embedded(path)
+    b.collection("c").upsert("winner", [1., 0.])
+    with pytest.raises(Conflict):
+        old.upsert("loser", [0., 1.])
+    with pytest.raises(Conflict):
+        old.get("winner")
+    fresh = a.collection("c")
+    assert fresh.get("loser") is None
+    assert fresh.get("winner") is not None
+    fresh.upsert("continued", [1., 1.])
+    assert Client.embedded(path).collection("c").count() == 2
+
+
+def test_portable_metadata_shared_subtrees_are_bounded_before_write(tmp_path):
+    with Client.embedded(tmp_path / "bounded.rvec") as client:
+        col = client.create_collection("c", 2)
+        shared = None
+        for _ in range(24):
+            shared = [shared, shared]
+        with pytest.raises(InvalidArgument, match="value count"):
+            col.upsert_many([Record("pending", [1, 0]), Record("bad", [1, 0], shared)])
+        assert col.count() == 0

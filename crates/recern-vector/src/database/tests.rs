@@ -184,6 +184,7 @@ fn maintenance_failure_keeps_the_acknowledged_commit_and_retries_without_mutatio
     for phase in [
         CheckpointBoundary::SnapshotWritten,
         CheckpointBoundary::SnapshotSynced,
+        CheckpointBoundary::SnapshotPublished,
         CheckpointBoundary::SnapshotRenamed,
     ] {
         let file = Temp::new();
@@ -275,6 +276,7 @@ fn crash_worker() {
         "wal-synced" => CheckpointBoundary::WalSynced,
         "written" => CheckpointBoundary::SnapshotWritten,
         "synced" => CheckpointBoundary::SnapshotSynced,
+        "published" => CheckpointBoundary::SnapshotPublished,
         "renamed" => CheckpointBoundary::SnapshotRenamed,
         "reset" => CheckpointBoundary::WalReset,
         _ => panic!("invalid fixture phase"),
@@ -297,6 +299,7 @@ fn process_exit_at_each_checkpoint_boundary_recovers_the_complete_wal_commit() {
         "wal-synced",
         "written",
         "synced",
+        "published",
         "renamed",
         "reset",
     ] {
@@ -333,4 +336,82 @@ fn process_exit_at_each_checkpoint_boundary_recovers_the_complete_wal_commit() {
             "{phase}"
         );
     }
+}
+
+#[test]
+fn recovered_noop_save_requires_a_new_durability_barrier() {
+    let file = Temp::new();
+    let mut db = seeded(&file.0, Quantization::F32);
+    db.set_checkpoint_policy(CheckpointPolicy::disabled())
+        .unwrap();
+    append(&mut db, "uncertain");
+    *db.checkpoint_fault.lock().unwrap() = Some(Fault {
+        phase: CheckpointBoundary::WalWritten,
+        exit: false,
+    });
+    assert!(db.save().is_err()); // Full frame visible, but never acknowledged.
+    let recovered = Database::open(&file.0).unwrap();
+    assert!(recovered.collection("docs").unwrap().contains("uncertain"));
+    let before = fs::read(file.wal()).unwrap();
+    *recovered.checkpoint_fault.lock().unwrap() = Some(Fault {
+        phase: CheckpointBoundary::RecoverySync,
+        exit: false,
+    });
+    assert!(recovered.save().is_err()); // No-op must not bypass the barrier.
+    assert_eq!(fs::read(file.wal()).unwrap(), before);
+    recovered.save().unwrap(); // Retry establishes durability without a duplicate frame.
+    assert_eq!(fs::read(file.wal()).unwrap(), before);
+    assert_eq!(Database::open(&file.0).unwrap().sequence(), 2);
+    assert!(db.save().is_err()); // Original ambiguous writer must still reopen.
+}
+
+#[cfg(unix)]
+#[test]
+fn directory_sync_errors_are_not_successful_commits() {
+    let temp = Temp::new();
+    let missing = temp.0.parent().unwrap().join("missing").join("db.rvec");
+    assert!(sync_parent_dir(&missing).is_err());
+    fs::write(&temp.0, b"not a directory").unwrap();
+    assert!(sync_parent_dir(&temp.0.join("db.rvec")).is_err());
+}
+
+#[test]
+fn failed_partial_snapshot_write_preserves_the_base_and_wal() {
+    let file = Temp::new();
+    let mut db = seeded(&file.0, Quantization::F32);
+    append(&mut db, "saved");
+    db.save().unwrap();
+    let base = fs::read(&file.0).unwrap();
+    let wal = fs::read(file.wal()).unwrap();
+    let failure = atomic_snapshot_stream(
+        &file.0,
+        |f| {
+            f.write_all(b"incomplete snapshot")?;
+            Err(std::io::Error::new(
+                std::io::ErrorKind::WriteZero,
+                "injected short write",
+            ))
+        },
+        |_| Ok(()),
+    );
+    assert!(failure.is_err());
+    assert_eq!(fs::read(&file.0).unwrap(), base);
+    assert_eq!(fs::read(file.wal()).unwrap(), wal);
+    assert_eq!(
+        Database::open(&file.0)
+            .unwrap()
+            .collection("docs")
+            .unwrap()
+            .len(),
+        2
+    );
+    assert!(
+        !fs::read_dir(file.0.parent().unwrap())
+            .unwrap()
+            .any(|entry| entry
+                .unwrap()
+                .path()
+                .extension()
+                .is_some_and(|ext| ext == "tmp"))
+    );
 }

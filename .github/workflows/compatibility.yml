@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches: [main, 'codex/vector-1.0-*']
+    branches: [main]
 
 permissions:
   contents: read
@@ -45,14 +45,14 @@ jobs:
           cargo build --locked --release -p recern-vector-server
           npm run build --prefix crates/recern-vector-node
           python -m pip install 'maturin>=1.9,<2'
-          python -m maturin build --locked --release --manifest-path crates/recern-vector-py/Cargo.toml --out dist
+          python -m maturin build --locked --release --manifest-path crates/recern-vector-py/Cargo.toml --out "$RUNNER_TEMP/candidate-wheel"
       - name: Verify every released/candidate client and server pairing
         shell: bash
         run: |
           python scripts/http_compatibility_matrix.py \
             --platform '${{ matrix.platform }}' \
             --work "$RUNNER_TEMP/http-compatibility" \
-            --source-wheel dist/*.whl \
+            --source-wheel "$RUNNER_TEMP"/candidate-wheel/*.whl \
             --source-server 'target/release/recern-vector-server${{ matrix.suffix }}' \
             --source-node crates/recern-vector-node
       - uses: actions/upload-artifact@v4
