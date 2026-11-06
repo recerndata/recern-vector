@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: http-compatibility-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
   CARGO_BUILD_JOBS: 2
@@ -23,7 +27,7 @@ jobs:
       matrix:
         include:
           - {os: ubuntu-22.04, platform: linux-x64, suffix: ''}
-          - {os: macos-14, platform: darwin-arm64, suffix: ''}
+          - {os: macos-15, platform: darwin-arm64, suffix: ''}
           - {os: windows-latest, platform: win32-x64, suffix: '.exe'}
     runs-on: ${{ matrix.os }}
     steps:

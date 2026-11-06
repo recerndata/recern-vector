@@ -179,8 +179,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--work", type=Path, required=True)
     parser.add_argument("--platform", choices=["linux-x64", "darwin-arm64", "win32-x64"])
-    parser.add_argument("--run-only", action="store_true")
-    parser.add_argument("--prepare-only", action="store_true")
+    phase = parser.add_mutually_exclusive_group()
+    phase.add_argument("--run-only", action="store_true")
+    phase.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--source-wheel")
     parser.add_argument("--source-server")
     parser.add_argument("--source-node")
@@ -191,6 +192,9 @@ def main():
     else:
         if not args.platform:
             parser.error("--platform is required when preparing a matrix")
+        host = capture(["node", "-p", "process.platform + '-' + process.arch"])
+        if host != args.platform:
+            parser.error(f"--platform {args.platform} does not match Node host {host}")
         if any([args.source_wheel, args.source_server, args.source_node]) and not all([args.source_wheel, args.source_server, args.source_node]):
             parser.error("the three --source-* options must be provided together")
         work.mkdir(parents=True, exist_ok=False)
