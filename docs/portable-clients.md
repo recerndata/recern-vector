@@ -98,7 +98,9 @@ npm install @recern/vector@0.5.0
 ```
 
 The native API is `@recern/vector`; the portable entry point is
-`@recern/vector/portable`. Direct public-npm publication is still planned for 0.5.0.
+`@recern/vector/portable`. Version 0.5.0 selects the exact-version native package
+for the host platform. Keep npm optional dependencies enabled; see the
+[supported platforms](release.md#platforms-and-artifacts).
 
 ```js
 const {Client} = require('@recern/vector/portable');

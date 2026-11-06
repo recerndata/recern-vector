@@ -17,7 +17,7 @@ Recern Vector 0.5.0 is an embedded vector database with a local snapshot and a W
 
 ## When it does not
 
-- Many processes writing directly to the same database file. Use a single database owner. The [0.4.0 HTTP server](server.md) serializes HTTP access to its own database; it is not a distributed or highly available service.
+- Many processes writing directly to the same database file. Use a single database owner. The [HTTP server](server.md) serializes HTTP access to its own database; it is not a distributed or highly available service.
 - Data much larger than memory. The whole database is loaded on open.
 - You need a larger-than-memory engine or bounded latency regardless of maintenance. Format-3 saves encode changed records, but open/checkpoint still process a full image and cached pages add RAM and padding. Format-2 saves retain full-image encoding (see [Limitations and next work](limitations.md)).
 
@@ -33,7 +33,7 @@ Recern Vector 0.5.0 is an embedded vector database with a local snapshot and a W
 | [Filters](filters.md) | Metadata filter syntax and how filtered searches are planned |
 | [Inspecting and tuning](inspection.md) | `explain`, `stats`, `estimate_recall`, choosing `ef`, `compact` |
 | [Python API](python.md) | Every class, method and exception in the `recern_vector` package |
-| [Portable clients (0.4.0)](portable-clients.md) | Python remote, Rust and Node across embedded Recern, Recern HTTP and Qdrant |
+| [Portable clients](portable-clients.md) | Python remote, Rust and Node across embedded Recern, Recern HTTP and Qdrant |
 | [Portable Python API](portable-api.md) | Profile v1, embedded/Qdrant backends, shared semantics and capabilities |
 | [HTTP API contract (0.4.0)](http-api.md) | Released OpenAPI, wire values, authentication, durable writes, generations and snapshot leases |
 | [HTTP server](server.md) | Build and run, release status, limits, single-writer ownership, recovery and TLS proxy guidance |
