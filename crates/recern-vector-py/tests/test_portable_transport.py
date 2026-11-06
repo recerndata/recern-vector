@@ -87,3 +87,33 @@ def test_malformed_success_is_not_an_empty_collection_list(server):
 def test_invalid_transport_configuration_rejected_before_network(url, key):
     with pytest.raises(InvalidArgument):
         Client.qdrant(url, api_key=key)
+
+
+def test_qdrant_deadline_covers_a_slowly_streamed_body():
+    requests = []
+    class Drip(BaseHTTPRequestHandler):
+        def do_GET(self):
+            requests.append(self.path)
+            self.send_response(200)
+            self.end_headers()
+            try:
+                for byte in b'{"version":"1.19.2"}':
+                    self.wfile.write(bytes([byte]))
+                    self.wfile.flush()
+                    time.sleep(0.03)  # Each byte is faster than the socket timeout.
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+        def log_message(self, *args):
+            pass
+    with ThreadingHTTPServer(('127.0.0.1', 0), Drip) as http:
+        thread = threading.Thread(target=http.serve_forever, daemon=True)
+        thread.start()
+        try:
+            started = time.monotonic()
+            with pytest.raises(Unavailable, match='deadline'):
+                Client.qdrant(f'http://127.0.0.1:{http.server_port}', timeout=0.08)
+            assert time.monotonic() - started < 0.5
+            assert requests == ['/']
+        finally:
+            http.shutdown()
+            thread.join()

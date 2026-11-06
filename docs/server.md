@@ -1,14 +1,14 @@
 # Single-node server
 
-> **0.5.0** adds configurable automatic checkpoints.
+> **1.0.0** retains HTTP v1 and strengthens recovery after interrupted writes. Configurable automatic checkpoints remain available.
 > See [policy, statistics, examples and failure behavior](persistence-0.5.md).
 
-**Recern Vector 0.5.0.** Install `recern-vector-server` from crates.io or
-use a verified native archive from the [0.5.0 release](release.md). Python,
+**Recern Vector 1.0.0.** Install `recern-vector-server` from crates.io or
+use a verified native archive from the [1.0.0 release](release.md). Python,
 Rust and Node portable clients use the [HTTP v1 contract](http-api.md).
 
 ```sh
-cargo install recern-vector-server --version 0.5.0 --locked
+cargo install recern-vector-server --version 1.0.0 --locked
 ```
 
 The server provides authenticated collection/record operations, filtered vector
@@ -117,7 +117,7 @@ reloads durable state before another operation; failed recovery makes it unready
 Startup and recovery after a failed commit also perform a checkpoint/fsync barrier
 before readiness, so a complete but previously unacknowledged WAL frame is not
 mistaken for a new durable no-op acknowledgement. This is a recovery barrier;
-periodic automatic checkpoint scheduling remains 0.5.0 work.
+automatic checkpoints are triggered by configurable WAL byte/commit thresholds; time-based periodic scheduling is not implemented.
 
 ## Ownership, storage and shutdown
 

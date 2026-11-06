@@ -1,6 +1,6 @@
 # Python API
 
-> **0.5.0** adds paged format 3, incremental saves, explicit storage upgrades and automatic checkpoints.
+> **1.0.0** stabilizes the public API and strengthens input validation and crash recovery. Paged format 3, incremental saves and automatic checkpoints remain available.
 > See [policy, statistics, examples and failure behavior](persistence-0.5.md).
 
 ```sh

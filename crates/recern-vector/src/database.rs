@@ -86,6 +86,7 @@ pub struct PersistenceStats {
     pub last_validated_bytes: u64,
 }
 struct Persistence {
+    needs_sync: bool,
     bytes: Vec<u8>,
     paged: Option<paged::Image>,
     base: wal::Stamp,
@@ -108,6 +109,7 @@ impl Persistence {
         };
         let bytes = if paged.is_some() { Vec::new() } else { bytes };
         Ok(Self {
+            needs_sync: false,
             bytes,
             paged,
             base,
@@ -205,6 +207,10 @@ impl Database {
         let loaded = wal::load(&path)?;
         let collections = storage::decode(&loaded.bytes)?;
         let mut persistence = Persistence::new(loaded.bytes, loaded.wal_len, loaded.commits)?;
+        // A complete frame can be visible after a writer's failed fsync. Reads
+        // may recover it, but the next successful save must establish durability
+        // even when it has no logical changes (e.g. an idempotent retry).
+        persistence.needs_sync = true;
         persistence.base = loaded.base;
         if let Some(image) = &mut persistence.paged {
             image.bind(&collections);
@@ -384,6 +390,7 @@ impl Database {
         }
         state.wal_bytes = disk.wal_len;
         state.wal_commits = disk.commits;
+        self.sync_recovered(&mut state)?;
         let (mut id, seq) = storage::header(&state.bytes);
         let migrate = id == 0;
         if migrate {
@@ -448,6 +455,8 @@ impl Database {
         let patch = image.plan(&self.collections)?;
         state.last_encoded_records = patch.encoded;
         state.last_written_pages = patch.pages.len() as u64;
+        let image_id = image.id;
+        self.sync_recovered(state)?;
         if !patch.pages.is_empty() {
             let pages = patch
                 .pages
@@ -468,7 +477,7 @@ impl Database {
                 .max(wal::HEADER as u64)
                 .checked_add(frame.len() as u64)
                 .ok_or_else(|| Error::InvalidArgument("WAL size exhausted".into()))?;
-            wal::append_with(&self.path, disk.wal_len, image.id, &frame, || {
+            wal::append_with(&self.path, disk.wal_len, image_id, &frame, || {
                 self.checkpoint_boundary(CheckpointBoundary::WalWritten)
             })?;
             self.checkpoint_boundary(CheckpointBoundary::WalSynced)?;
@@ -492,6 +501,27 @@ impl Database {
                 Err(e) => state.last_checkpoint_error = Some(e.to_string()),
             }
         }
+        Ok(())
+    }
+    fn sync_recovered(&self, state: &mut Persistence) -> Result<()> {
+        if !state.needs_sync {
+            return Ok(());
+        }
+        self.checkpoint_boundary(CheckpointBoundary::RecoverySync)?;
+        let sync = |path: &Path| -> std::io::Result<()> {
+            OpenOptions::new()
+                .read(true)
+                .write(cfg!(windows))
+                .open(path)?
+                .sync_all()
+        };
+        sync(&self.path)?;
+        match sync(&wal::sidecar(&self.path, ".wal")) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound && state.wal_bytes == 0 => {}
+            result => result?,
+        }
+        sync_parent_dir(&self.path)?;
+        state.needs_sync = false;
         Ok(())
     }
     fn write_paged_checkpoint(&self, state: &mut Persistence) -> Result<()> {
@@ -557,7 +587,7 @@ impl Database {
         let mut file = options.open(&backup)?;
         file.write_all(&disk.bytes)?;
         file.sync_all()?;
-        sync_parent_dir(&backup);
+        sync_parent_dir(&backup)?;
         drop(file);
         atomic_snapshot_stream(
             &self.path,
@@ -633,10 +663,12 @@ fn identity() -> u128 {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum CheckpointBoundary {
+    RecoverySync,
     WalWritten,
     WalSynced,
     SnapshotWritten,
     SnapshotSynced,
+    SnapshotPublished,
     SnapshotRenamed,
     WalReset,
 }
@@ -679,7 +711,8 @@ fn atomic_snapshot_stream(
         file.sync_all()?;
         boundary(CheckpointBoundary::SnapshotSynced)?;
         fs::rename(&tmp, path)?;
-        sync_parent_dir(path);
+        boundary(CheckpointBoundary::SnapshotPublished)?;
+        sync_parent_dir(path)?;
         Ok(())
     })();
     if result.is_err() {
@@ -687,14 +720,28 @@ fn atomic_snapshot_stream(
     }
     result
 }
-pub(crate) fn sync_parent_dir(path: &Path) {
+#[cfg(unix)]
+pub(crate) fn sync_parent_dir(path: &Path) -> std::io::Result<()> {
     let dir = path
         .parent()
         .filter(|p| !p.as_os_str().is_empty())
         .unwrap_or(Path::new("."));
-    if let Ok(dir) = File::open(dir) {
-        let _ = dir.sync_all();
+    let dir = File::open(dir)?;
+    if !dir.metadata()?.is_dir() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::NotADirectory,
+            "snapshot parent is not a directory",
+        ));
     }
+    dir.sync_all()
+}
+
+// Windows has no portable unprivileged directory-fsync equivalent. File data
+// is flushed before rename; process-crash recovery is tested separately from
+// power-loss durability. Never silently discard an actual file flush error.
+#[cfg(not(unix))]
+pub(crate) fn sync_parent_dir(_path: &Path) -> std::io::Result<()> {
+    Ok(())
 }
 
 #[cfg(test)]

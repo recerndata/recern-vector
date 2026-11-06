@@ -21,8 +21,19 @@ impl Metric {
         }
     }
 
+    /// Low-level f32 distance. Cosine inputs must already be unit-normalized.
+    /// Arithmetic can overflow for large components; collection operations
+    /// validate magnitudes before calling this primitive.
+    ///
+    /// # Panics
+    /// Panics if the vectors have different dimensions.
     #[inline]
     pub fn distance(self, a: &[f32], b: &[f32]) -> f32 {
+        assert_eq!(
+            a.len(),
+            b.len(),
+            "distance vectors must have equal dimensions"
+        );
         match self {
             Metric::Cosine => 1.0 - dot(a, b),
             Metric::L2 => l2_squared(a, b),

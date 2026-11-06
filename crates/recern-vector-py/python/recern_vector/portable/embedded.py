@@ -57,6 +57,12 @@ class EmbeddedBackend:
             col = self.db.collection(name)
             return CollectionSpec(name, col.dim, col.metric, col.quantization), self.db.identity + ":" + name
 
+    def bind(self, name, spec, identity):
+        with self.lock, self.errors():
+            if self.describe(name) != (spec, identity):
+                raise Conflict("collection changed; acquire a new handle")
+            return _BoundCollection(self, self.db, self.db.collection(name))
+
     def _write(self, operation):
         if self.read_only:
             raise PermissionDenied("this snapshot is read-only")
@@ -84,6 +90,12 @@ class EmbeddedBackend:
         self._write(lambda: self.db.drop_collection(name))
 
     def upsert(self, name, records):
+        if not records:
+            with self.lock, self.errors():
+                if self.read_only:
+                    raise PermissionDenied("this snapshot is read-only")
+                self.db.collection(name)
+                return 0
         return self._write(lambda: self.db.collection(name).upsert_many(
             [r.id for r in records], [r.vector for r in records], [r.metadata for r in records]))
 
@@ -121,3 +133,26 @@ class EmbeddedBackend:
             # Native open_read_only takes a shared file lock, loads committed
             # WAL once, and owns that immutable state throughout the export.
             return EmbeddedBackend(self.db.path, read_only=True)
+
+
+class _BoundCollection:
+    """Keep native generation validation and the operation in one critical section."""
+    def __init__(self, backend, database, collection):
+        self._backend, self._database, self._collection = backend, database, collection
+
+    def __getattr__(self, method):
+        if method not in ("upsert", "get", "delete", "count", "page", "search"):
+            raise AttributeError(method)
+
+        def call(name, *args):
+            with self._backend.lock, self._backend.errors():
+                if self._database is not self._backend.db:
+                    raise Conflict("database was reloaded after a failed write; acquire a new handle")
+                try:
+                    self._collection.dim  # The native handle checks its original generation.
+                except KeyError:
+                    if name in self._backend.db.collection_names():
+                        raise Conflict("collection was replaced; acquire a new handle") from None
+                    raise
+                return getattr(self._backend, method)(name, *args)
+        return call

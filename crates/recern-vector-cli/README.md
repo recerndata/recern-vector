@@ -2,7 +2,7 @@
 
 The `recern-vector` command for [Recern Vector](https://github.com/recerndata/recern-vector), a single-file, embedded, inspectable vector database.
 
-> Version 0.5.0: paged format 3, incremental encoding and automatic checkpoints. Readers retain formats 1/2; existing format-2 files stay at 2 until an explicit upgrade with a backup. Mutations commit to WAL; checkpoint before copying a standalone snapshot. Workspace 1.0.0 cannot open format 3.
+> Version 1.0.0: paged format 3, incremental encoding and automatic checkpoints. Readers retain formats 1/2; existing format-2 files stay at 2 until an explicit upgrade with a backup. Mutations commit to WAL; checkpoint before copying a standalone snapshot. Workspace 1.0.0 cannot open format 3.
 
 ```sh
 cargo install recern-vector-cli

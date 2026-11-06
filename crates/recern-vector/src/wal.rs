@@ -386,7 +386,7 @@ pub(crate) fn append_with(
     file.write_all(frame)?;
     written()?;
     file.sync_all()?;
-    super::database::sync_parent_dir(path);
+    super::database::sync_parent_dir(path)?;
     Ok(())
 }
 fn corrupt(message: &str) -> Error {

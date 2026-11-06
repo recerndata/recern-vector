@@ -51,9 +51,11 @@ impl HnswParams {
         if !(2..=256).contains(&self.m) {
             return Err(Error::InvalidArgument("m must be between 2 and 256".into()));
         }
-        if self.ef_construction == 0 || self.ef_search == 0 {
+        if !(1..=u32::MAX as usize).contains(&self.ef_construction)
+            || !(1..=u32::MAX as usize).contains(&self.ef_search)
+        {
             return Err(Error::InvalidArgument(
-                "ef values must be greater than zero".into(),
+                "ef values must be integers between 1 and 4294967295".into(),
             ));
         }
         Ok(())

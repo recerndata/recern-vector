@@ -2,7 +2,7 @@
 //! re-exported from the `recern_vector` package.
 
 use std::path::PathBuf;
-use std::sync::{PoisonError, RwLock};
+use std::sync::{Arc, PoisonError, RwLock};
 
 use pyo3::buffer::PyBuffer;
 use pyo3::create_exception;
@@ -95,6 +95,19 @@ fn extract_matrix(obj: &Bound<'_, PyAny>) -> PyResult<(Vec<f32>, usize, usize)> 
 }
 
 fn to_json(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
+    to_json_bounded(obj, 0, &mut 1_000_000)
+}
+
+fn to_json_bounded(obj: &Bound<'_, PyAny>, depth: usize, remaining: &mut usize) -> PyResult<Value> {
+    // Python lists/dicts can contain cycles or shared subtrees that expand
+    // exponentially. Both limits must apply before entering native recursion.
+    if depth > 64 {
+        return Err(PyValueError::new_err("JSON nesting exceeds 64"));
+    }
+    if *remaining == 0 {
+        return Err(PyValueError::new_err("JSON value count exceeds 1000000"));
+    }
+    *remaining -= 1;
     if obj.is_none() {
         Ok(Value::Null)
     } else if let Ok(b) = obj.cast::<PyBool>() {
@@ -119,12 +132,15 @@ fn to_json(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
             let key = key
                 .cast::<PyString>()
                 .map_err(|_| PyValueError::new_err("metadata keys must be strings"))?;
-            map.insert(key.to_str()?.to_owned(), to_json(&value)?);
+            map.insert(
+                key.to_str()?.to_owned(),
+                to_json_bounded(&value, depth + 1, remaining)?,
+            );
         }
         Ok(Value::Object(map))
     } else if obj.is_instance_of::<PyList>() || obj.is_instance_of::<PyTuple>() {
         obj.try_iter()?
-            .map(|item| to_json(&item?))
+            .map(|item| to_json_bounded(&item?, depth + 1, remaining))
             .collect::<PyResult<Vec<_>>>()
             .map(Value::Array)
     } else {
@@ -308,21 +324,71 @@ fn ms(d: std::time::Duration) -> f64 {
 /// held, so threads cannot deadlock on it.
 #[pyclass(module = "recern_vector", frozen)]
 struct Database {
-    inner: RwLock<rv::Database>,
+    inner: RwLock<BindingDatabase>,
+}
+
+// Tokens belong to this open database, not the name or the on-disk format.
+// Keep the token check and the operation under the same database lock.
+struct BindingDatabase {
+    db: rv::Database,
+    generations: std::collections::BTreeMap<String, Arc<()>>,
+}
+impl BindingDatabase {
+    fn new(db: rv::Database) -> Self {
+        let generations = db
+            .collections()
+            .map(|c| (c.name().to_owned(), Arc::new(())))
+            .collect();
+        Self { db, generations }
+    }
+    fn resolve(&self, name: &str, generation: &Arc<()>) -> rv::Result<&rv::Collection> {
+        self.check(name, generation)?;
+        self.db.collection(name)
+    }
+    fn resolve_mut(&mut self, name: &str, generation: &Arc<()>) -> rv::Result<&mut rv::Collection> {
+        self.check(name, generation)?;
+        self.db.collection_mut(name)
+    }
+    fn check(&self, name: &str, generation: &Arc<()>) -> rv::Result<()> {
+        if self
+            .generations
+            .get(name)
+            .is_some_and(|current| Arc::ptr_eq(current, generation))
+        {
+            Ok(())
+        } else {
+            Err(rv::Error::CollectionNotFound(name.to_owned()))
+        }
+    }
+}
+impl std::ops::Deref for BindingDatabase {
+    type Target = rv::Database;
+    fn deref(&self) -> &Self::Target {
+        &self.db
+    }
+}
+impl std::ops::DerefMut for BindingDatabase {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.db
+    }
 }
 
 impl Database {
     fn wrap(inner: rv::Database) -> Self {
         Self {
-            inner: RwLock::new(inner),
+            inner: RwLock::new(BindingDatabase::new(inner)),
         }
     }
 
-    fn read<R: Send>(&self, py: Python<'_>, f: impl FnOnce(&rv::Database) -> R + Send) -> R {
+    fn read<R: Send>(&self, py: Python<'_>, f: impl FnOnce(&BindingDatabase) -> R + Send) -> R {
         py.detach(|| f(&self.inner.read().unwrap_or_else(PoisonError::into_inner)))
     }
 
-    fn write<R: Send>(&self, py: Python<'_>, f: impl FnOnce(&mut rv::Database) -> R + Send) -> R {
+    fn write<R: Send>(
+        &self,
+        py: Python<'_>,
+        f: impl FnOnce(&mut BindingDatabase) -> R + Send,
+    ) -> R {
         py.detach(|| f(&mut self.inner.write().unwrap_or_else(PoisonError::into_inner)))
     }
 }
@@ -442,29 +508,44 @@ impl Database {
         let config = rv::CollectionConfig::new(dim, metric)
             .with_hnsw(hnsw)
             .with_quantization(quantization);
-        slf.get()
+        let generation = slf
+            .get()
             .write(slf.py(), |db| {
-                db.create_collection(name, config).map(|_| ())
+                db.create_collection(name, config)?;
+                let generation = Arc::new(());
+                db.generations.insert(name.to_owned(), generation.clone());
+                Ok(generation)
             })
             .py_err()?;
         Ok(Collection {
             db: slf.unbind(),
             name: name.to_owned(),
+            generation,
         })
     }
 
     fn collection(slf: Bound<'_, Self>, name: &str) -> PyResult<Collection> {
-        slf.get()
-            .read(slf.py(), |db| db.collection(name).map(|_| ()))
+        let generation = slf
+            .get()
+            .read(slf.py(), |db| {
+                db.collection(name)?;
+                Ok(db.generations[name].clone())
+            })
             .py_err()?;
         Ok(Collection {
             db: slf.unbind(),
             name: name.to_owned(),
+            generation,
         })
     }
 
     fn drop_collection(&self, py: Python<'_>, name: &str) -> PyResult<()> {
-        self.write(py, |db| db.drop_collection(name)).py_err()
+        self.write(py, |db| {
+            db.drop_collection(name)?;
+            db.generations.remove(name);
+            Ok(())
+        })
+        .py_err()
     }
 
     fn collection_names(&self, py: Python<'_>) -> Vec<String> {
@@ -520,6 +601,7 @@ impl Database {
 struct Collection {
     db: Py<Database>,
     name: String,
+    generation: Arc<()>,
 }
 
 impl Collection {
@@ -531,7 +613,7 @@ impl Collection {
         let name = &self.name;
         self.db
             .get()
-            .read(py, |db| db.collection(name).and_then(f))
+            .read(py, |db| db.resolve(name, &self.generation).and_then(f))
             .py_err()
     }
 
@@ -543,7 +625,7 @@ impl Collection {
         let name = &self.name;
         self.db
             .get()
-            .write(py, |db| db.collection_mut(name).and_then(f))
+            .write(py, |db| db.resolve_mut(name, &self.generation).and_then(f))
             .py_err()
     }
 }

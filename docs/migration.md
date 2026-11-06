@@ -1,6 +1,6 @@
 # Portable export and migration
 
-**Recern Vector 0.5.0** supports consistent exports from embedded Recern or
+**Recern Vector 1.0.0** supports consistent exports from embedded Recern or
 Recern HTTP and verified imports into embedded Recern, Recern HTTP and Qdrant.
 Construct a remote client with `Client.remote(url, api_key=key, timeout=10.0,
 ca_file=...)`. Python remains the resumable archive migration orchestrator;

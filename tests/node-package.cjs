@@ -6,7 +6,12 @@ const path=require('node:path');
 const assert=require('node:assert/strict');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'recern-node-package-'));
 try {
-  const result=process.argv[2] ? [{filename:path.resolve(process.argv[2])}] : JSON.parse(execFileSync('npm',['pack','--json','--pack-destination',dir],{cwd:path.resolve(__dirname,'../crates/recern-vector-node'),encoding:'utf8'}));
+  // Windows ships npm as npm.cmd, which execFileSync cannot launch directly.
+  // Run its JS entry point with Node, keeping paths out of a command shell.
+  const npm=process.platform==='win32'
+    ? [process.execPath,process.env.npm_execpath || path.join(path.dirname(process.execPath),'node_modules/npm/bin/npm-cli.js')]
+    : ['npm'];
+  const result=process.argv[2] ? [{filename:path.resolve(process.argv[2])}] : JSON.parse(execFileSync(npm[0],[...npm.slice(1),'pack','--json','--pack-destination',dir],{cwd:path.resolve(__dirname,'../crates/recern-vector-node'),encoding:'utf8'}));
   const files=result[0].files?.map(f=>f.path);
   for (const file of ['index.js','index.d.ts','portable/index.js','portable/index.d.ts','recern_vector.node']) if(files) assert.ok(files.includes(file),file);
   const archive=process.argv[2] ? path.resolve(process.argv[2]) : path.join(dir,result[0].filename);
@@ -17,6 +22,13 @@ try {
   const manifest=JSON.parse(fs.readFileSync(path.join(dir,'package/package.json'),'utf8'));
   assert.equal(manifest.version,process.env.RECERN_EXPECT_VERSION || require('../crates/recern-vector-node/package.json').version);
   for(const file of ['portable/index.js','portable/index.d.ts','recern_vector.node']) assert.ok(fs.existsSync(path.join(dir,'package',file)));
+  if (process.env.RECERN_TSC_BIN) {
+    const modules=path.join(dir,'node_modules','@recern');
+    fs.mkdirSync(modules,{recursive:true});
+    fs.cpSync(path.join(dir,'package'),path.join(modules,'vector'),{recursive:true});
+    fs.copyFileSync(path.join(__dirname,'compatibility/node-consumer.ts'),path.join(dir,'consumer.ts'));
+    execFileSync(process.execPath,[process.env.RECERN_TSC_BIN,'--strict','--noEmit','--target','ES2022','--module','NodeNext','--lib','ES2022','consumer.ts'],{cwd:dir,stdio:'inherit'});
+  }
   const dbPath=path.join(dir,'package.rvec');
   // Keep the native DLL in the child so Windows can remove it after child exit.
   const code=`const native=require(${JSON.stringify(path.join(dir,'package'))});

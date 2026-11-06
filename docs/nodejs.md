@@ -1,20 +1,20 @@
 # Node.js
 
-> **0.5.0** adds paged format 3, incremental saves, explicit storage upgrades and automatic checkpoints.
+> **1.0.0** stabilizes native and portable APIs, validates numeric inputs and prevents stale handles from reaching replacement collections. TypeScript 5.2+ is required for disposal declarations.
 > See [policy, statistics, examples and failure behavior](persistence-0.5.md).
 
 For the portable API (embedded Recern, Recern HTTP and Qdrant), see
 [portable clients](portable-clients.md) and [release packages](release.md).
 The native API documented below retains its existing behavior.
 
-Recern Vector 0.5.0 includes native Node-API 8 bindings, TypeScript definitions and asynchronous search. Use Node.js 22 or later.
+Recern Vector 1.0.0 includes native Node-API 8 bindings, TypeScript definitions and asynchronous search. Use Node.js 22 or later.
 
 ## Install a release build
 
 Install the platform-selecting package from npm:
 
 ```sh
-npm install @recern/vector@0.5.0
+npm install @recern/vector@1.0.0
 ```
 
 Keep optional dependencies enabled. npm selects an exact-version native addon for
@@ -22,17 +22,17 @@ Linux x64/ARM64 (glibc 2.35+), macOS Intel/Apple silicon or Windows x64. There i
 binary-download install script. Linux musl and Windows ARM64 require a source
 build and are not advertised prebuilt targets.
 
-Alternatively, choose a self-contained archive from the [0.5.0 release](https://github.com/recerndata/recern-vector/releases/tag/v0.5.0):
+Alternatively, choose a self-contained archive from the [1.0.0 release](https://github.com/recerndata/recern-vector/releases/tag/v1.0.0):
 
 | Platform | Archive |
 |---|---|
-| Linux x64 | [recern-vector-0.5.0-node-linux-x64.tgz](https://github.com/recerndata/recern-vector/releases/download/v0.5.0/recern-vector-0.5.0-node-linux-x64.tgz) |
-| Linux ARM64 | [recern-vector-0.5.0-node-linux-arm64.tgz](https://github.com/recerndata/recern-vector/releases/download/v0.5.0/recern-vector-0.5.0-node-linux-arm64.tgz) |
-| macOS Intel | [recern-vector-0.5.0-node-darwin-x64.tgz](https://github.com/recerndata/recern-vector/releases/download/v0.5.0/recern-vector-0.5.0-node-darwin-x64.tgz) |
-| macOS Apple silicon | [recern-vector-0.5.0-node-darwin-arm64.tgz](https://github.com/recerndata/recern-vector/releases/download/v0.5.0/recern-vector-0.5.0-node-darwin-arm64.tgz) |
-| Windows x64 | [recern-vector-0.5.0-node-win32-x64.tgz](https://github.com/recerndata/recern-vector/releases/download/v0.5.0/recern-vector-0.5.0-node-win32-x64.tgz) |
+| Linux x64 | [recern-vector-1.0.0-node-linux-x64.tgz](https://github.com/recerndata/recern-vector/releases/download/v1.0.0/recern-vector-1.0.0-node-linux-x64.tgz) |
+| Linux ARM64 | [recern-vector-1.0.0-node-linux-arm64.tgz](https://github.com/recerndata/recern-vector/releases/download/v1.0.0/recern-vector-1.0.0-node-linux-arm64.tgz) |
+| macOS Intel | [recern-vector-1.0.0-node-darwin-x64.tgz](https://github.com/recerndata/recern-vector/releases/download/v1.0.0/recern-vector-1.0.0-node-darwin-x64.tgz) |
+| macOS Apple silicon | [recern-vector-1.0.0-node-darwin-arm64.tgz](https://github.com/recerndata/recern-vector/releases/download/v1.0.0/recern-vector-1.0.0-node-darwin-arm64.tgz) |
+| Windows x64 | [recern-vector-1.0.0-node-win32-x64.tgz](https://github.com/recerndata/recern-vector/releases/download/v1.0.0/recern-vector-1.0.0-node-win32-x64.tgz) |
 
-Each archive contains a `package` directory with the native binary, loader, types and package metadata. Verify its checksum against the release's [SHA256SUMS](https://github.com/recerndata/recern-vector/releases/download/v0.5.0/SHA256SUMS), extract it, and load the directory with `require('./package')`. These are platform-specific builds, not a universal binary. On other platforms, build from source.
+Each archive contains a `package` directory with the native binary, loader, types and package metadata. Verify its checksum against the release's [SHA256SUMS](https://github.com/recerndata/recern-vector/releases/download/v1.0.0/SHA256SUMS), extract it, and load the directory with `require('./package')`. These are platform-specific builds, not a universal binary. On other platforms, build from source.
 
 ## First database
 
@@ -77,7 +77,7 @@ Metadata must be JSON-compatible. Use strings for integer values outside JavaScr
 With Node.js 22+ and Rust 1.89+:
 
 ```sh
-git clone --branch v0.5.0 https://github.com/recerndata/recern-vector.git
+git clone --branch v1.0.0 https://github.com/recerndata/recern-vector.git
 cd recern-vector/crates/recern-vector-node
 npm run build
 npm test

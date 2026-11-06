@@ -483,6 +483,11 @@ impl Collection {
         if k == 0 {
             return Err(Error::InvalidArgument("k must be greater than zero".into()));
         }
+        if options.ef == Some(0) {
+            return Err(Error::InvalidArgument(
+                "ef must be greater than zero".into(),
+            ));
+        }
         let query = self.prepare(query)?;
         let filter = options.filter.as_ref();
         let selectivity = filter.map(|f| self.estimate_selectivity(f));
@@ -528,6 +533,11 @@ impl Collection {
             }
         };
 
+        if found.iter().any(|candidate| !candidate.dist.is_finite()) {
+            return Err(Error::InvalidVector(
+                "stored vectors exceed the float32 distance limit".into(),
+            ));
+        }
         Ok(SearchCandidates {
             candidates: found,
             strategy,
@@ -586,7 +596,11 @@ impl Collection {
     /// Stored vectors are sampled as queries; each query's own record is
     /// excluded from both the exact and the approximate results.
     pub fn estimate_recall(&self, options: &RecallOptions) -> Result<RecallReport> {
-        if options.k == 0 || options.sample == 0 || options.ef_values.is_empty() {
+        if options.k == 0
+            || options.sample == 0
+            || options.ef_values.is_empty()
+            || options.ef_values.contains(&0)
+        {
             return Err(Error::InvalidArgument(
                 "k, sample and ef values must be non-empty and greater than zero".into(),
             ));
@@ -693,6 +707,14 @@ impl Collection {
         if vector.iter().any(|x| !x.is_finite()) {
             return Err(Error::InvalidVector(
                 "contains NaN or infinite values".into(),
+            ));
+        }
+        // Finite components alone do not guarantee finite f32 distances.
+        // Reserve headroom for squared L2 differences and int8 rounding.
+        let norm = vector.iter().map(|&v| f64::from(v).powi(2)).sum::<f64>();
+        if norm > f64::from(f32::MAX) / 8.0 {
+            return Err(Error::InvalidVector(
+                "magnitude exceeds the float32 distance limit".into(),
             ));
         }
         let mut vector = vector.to_vec();
@@ -814,4 +836,24 @@ fn percentile(times: &mut [Duration], p: f64) -> Duration {
     }
     times.sort_unstable();
     times[((times.len() - 1) as f64 * p).round() as usize]
+}
+
+#[cfg(test)]
+mod api_tests {
+    use super::*;
+    #[test]
+    fn legacy_large_vectors_fail_explicitly_instead_of_returning_infinite_hits() {
+        let mut c = Collection::new("legacy", CollectionConfig::new(2, Metric::L2)).unwrap();
+        c.upsert("old", &[1., 0.], None).unwrap();
+        // Prior native writers accepted every finite f32 component. Opening
+        // their files must preserve the data, but search cannot return infinity.
+        c.vectors.data[0] = 3e38;
+        for options in [SearchOptions::default(), SearchOptions::default().exact()] {
+            assert!(matches!(
+                c.search(&[1., 0.], 1, &options),
+                Err(Error::InvalidVector(_))
+            ));
+        }
+        assert_eq!(c.get("old").unwrap().vector[0], 3e38);
+    }
 }

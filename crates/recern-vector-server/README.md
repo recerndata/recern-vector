@@ -1,14 +1,14 @@
-# Recern Vector server — 0.5.0
+# Recern Vector server — 1.0.0
 
 Single-node HTTP/1.1 server for portable profile `recern-vector/1`.
 
 ```sh
-cargo install recern-vector-server --version 0.5.0 --locked
+cargo install recern-vector-server --version 1.0.0 --locked
 # Or build: cargo build --locked --release -p recern-vector-server
 ```
 
 Native CLI/server archives are also available from the
-[0.5.0 release](https://github.com/recerndata/recern-vector/releases/tag/v0.5.0).
+[1.0.0 release](https://github.com/recerndata/recern-vector/releases/tag/v1.0.0).
 Run with a new/empty database, a private 32–256 byte API-key file and a loopback
 listener. Use a verified TLS proxy for remote access.
 

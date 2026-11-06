@@ -1,44 +1,45 @@
-# Recern Vector 0.5.0: packages and compatibility
+# Recern Vector 1.0.0: packages and compatibility
 
-Version **0.5.0** adds incremental record/HNSW encoding, paged format 3,
-automatic WAL checkpoints, explicit storage upgrades with a format-2 backup,
-and published Node.js packages with automatic platform selection. The portable
+Version **1.0.0** stabilizes the supported Rust, Python, Node.js and CLI APIs
+and their compatibility/deprecation policy. It fixes collection lifetime, input
+validation and request-deadline issues, and strengthens persistence recovery.
+Incremental saves, automatic checkpoints and paged format 3 remain available. The portable
 profile, HTTP API, migration/export format and WAL contract remain version 1.
 
 ## Install
 
 ```sh
-pip install --upgrade recern-vector==0.5.0
-cargo add recern-vector@0.5.0
-cargo add recern-vector-client@0.5.0
-cargo install recern-vector-cli --version 0.5.0 --locked
-cargo install recern-vector-server --version 0.5.0 --locked
-npm install @recern/vector@0.5.0
+pip install --upgrade recern-vector==1.0.0
+cargo add recern-vector@1.0.0
+cargo add recern-vector-client@1.0.0
+cargo install recern-vector-cli --version 1.0.0 --locked
+cargo install recern-vector-server --version 1.0.0 --locked
+npm install @recern/vector@1.0.0
 ```
 
 Python requires CPython 3.11+. ABI3 wheels are tested on 3.11 and 3.14; the
 interoperability suite also runs on 3.12. The sdist is built and installed
 separately. Rust requires 1.89+; the minimum and stable compilers are checked.
-Node.js requires 22+. npm installs the exact-version native package for the
+Node.js requires 22+; TypeScript declarations require 5.2+. npm installs the exact-version native package for the
 supported operating system, CPU and libc. Keep optional dependencies enabled;
 installation does not run a binary-download script.
 
 ## Platforms and artifacts
 
-[GitHub release v0.5.0](https://github.com/recerndata/recern-vector/releases/tag/v0.5.0)
+[GitHub release v1.0.0](https://github.com/recerndata/recern-vector/releases/tag/v1.0.0)
 contains native CLI/server archives, Python wheels/sdist, Rust source packages,
 Node registry packages, self-contained Node archives and SHA256SUMS.
 
 | Platform | CLI + HTTP server | npm native dependency |
 |---|---|---|
-| Linux x64, glibc 2.35+ | `recern-vector-0.5.0-linux-x64.tar.gz` | `@recern/vector-linux-x64-gnu` |
-| Linux ARM64, glibc 2.35+ | `recern-vector-0.5.0-linux-arm64.tar.gz` | `@recern/vector-linux-arm64-gnu` |
-| macOS Intel, macOS 13+ | `recern-vector-0.5.0-darwin-x64.tar.gz` | `@recern/vector-darwin-x64` |
-| macOS Apple silicon, macOS 13+ | `recern-vector-0.5.0-darwin-arm64.tar.gz` | `@recern/vector-darwin-arm64` |
-| Windows x64 | `recern-vector-0.5.0-win32-x64.zip` | `@recern/vector-win32-x64-msvc` |
+| Linux x64, glibc 2.35+ | `recern-vector-1.0.0-linux-x64.tar.gz` | `@recern/vector-linux-x64-gnu` |
+| Linux ARM64, glibc 2.35+ | `recern-vector-1.0.0-linux-arm64.tar.gz` | `@recern/vector-linux-arm64-gnu` |
+| macOS Intel, macOS 13+ | `recern-vector-1.0.0-darwin-x64.tar.gz` | `@recern/vector-darwin-x64` |
+| macOS Apple silicon, macOS 13+ | `recern-vector-1.0.0-darwin-arm64.tar.gz` | `@recern/vector-darwin-arm64` |
+| Windows x64 | `recern-vector-1.0.0-win32-x64.zip` | `@recern/vector-win32-x64-msvc` |
 
 Use the umbrella `@recern/vector` package for ordinary npm installs. The
-self-contained GitHub Node archives have `recern-vector-0.5.0-node-<platform>.tgz`
+self-contained GitHub Node archives have `recern-vector-1.0.0-node-<platform>.tgz`
 names. Linux musl, Windows ARM64 and other targets have no advertised prebuilt
 addon. Build from source on other targets; only the listed hosts are verified.
 
@@ -49,11 +50,25 @@ sha256sum --check SHA256SUMS
 # macOS: shasum -a 256 -c SHA256SUMS
 ```
 
+## API compatibility
+
+The [1.x policy](compatibility.md) freezes documented public operations, types
+and error categories, with deprecation before incompatible removal. Released
+0.4.0/0.5.0 and current HTTP clients/servers are tested in all 27
+client/server/platform combinations. Release checks install the actual wheels,
+Rust crates and npm packages on the supported hosts.
+
+The [audit and recovery procedure](api-audit-1.0.md) describes observable fixes.
+Drop/recreate invalidates old collection handles; closed portable Python clients
+reject later operations. Invalid numeric settings, excessive Python JSON
+nesting/expansion and vectors that overflow float32 distances fail explicitly.
+
 ## Upgrade and backup
 
 1. Stop writers and back up a matching snapshot/WAL pair, or checkpoint and copy
    the standalone snapshot while writes remain stopped.
-2. Install 0.5.0. Readers support formats **1, 2 and 3**. Ordinary saves keep
+2. Install 1.0.0. Published 0.5.0 and 1.0.0 read each other’s format-3 writes;
+   the release suite checks both directions and export/import. Readers support formats **1, 2 and 3**. Ordinary saves keep
    format-2 files in format 2; format 1 first checkpoints to format 2.
 3. New databases use format **3**. To opt an existing format-2 file into the new
    layout, run `recern-vector upgrade-storage data.rvec`, Python
@@ -78,10 +93,10 @@ credentials, deployment and backend-specific features need explicit configuratio
 ## Measurements and operating limits
 
 The [reproducible measurements](../bench/releases/0.5.0-dev.1/README.md) were run
-against the 0.5.0-dev.1 engine source. Its engine implementation is retained for
-0.5.0; raw samples, hashes and plots keep their actual development-build
-provenance. These are not fresh measurements of every distributed release
-binary. Historical 0.4.0 data remains separate.
+against the 0.5.0-dev.1 engine source. Raw samples, hashes and plots retain
+that historical provenance; they are not fresh measurements of 1.0.0 binaries.
+The 1.0 release validates behavior and compatibility without claiming new
+performance results. Historical 0.4.0 data remains separate.
 
 Format-3 saves encode changed records and HNSW neighbours. Open/checkpoint still
 process the full image; database, graph and cached pages must fit in RAM. Page

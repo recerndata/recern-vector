@@ -2,13 +2,16 @@
 from __future__ import annotations
 
 import hashlib
+import copy
 from functools import wraps
 import ipaddress
 import json
 import math
+import queue
 import re
 import socket
 import ssl
+import threading
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -50,6 +53,7 @@ def _protocol(operation):
 
 class QdrantBackend:
     def __init__(self, url, *, api_key, timeout, namespace, ca_file):
+        self.bound = None
         if not isinstance(url, str):
             raise InvalidArgument("Qdrant URL must be a string")
         try:
@@ -85,6 +89,7 @@ class QdrantBackend:
         except (OSError, ssl.SSLError) as e:
             raise InvalidArgument("unable to load TLS trust certificates") from e
         self.opener = urllib.request.build_opener(_NoRedirect(), urllib.request.HTTPSHandler(context=context))
+        self.slots = threading.BoundedSemaphore(8)
         self.identity = "qdrant:" + hashlib.sha256((self.url + "\0" + namespace).encode()).hexdigest()
         self.capabilities = Capabilities("qdrant")
         version = self._request("GET", "/", envelope=False).get("version", "")
@@ -98,9 +103,44 @@ class QdrantBackend:
         if data is not None and len(data) > MAX_HTTP_BYTES:
             raise InvalidArgument("request exceeds 64 MiB; reduce the batch size")
         request = urllib.request.Request(self.url + route, data=data, headers=self.headers, method=method)
+        if not self.slots.acquire(blocking=False):
+            raise Unavailable("too many unfinished Qdrant requests")
+        result, cancelled = queue.Queue(maxsize=1), threading.Event()
+
+        def perform():
+            try:
+                result.put((self._response(request, envelope, cancelled), None))
+            except BaseException as error:
+                result.put((None, error))
+            finally:
+                self.slots.release()
+
+        # One caller deadline includes DNS, TLS, headers and slowly streamed
+        # bodies. Stalled OS I/O is bounded by the shared per-client semaphore;
+        # a timed-out write is never retried automatically.
+        threading.Thread(target=perform, daemon=True, name="recern-qdrant").start()
+        try:
+            value, error = result.get(timeout=self.timeout)
+        except queue.Empty:
+            cancelled.set()
+            raise Unavailable("Qdrant request exceeded its total deadline; a write may already have committed") from None
+        if error is not None:
+            raise error
+        return value
+
+    def _response(self, request, envelope, cancelled):
         try:
             with self.opener.open(request, timeout=self.timeout) as response:
-                raw = response.read(MAX_HTTP_BYTES + 1)
+                raw = bytearray()
+                while not cancelled.is_set():
+                    block = response.read1(min(65_536, MAX_HTTP_BYTES + 1 - len(raw)))
+                    if not block:
+                        break
+                    raw.extend(block)
+                    if len(raw) > MAX_HTTP_BYTES:
+                        raise Unavailable("Qdrant response exceeds 64 MiB; reduce the page size")
+                if cancelled.is_set():
+                    raise TimeoutError()
         except urllib.error.HTTPError as e:
             category = {400: InvalidArgument, 401: PermissionDenied, 403: PermissionDenied,
                         404: NotFound, 409: AlreadyExists, 422: InvalidArgument}.get(e.code, Unavailable)
@@ -128,6 +168,11 @@ class QdrantBackend:
     def _route(self, name):
         return "/collections/" + self._physical(name)
 
+    def bind(self, name, spec, identity):
+        result = copy.copy(self)
+        result.bound = (spec, identity)
+        return result
+
     @_protocol
     def _details(self, name):
         result = self._request("GET", self._route(name))
@@ -141,7 +186,10 @@ class QdrantBackend:
             metric = next(k for k, v in METRICS.items() if v == vectors["distance"])
             if vectors.get("datatype", "float32") != "float32" or config.get("quantization_config"):
                 raise ValueError()
-            return CollectionSpec(name, vectors["size"], metric), marker["generation"]
+            descriptor = CollectionSpec(name, vectors["size"], metric), marker["generation"]
+            if self.bound is not None and descriptor != self.bound:
+                raise Conflict("collection was replaced; acquire a new handle")
+            return descriptor
         except (KeyError, TypeError, ValueError, StopIteration) as e:
             raise Unsupported("collection is not an unmodified portable v1 collection") from e
 
@@ -215,6 +263,8 @@ class QdrantBackend:
     @_protocol
     def upsert(self, name, records):
         self._details(name)
+        if not records:
+            return 0
         expected = {}
         for r in records:
             mapped = point_id(r.id)

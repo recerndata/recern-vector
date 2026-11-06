@@ -1,6 +1,6 @@
 # File format and durability
 
-Published Recern Vector **0.2.0–0.4.0** writes format **2** and reads **1/2**. Recern Vector **0.5.0** reads **1/2/3** and creates new files in paged format **3**. Existing format-2 files keep their layout on save/checkpoint; conversion requires an explicit `upgrade_storage()` / `upgradeStorage()` / CLI `upgrade-storage` call. Format-1 files first checkpoint to format 2. These are separate storage versions from the package version.
+Published Recern Vector **0.2.0–0.4.0** writes format **2** and reads **1/2**. Recern Vector **0.5.0 and 1.0.0** read **1/2/3** and create new files in paged format **3**. Existing format-2 files keep their layout on save/checkpoint; conversion requires an explicit `upgrade_storage()` / `upgradeStorage()` / CLI `upgrade-storage` call. Format-1 files first checkpoint to format 2. These are separate storage versions from the package version.
 
 Old 0.2/0.3/0.4 readers, including Workspace 1.0.0's embedded 0.2.0 reader, reject format 3 as unsupported. To return to an older reader, retain the generated format-2 backup or export/import with portable migration v1. Export/import rebuilds the index; it is not a binary downgrade. Upgrades include pending in-memory changes, while the backup contains the last durable state. Stop other writers, inspect the returned backup path, and reopen after any upgrade error: an error after rename can mean the conversion already committed.
 

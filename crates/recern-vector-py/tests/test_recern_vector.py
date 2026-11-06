@@ -48,6 +48,34 @@ def test_context_manager_does_not_save_on_error(path):
     assert rv.Database(path).collection_names() == []
 
 
+def test_metadata_cycles_depth_and_shared_subtrees_are_bounded(path):
+    db = rv.Database.create(path)
+    c = db.create_collection("c", dim=2)
+    recursive_list = []
+    recursive_list.append(recursive_list)
+    recursive_dict = {}
+    recursive_dict["self"] = recursive_dict
+    deep = None
+    for _ in range(64):
+        deep = [deep]
+    c.upsert("valid", [1, 0], deep)
+    for metadata in (recursive_list, recursive_dict, [deep]):
+        with pytest.raises(ValueError, match="nesting"):
+            c.upsert("bad", [1, 0], metadata)
+        with pytest.raises(ValueError, match="nesting"):
+            c.upsert_many(["pending", "bad"], [[1, 0], [1, 0]], [None, metadata])
+    with pytest.raises(ValueError, match="nesting"):
+        c.search([1, 0], filter=recursive_dict)
+    shared = None
+    for _ in range(24):
+        shared = [shared, shared]
+    with pytest.raises(ValueError, match="value count"):
+        c.upsert("bad", [1, 0], shared)
+    assert len(c) == 1
+    db.save()
+    assert rv.Database(path)["c"].get("valid").metadata == deep
+
+
 def test_accepts_lists_float64_and_float32(path):
     db = rv.Database.create(path)
     c = db.create_collection("c", dim=3, metric="cosine")
@@ -306,3 +334,52 @@ def test_paged_save_counters_and_explicit_legacy_upgrade(tmp_path):
     assert rv.Database(legacy)['int8'].get('alpha').id == 'alpha'
     with pytest.raises(ValueError, match='read-only'):
         rv.Database.open_read_only(legacy).upgrade_storage()
+
+
+def test_collection_handles_never_rebind_after_drop_and_recreate(path):
+    db = rv.Database.create(path)
+    original = db.create_collection("c", 2)
+    second_handle = db.collection("c")
+    db.drop_collection("c")
+    replacement = db.create_collection("c", 2)
+    replacement.upsert("keep", [1., 0.])
+    for stale in (original, second_handle):
+        for operation in (
+            lambda: stale.upsert("bad", [1., 0.]),
+            lambda: stale.upsert_many([], []),
+            lambda: stale.delete("keep"), lambda: stale.get("keep"),
+            lambda: stale.records_page(), lambda: stale.search([1., 0.]),
+            lambda: stale.explain([1., 0.]), lambda: stale.compact(),
+            lambda: stale.stats(), lambda: stale.dim, lambda: len(stale),
+        ):
+            with pytest.raises(KeyError):
+                operation()
+    assert len(replacement) == 1
+    db.save()
+    assert rv.Database(path).collection("c").get("keep") is not None
+
+
+def test_hnsw_values_must_survive_persistence_without_truncation(path):
+    db = rv.Database.create(path)
+    for field in ("ef_construction", "ef_search"):
+        with pytest.raises(ValueError):
+            db.create_collection("bad", 2, **{field: 2**32})
+        assert db.collection_names() == []
+    c = db.create_collection("c", 2)
+    c.upsert_many(["a", "b"], [[1., 0.], [0., 1.]])
+    with pytest.raises(ValueError):
+        c.search([1., 0.], ef=0)
+    with pytest.raises(ValueError):
+        c.estimate_recall(ef_values=[0])
+
+
+@pytest.mark.parametrize('metric', ['l2', 'dot', 'cosine'])
+def test_finite_components_with_overflowing_distances_are_rejected(path, metric):
+    c = rv.Database.create(path).create_collection('c', 2, metric)
+    with pytest.raises(ValueError, match='magnitude'):
+        c.upsert('huge', [3e38, 0.])
+    assert len(c) == 0
+    c.upsert('safe', [1., 0.])
+    with pytest.raises(ValueError, match='magnitude'):
+        c.search([-3e38, 0.])
+    assert math.isfinite(c.search([1., 0.])[0].distance)
